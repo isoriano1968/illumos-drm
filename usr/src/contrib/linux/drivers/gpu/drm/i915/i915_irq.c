@@ -367,6 +367,20 @@ static irqreturn_t cherryview_irq_handler(int irq, void *arg)
  * 4 - Process the interrupt(s) that had bits set in the IIRs.
  * 5 - Re-enable Master Interrupt Control.
  */
+#ifdef __illumos__
+/*
+ * The display-engine interrupt registers on a device without display
+ * (drivers/i915/illumos/i915_illumos.c).
+ */
+extern void i915_illumos_de_irq_reset(struct drm_i915_private *i915);
+extern void i915_illumos_de_irq_postinstall(struct drm_i915_private *i915);
+extern void i915_illumos_de_master_disable(struct drm_i915_private *i915,
+    u32 *de_ier, u32 *sde_ier);
+extern void i915_illumos_de_master_enable(struct drm_i915_private *i915,
+    u32 de_ier, u32 sde_ier);
+extern void i915_illumos_gen8_de_irq_reset(struct drm_i915_private *i915);
+#endif
+
 static irqreturn_t ilk_irq_handler(int irq, void *arg)
 {
 	struct drm_i915_private *i915 = arg;
@@ -382,7 +396,11 @@ static irqreturn_t ilk_irq_handler(int irq, void *arg)
 	disable_rpm_wakeref_asserts(&i915->runtime_pm);
 
 	/* Disable master and south interrupts */
+#ifdef __illumos__
+	i915_illumos_de_master_disable(i915, &de_ier, &sde_ier);
+#else
 	ilk_display_irq_master_disable(display, &de_ier, &sde_ier);
+#endif
 
 	/* Find, clear, then process each source of interrupt */
 
@@ -409,7 +427,11 @@ static irqreturn_t ilk_irq_handler(int irq, void *arg)
 	}
 
 	/* Re-enable master and south interrupts */
+#ifdef __illumos__
+	i915_illumos_de_master_enable(i915, de_ier, sde_ier);
+#else
 	ilk_display_irq_master_enable(display, de_ier, sde_ier);
+#endif
 
 	pmu_irq_stats(i915, ret);
 
@@ -600,6 +622,9 @@ static void ilk_irq_reset(struct drm_i915_private *dev_priv)
 
 	/* The master interrupt enable is in DEIER, reset display irq first */
 	intel_display_irq_reset(display);
+#ifdef __illumos__
+	i915_illumos_de_irq_reset(dev_priv);
+#endif
 	gen5_gt_irq_reset(to_gt(dev_priv));
 }
 
@@ -624,6 +649,9 @@ static void gen8_irq_reset(struct drm_i915_private *dev_priv)
 
 	gen8_gt_irq_reset(to_gt(dev_priv));
 	intel_display_irq_reset(display);
+#ifdef __illumos__
+	i915_illumos_gen8_de_irq_reset(dev_priv);
+#endif
 	gen2_irq_reset(uncore, GEN8_PCU_IRQ_REGS);
 }
 
@@ -684,6 +712,9 @@ static void ilk_irq_postinstall(struct drm_i915_private *dev_priv)
 	gen5_gt_irq_postinstall(to_gt(dev_priv));
 
 	intel_display_irq_postinstall(display);
+#ifdef __illumos__
+	i915_illumos_de_irq_postinstall(dev_priv);
+#endif
 }
 
 static void valleyview_irq_postinstall(struct drm_i915_private *dev_priv)
