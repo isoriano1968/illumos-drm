@@ -94,6 +94,17 @@ __i915_gem_object_unset_pages(struct drm_i915_gem_object *obj);
  * otherwise. This object is only valid whilst under the RCU read lock, and
  * note carefully the object may be in the process of being destroyed.
  */
+#ifdef __illumos__
+/*
+ * The illumos DRM core's handle table has no lockless lookup: this takes
+ * a reference and drops it after an RCU grace period (i915_illumos.c), so
+ * the object stays valid until the caller's rcu_read_unlock().
+ */
+struct drm_i915_gem_object *
+i915_gem_object_lookup_rcu(struct drm_file *file, u32 handle);
+bool i915_illumos_handle_is(struct drm_file *file, u32 handle,
+			    struct drm_i915_gem_object *obj);
+#else
 static inline struct drm_i915_gem_object *
 i915_gem_object_lookup_rcu(struct drm_file *file, u32 handle)
 {
@@ -102,6 +113,7 @@ i915_gem_object_lookup_rcu(struct drm_file *file, u32 handle)
 #endif
 	return idr_find(&file->object_idr, handle);
 }
+#endif
 
 static inline struct drm_i915_gem_object *
 i915_gem_object_get_rcu(struct drm_i915_gem_object *obj)

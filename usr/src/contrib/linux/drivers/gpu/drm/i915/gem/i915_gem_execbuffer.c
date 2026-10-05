@@ -863,7 +863,11 @@ static int __eb_add_lut(struct i915_execbuffer *eb,
 			struct drm_i915_gem_object *obj = vma->obj;
 
 			spin_lock(&obj->lut_lock);
+#ifdef __illumos__
+			if (i915_illumos_handle_is(eb->file, handle, obj)) {
+#else
 			if (idr_find(&eb->file->object_idr, handle) == obj) {
+#endif
 				list_add(&lut->obj_link, &obj->lut_list);
 			} else {
 				radix_tree_delete(&ctx->handles_vma, handle);
