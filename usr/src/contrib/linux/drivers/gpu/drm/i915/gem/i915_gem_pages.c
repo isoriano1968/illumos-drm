@@ -6,11 +6,15 @@
 #include <linux/vmalloc.h>
 
 #include <drm/drm_cache.h>
+#ifndef __illumos__
 #include <drm/drm_panic.h>
+#endif
 #include <drm/drm_print.h>
 
+#ifndef __illumos__
 #include "display/intel_fb.h"
 #include "display/intel_display_types.h"
+#endif
 #include "gt/intel_gt.h"
 #include "gt/intel_tlb.h"
 
@@ -359,6 +363,7 @@ static void *i915_gem_object_map_pfn(struct drm_i915_gem_object *obj,
 	return vaddr ?: ERR_PTR(-ENOMEM);
 }
 
+#ifndef __illumos__	/* the display's panic screen; illumos builds i915 headless */
 struct intel_panic {
 	struct page **pages;
 	int page;
@@ -483,6 +488,7 @@ void i915_gem_object_panic_finish(struct intel_panic *panic)
 	kfree(panic->pages);
 	panic->pages = NULL;
 }
+#endif
 
 /* get, pin, and map the pages of the object into kernel space */
 void *i915_gem_object_pin_map(struct drm_i915_gem_object *obj,
