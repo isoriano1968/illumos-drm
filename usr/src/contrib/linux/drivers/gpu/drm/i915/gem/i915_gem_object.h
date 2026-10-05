@@ -124,6 +124,20 @@ i915_gem_object_get_rcu(struct drm_i915_gem_object *obj)
 	return obj;
 }
 
+#ifdef __illumos__
+/*
+ * A lookup with a reference is the DRM core's own (no RCU round trip
+ * through i915_gem_object_lookup_rcu()); i915_illumos.c.
+ */
+struct drm_i915_gem_object *
+i915_illumos_object_lookup(struct drm_file *file, u32 handle);
+
+static inline struct drm_i915_gem_object *
+i915_gem_object_lookup(struct drm_file *file, u32 handle)
+{
+	return i915_illumos_object_lookup(file, handle);
+}
+#else
 static inline struct drm_i915_gem_object *
 i915_gem_object_lookup(struct drm_file *file, u32 handle)
 {
@@ -136,6 +150,7 @@ i915_gem_object_lookup(struct drm_file *file, u32 handle)
 
 	return obj;
 }
+#endif
 
 __deprecated
 struct drm_gem_object *
