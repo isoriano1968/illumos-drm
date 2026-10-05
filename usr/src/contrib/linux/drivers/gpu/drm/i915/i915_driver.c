@@ -856,6 +856,26 @@ int i915_driver_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 		return PTR_ERR(i915);
 	}
 
+#ifdef __illumos__
+	/*
+	 * The illumos build covers the integrated GPUs of gen6 to gen9.5
+	 * with a PCH: the layer's stolen-memory decoding, the headless
+	 * interrupt setup (patch 0006) and the stubs of the parts left out
+	 * are written for those. Other GPUs are refused before anything
+	 * touches them.
+	 */
+	if (GRAPHICS_VER(i915) < 6 || GRAPHICS_VER(i915) > 9 ||
+	    IS_VALLEYVIEW(i915) || IS_CHERRYVIEW(i915) || IS_GEN9_LP(i915) ||
+	    IS_DGFX(i915)) {
+		drm_info(&i915->drm, "i915n: this GPU (gen %d) is not "
+		    "supported on illumos\n", GRAPHICS_VER(i915));
+		intel_display_device_remove(i915->display);
+		i915->display = NULL;
+		pci_disable_device(pdev);
+		return -ENODEV;
+	}
+#endif
+
 	display = i915->display;
 
 	ret = i915_driver_early_probe(i915);
