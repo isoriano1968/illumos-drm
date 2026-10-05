@@ -2861,8 +2861,29 @@ add_timeline_fence_array(struct i915_execbuffer *eb,
 			return -EINVAL;
 		}
 
+#ifdef __illumos__
+		/*
+		 * Timeline points are the DRM core's: no fence a driver sees
+		 * is a chain, so the point is looked up through the core. A
+		 * point not found leaves the sync object's current fence, as
+		 * Linux's lookup does (a signal-only entry still waits for it).
+		 */
+		if (fence && point != 0) {
+			struct dma_fence *at = NULL;
+
+			err = drm_syncobj_find_fence(eb->file, user_fence.handle,
+			    point, 0, &at);
+			if (err == 0) {
+				dma_fence_put(fence);
+				fence = at;
+			} else if (err == -ENOENT) {
+				err = -EINVAL;
+			}
+		}
+#else
 		if (fence)
 			err = dma_fence_chain_find_seqno(&fence, point);
+#endif
 
 		if (err && !(user_fence.flags & I915_EXEC_FENCE_SIGNAL)) {
 			drm_dbg(&eb->i915->drm,
