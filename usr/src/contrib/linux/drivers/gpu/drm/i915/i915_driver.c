@@ -1891,9 +1891,21 @@ static const struct drm_ioctl_desc i915_ioctls[] = {
 #define DRIVER_MINOR		6
 #define DRIVER_PATCHLEVEL	0
 
+#if defined(__illumos__) && defined(I915N_DISPLAY)
+/*
+ * misc/drm_kms: Linux's KMS code behind the DRM core (facade 2.0); i915n's
+ * copy of its hook table also restores the illumos console at lastclose
+ * (illumos/i915_illumos_con_kms.c).
+ */
+extern struct drm_illumos_lkms_funcs i915n_lkms_funcs;
+#endif
+
 static const struct drm_driver i915_drm_driver = {
 #ifdef __illumos__
 	DRM_FACADE_DRIVER_VERSION,
+#endif
+#if defined(__illumos__) && defined(I915N_DISPLAY)
+	.illumos_lkms = &i915n_lkms_funcs,
 #endif
 	.driver_features =
 	    DRIVER_GEM |
