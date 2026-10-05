@@ -368,6 +368,10 @@ struct drm_i915_gem_object {
 #define I915_BO_READONLY          BIT(10)
 #define I915_TILING_QUIRK_BIT     11 /* unknown swizzling; do not release! */
 #define I915_BO_PROTECTED         BIT(12)
+#ifdef __illumos__
+/* A write-back user mapping stands for a WC/UC one (patch 0005). */
+#define I915_BO_ILLUMOS_WB_FOR_WC_BIT	14
+#endif
 	/**
 	 * @mem_flags - Mutable placement-related flags
 	 *

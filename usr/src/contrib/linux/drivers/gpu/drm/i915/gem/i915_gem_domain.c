@@ -403,6 +403,18 @@ int i915_gem_set_caching_ioctl(struct drm_device *dev, void *data,
 	if (ret)
 		goto out;
 
+#ifdef __illumos__
+	/*
+	 * A user mapping handed out as WC/UC is write-back here, which is
+	 * only right while the CPU cache stays coherent with the GPU.
+	 */
+	if (test_bit(I915_BO_ILLUMOS_WB_FOR_WC_BIT, &obj->flags) &&
+	    level != I915_CACHE_LLC) {
+		i915_gem_object_unlock(obj);
+		ret = -EBUSY;
+		goto out;
+	}
+#endif
 	ret = i915_gem_object_set_cache_level(obj, level);
 	i915_gem_object_unlock(obj);
 
