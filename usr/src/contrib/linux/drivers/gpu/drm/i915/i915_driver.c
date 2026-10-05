@@ -1769,6 +1769,7 @@ const struct dev_pm_ops i915_pm_ops = {
 	.runtime_resume = i915_pm_runtime_resume,
 };
 
+#ifndef __illumos__
 static const struct file_operations i915_driver_fops = {
 	.owner = THIS_MODULE,
 	.open = drm_open,
@@ -1784,6 +1785,7 @@ static const struct file_operations i915_driver_fops = {
 #endif
 	.fop_flags = FOP_UNSIGNED_OFFSET,
 };
+#endif /* !__illumos__: the DRM core owns the device file on illumos */
 
 static int
 i915_gem_reject_pin_ioctl(struct drm_device *dev, void *data,
@@ -1870,6 +1872,9 @@ static const struct drm_ioctl_desc i915_ioctls[] = {
 #define DRIVER_PATCHLEVEL	0
 
 static const struct drm_driver i915_drm_driver = {
+#ifdef __illumos__
+	DRM_FACADE_DRIVER_VERSION,
+#endif
 	.driver_features =
 	    DRIVER_GEM |
 	    DRIVER_RENDER | DRIVER_MODESET | DRIVER_ATOMIC | DRIVER_SYNCOBJ |
@@ -1877,18 +1882,24 @@ static const struct drm_driver i915_drm_driver = {
 	.release = i915_driver_release,
 	.open = i915_driver_open,
 	.postclose = i915_driver_postclose,
+#ifndef __illumos__
 	.show_fdinfo = PTR_IF(IS_ENABLED(CONFIG_PROC_FS), i915_drm_client_fdinfo),
+#endif
 
 	.gem_prime_import = i915_gem_prime_import,
 
 	.dumb_create = i915_gem_dumb_create,
 	.dumb_map_offset = i915_gem_dumb_mmap_offset,
 
+#ifndef __illumos__
 	INTEL_FBDEV_DRIVER_OPS,
+#endif
 
 	.ioctls = i915_ioctls,
 	.num_ioctls = ARRAY_SIZE(i915_ioctls),
+#ifndef __illumos__
 	.fops = &i915_driver_fops,
+#endif
 	.name = DRIVER_NAME,
 	.desc = DRIVER_DESC,
 	.major = DRIVER_MAJOR,

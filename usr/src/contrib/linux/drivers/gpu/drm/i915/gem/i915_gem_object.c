@@ -897,9 +897,12 @@ int __init i915_objects_module_init(void)
 static const struct drm_gem_object_funcs i915_gem_object_funcs = {
 	.free = i915_gem_free_object,
 	.close = i915_gem_close_object,
+#ifndef __illumos__
+	/* On illumos the DRM core exports and maps dma-bufs itself. */
 	.export = i915_gem_prime_export,
 	.vmap = i915_gem_vmap_object,
 	.vunmap = i915_gem_vunmap_object,
+#endif
 };
 
 /**
