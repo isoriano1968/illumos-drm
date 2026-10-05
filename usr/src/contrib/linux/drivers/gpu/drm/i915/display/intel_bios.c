@@ -3223,6 +3223,11 @@ err_free_rom:
 	return NULL;
 }
 
+#ifdef __illumos__
+/* drivers/i915/illumos/i915_illumos_vbt.c */
+#include "i915_illumos_vbt.h"
+#endif
+
 static const struct vbt_header *intel_bios_get_vbt(struct intel_display *display,
 						   size_t *sizep)
 {
@@ -3232,6 +3237,12 @@ static const struct vbt_header *intel_bios_get_vbt(struct intel_display *display
 
 	if (!vbt)
 		vbt = intel_opregion_get_vbt(display, sizep);
+
+#ifdef __illumos__
+	/* The OpRegion's VBT without CONFIG_ACPI, read-only. */
+	if (!vbt)
+		vbt = i915_illumos_opregion_vbt(display, sizep);
+#endif
 
 	/*
 	 * If the OpRegion does not have VBT, look in SPI flash
