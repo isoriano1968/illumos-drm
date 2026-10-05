@@ -41,6 +41,10 @@
 #include <video/cmdline.h>
 
 #include "drm_crtc_internal.h"
+
+#ifndef __illumos__
+#define drm_kms_dev_registered(dev)	((dev)->registered)
+#endif
 #include "drm_internal.h"
 
 /**
@@ -811,7 +815,7 @@ void drm_connector_cleanup(struct drm_connector *connector)
 
 	memset(connector, 0, sizeof(*connector));
 
-	if (dev->registered)
+	if (drm_kms_dev_registered(dev))
 		drm_sysfs_hotplug_event(dev);
 }
 EXPORT_SYMBOL(drm_connector_cleanup);
@@ -838,7 +842,7 @@ int drm_connector_register(struct drm_connector *connector)
 {
 	int ret = 0;
 
-	if (!connector->dev->registered)
+	if (!drm_kms_dev_registered(connector->dev))
 		return 0;
 
 	mutex_lock(&connector->mutex);

@@ -39,6 +39,9 @@
 #else
 #define drm_driver_legacy_load(dev)	((dev)->driver->load != NULL)
 #endif
+#ifndef __illumos__
+#define drm_kms_dev_registered(dev)	((dev)->registered)
+#endif
 
 /*
  * Internal function to assign a slot in the object idr and optionally
@@ -50,7 +53,7 @@ int __drm_mode_object_add(struct drm_device *dev, struct drm_mode_object *obj,
 {
 	int ret;
 
-	WARN_ON(!drm_driver_legacy_load(dev) && dev->registered && !obj_free_cb);
+	WARN_ON(!drm_driver_legacy_load(dev) && drm_kms_dev_registered(dev) && !obj_free_cb);
 
 	mutex_lock(&dev->mode_config.idr_mutex);
 	ret = idr_alloc(&dev->mode_config.object_idr, register_obj ? obj : NULL,
@@ -113,7 +116,7 @@ void drm_mode_object_register(struct drm_device *dev,
 void drm_mode_object_unregister(struct drm_device *dev,
 				struct drm_mode_object *object)
 {
-	WARN_ON(!drm_driver_legacy_load(dev) && dev->registered && !object->free_cb);
+	WARN_ON(!drm_driver_legacy_load(dev) && drm_kms_dev_registered(dev) && !object->free_cb);
 
 	mutex_lock(&dev->mode_config.idr_mutex);
 	if (object->id) {
@@ -253,7 +256,7 @@ void drm_object_attach_property(struct drm_mode_object *obj,
 		WARN_ON(!drm_driver_legacy_load(dev) &&
 			connector->registration_state == DRM_CONNECTOR_REGISTERED);
 	} else {
-		WARN_ON(!drm_driver_legacy_load(dev) && dev->registered);
+		WARN_ON(!drm_driver_legacy_load(dev) && drm_kms_dev_registered(dev));
 	}
 
 	if (count == DRM_OBJECT_MAX_PROPERTY) {
