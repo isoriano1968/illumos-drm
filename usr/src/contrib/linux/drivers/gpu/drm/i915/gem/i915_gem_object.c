@@ -894,9 +894,23 @@ int __init i915_objects_module_init(void)
 	return 0;
 }
 
+#ifdef __illumos__
+/* drivers/i915/illumos/i915_illumos.c */
+extern ddi_umem_cookie_t i915_illumos_gem_umem(struct drm_gem_object *obj);
+#endif
+
 static const struct drm_gem_object_funcs i915_gem_object_funcs = {
 	.free = i915_gem_free_object,
 	.close = i915_gem_close_object,
+#ifdef __illumos__
+	/*
+	 * The memory user mappings of the object show (the DRM core maps
+	 * it); the core requires it of objects without core memory.
+	 */
+	.illumos_umem = i915_illumos_gem_umem,
+	/* i915_gem_close_object() drops the file's lookup tables (LUTs). */
+	.illumos_close_every_handle = true,
+#endif
 #ifndef __illumos__
 	/* On illumos the DRM core exports and maps dma-bufs itself. */
 	.export = i915_gem_prime_export,

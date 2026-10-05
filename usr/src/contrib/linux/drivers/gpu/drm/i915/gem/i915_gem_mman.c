@@ -768,6 +768,12 @@ err:
 	return ERR_PTR(err);
 }
 
+#ifdef __illumos__
+/* drivers/i915/illumos/i915_illumos.c */
+extern int i915_illumos_mmap_offset(struct drm_i915_gem_object *obj,
+    enum i915_mmap_type mmap_type, u64 *offset);
+#endif
+
 static int
 __assign_mmap_offset(struct drm_i915_gem_object *obj,
 		     enum i915_mmap_type mmap_type,
@@ -788,6 +794,14 @@ __assign_mmap_offset(struct drm_i915_gem_object *obj,
 
 	if (mmap_type == I915_MMAP_TYPE_FIXED)
 		return -ENODEV;
+
+#ifdef __illumos__
+	/*
+	 * User mappings are the DRM core's: one offset per object, mapping
+	 * its shmem memory (drivers/i915/illumos/i915_illumos.c).
+	 */
+	return i915_illumos_mmap_offset(obj, mmap_type, offset);
+#endif
 
 	if (mmap_type != I915_MMAP_TYPE_GTT &&
 	    !i915_gem_object_has_struct_page(obj) &&
