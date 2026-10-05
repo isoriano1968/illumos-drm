@@ -3422,11 +3422,19 @@ i915_gem_do_execbuffer(struct drm_device *dev,
 #undef IN_FENCES
 
 	if (args->flags & I915_EXEC_FENCE_OUT) {
+#ifdef __illumos__
+		/*
+		 * The DRM core makes the descriptor when the fence is
+		 * installed (drm_sync_file_install()); 0 means "requested".
+		 */
+		out_fence_fd = 0;
+#else
 		out_fence_fd = get_unused_fd_flags(O_CLOEXEC);
 		if (out_fence_fd < 0) {
 			err = out_fence_fd;
 			goto err_in_fence;
 		}
+#endif
 	}
 
 	err = eb_create(&eb);
@@ -3498,6 +3506,19 @@ err_request:
 	}
 
 	if (out_fence) {
+#ifdef __illumos__
+		int fd;
+
+		if (err == 0)
+			err = drm_sync_file_install(out_fence->fence, true, &fd);
+		if (err == 0) {
+			args->rsvd2 &= GENMASK_ULL(31, 0); /* keep in-fence */
+			args->rsvd2 |= (u64)fd << 32;
+		}
+		out_fence_fd = -1;
+		dma_fence_put(out_fence->fence);
+		kfree(out_fence);
+#else
 		if (err == 0) {
 			fd_install(out_fence_fd, out_fence->file);
 			args->rsvd2 &= GENMASK_ULL(31, 0); /* keep in-fence */
@@ -3506,6 +3527,7 @@ err_request:
 		} else {
 			fput(out_fence->file);
 		}
+#endif
 	}
 
 	if (!out_fence && eb.composite_fence)
@@ -3527,8 +3549,10 @@ err_context:
 err_destroy:
 	eb_destroy(&eb);
 err_out_fence:
+#ifndef __illumos__
 	if (out_fence_fd != -1)
 		put_unused_fd(out_fence_fd);
+#endif
 err_in_fence:
 	dma_fence_put(in_fence);
 err_ext:
