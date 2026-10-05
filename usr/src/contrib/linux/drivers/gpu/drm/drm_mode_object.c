@@ -33,6 +33,13 @@
 
 #include "drm_crtc_internal.h"
 
+#ifdef __illumos__
+/* illumos-drm: drivers have no legacy load callback (struct drm_driver). */
+#define drm_driver_legacy_load(dev)	false
+#else
+#define drm_driver_legacy_load(dev)	((dev)->driver->load != NULL)
+#endif
+
 /*
  * Internal function to assign a slot in the object idr and optionally
  * register the object into the idr.
@@ -43,7 +50,7 @@ int __drm_mode_object_add(struct drm_device *dev, struct drm_mode_object *obj,
 {
 	int ret;
 
-	WARN_ON(!dev->driver->load && dev->registered && !obj_free_cb);
+	WARN_ON(!drm_driver_legacy_load(dev) && dev->registered && !obj_free_cb);
 
 	mutex_lock(&dev->mode_config.idr_mutex);
 	ret = idr_alloc(&dev->mode_config.object_idr, register_obj ? obj : NULL,
@@ -106,7 +113,7 @@ void drm_mode_object_register(struct drm_device *dev,
 void drm_mode_object_unregister(struct drm_device *dev,
 				struct drm_mode_object *object)
 {
-	WARN_ON(!dev->driver->load && dev->registered && !object->free_cb);
+	WARN_ON(!drm_driver_legacy_load(dev) && dev->registered && !object->free_cb);
 
 	mutex_lock(&dev->mode_config.idr_mutex);
 	if (object->id) {
@@ -243,10 +250,10 @@ void drm_object_attach_property(struct drm_mode_object *obj,
 	if (obj->type == DRM_MODE_OBJECT_CONNECTOR) {
 		struct drm_connector *connector = obj_to_connector(obj);
 
-		WARN_ON(!dev->driver->load &&
+		WARN_ON(!drm_driver_legacy_load(dev) &&
 			connector->registration_state == DRM_CONNECTOR_REGISTERED);
 	} else {
-		WARN_ON(!dev->driver->load && dev->registered);
+		WARN_ON(!drm_driver_legacy_load(dev) && dev->registered);
 	}
 
 	if (count == DRM_OBJECT_MAX_PROPERTY) {
