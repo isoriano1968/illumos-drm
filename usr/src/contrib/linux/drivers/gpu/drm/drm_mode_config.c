@@ -436,6 +436,10 @@ int drmm_mode_config_init(struct drm_device *dev)
 {
 	int ret;
 
+#ifdef __illumos__
+	/* Linux: drm_dev_init(); the facade core does not know the KMS area. */
+	INIT_LIST_HEAD(&dev->vblank_event_list);
+#endif
 	mutex_init(&dev->mode_config.mutex);
 	drm_modeset_lock_init(&dev->mode_config.connection_mutex);
 	mutex_init(&dev->mode_config.idr_mutex);
