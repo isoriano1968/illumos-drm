@@ -106,6 +106,10 @@
 #include "i915_hdcp_gsc.h"
 #include "i915_hwmon.h"
 #include "i915_initial_plane.h"
+#ifdef I915N_DISPLAY
+extern int i915n_headless_fb_reserve(struct drm_i915_private *);
+extern void i915n_headless_fb_release(struct drm_i915_private *);
+#endif
 #include "i915_ioc32.h"
 #include "i915_ioctl.h"
 #include "i915_irq.h"
@@ -914,6 +918,12 @@ int i915_driver_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	if (ret)
 		goto out_cleanup_irq;
 
+#ifdef I915N_DISPLAY
+	ret = i915n_headless_fb_reserve(i915);
+	if (ret)
+		goto out_cleanup_modeset2;
+#endif
+
 	ret = i915_gem_init(i915);
 	if (ret)
 		goto out_cleanup_modeset2;
@@ -956,6 +966,9 @@ out_cleanup_modeset:
 out_cleanup_gvt:
 	intel_gvt_driver_remove(i915);
 out_cleanup_hw:
+#ifdef I915N_DISPLAY
+	i915n_headless_fb_release(i915);
+#endif
 	i915_driver_hw_remove(i915);
 	intel_memory_regions_driver_release(i915);
 	i915_ggtt_driver_release(i915);
@@ -1018,6 +1031,9 @@ static void i915_driver_release(struct drm_device *dev)
 
 	i915_gem_driver_release(dev_priv);
 
+#ifdef I915N_DISPLAY
+	i915n_headless_fb_release(dev_priv);
+#endif
 	intel_memory_regions_driver_release(dev_priv);
 	i915_ggtt_driver_release(dev_priv);
 	i915_gem_drain_freed_objects(dev_priv);
