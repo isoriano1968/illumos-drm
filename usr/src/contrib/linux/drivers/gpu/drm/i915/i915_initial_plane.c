@@ -153,7 +153,10 @@ initial_plane_vma(struct drm_i915_private *i915,
 	 * which can cause problems for ggtt_reserve_guc_top().
 	 * Try to pin it to a low ggtt address instead to avoid that.
 	 */
+#ifndef __illumos__
 	base = 0;
+#endif
+	/* illumos gfx_private keeps using the loader's aperture address. */
 
 	if (base != plane_config->base) {
 		struct i915_ggtt *ggtt = to_gt(i915)->ggtt;
