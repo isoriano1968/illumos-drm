@@ -1710,6 +1710,19 @@ struct intel_display *intel_display_device_probe(struct pci_dev *pdev,
 		goto no_display;
 	}
 
+#ifdef __illumos__
+	{
+		extern bool i915_illumos_force_no_display(struct pci_dev *);
+
+		if (i915_illumos_force_no_display(pdev)) {
+			drm_info(display->drm,
+				 "display on %s disabled by driver.conf; running headless\n",
+				 desc->name);
+			goto no_display;
+		}
+	}
+#endif
+
 	info = desc->info;
 	if (!info)
 		info = probe_gmdid_display(display, &ip_ver);
