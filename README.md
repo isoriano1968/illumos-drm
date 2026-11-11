@@ -2078,6 +2078,19 @@ there) and Linux's nine client-capability booleans at its start;
 built for 1.x refuse to load; the Rust drivers fill in the new fields
 (no Linux KMS hooks, no asynchronous flips).
 
+**Facade 2.1 (`drm_illumos_ioctl_nonblock`).** A facade `drm_file` has
+no `struct file`, so Linux code in an ioctl handler that asks whether its
+file is non-blocking (i915's execbuffer throttling) has nothing to read.
+`drm_illumos_ioctl_nonblock()` says whether the calling thread's ioctl
+came through a non-blocking file: it tests `FNONBLOCK | FNDELAY` in the
+ioctl's mode (the open file's current `f_flag`, which illumos passes to
+ioctl(9E)), read from the core's per-thread ioctl frame; outside an ioctl
+handler it is false. One function is added and no layout changes, so the
+minor version becomes 1: drivers built for 2.0 still load on a 2.1 core,
+drivers built for 2.1 refuse a 2.0 core. The packages are versioned
+0.0.2.1 and require and incorporate each other at that version, so the
+core and its drivers update together.
+
 **R4: the virtio framework.** The driver runs the device through the
 gate's virtio framework (`misc/virtio`), a private interface, through
 illumos-ddi's private crate `illumos-kernel-private-virtio-sys` and its
