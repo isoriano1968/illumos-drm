@@ -7,7 +7,7 @@
 # Usage: gen-aliases.sh <patched Linux tree> > packaging/i915n.aliases
 # The groups match patch 0009's PCH Gen6-Gen9.5 admission boundary. They must
 # be reviewed together when that boundary changes. Requires a C preprocessor
-# ($CC, default cc).
+# ($CC, default gcc).
 
 set -eu
 LC_ALL=C
@@ -58,7 +58,7 @@ for group in SNB IVB HSW BDW SKL KBL CFL WHL CML; do
 	printf 'INTEL_%s_IDS(ALIAS)\n' "$group"
 done)
 set -f
-cpp_out=$(printf '%s\n' "$src" | ${CC:-cc} -E -P -x c -)
+cpp_out=$(printf '%s\n' "$src" | ${CC:-gcc} -E -P -x c -)
 set +f
 ids=$(printf '%s\n' "$cpp_out" | hexids)
 
