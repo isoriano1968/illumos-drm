@@ -295,7 +295,16 @@ void i915_address_space_init(struct i915_address_space *vm, int subclass)
 		might_alloc(GFP_KERNEL);
 		mutex_release(&vm->mutex.dep_map, _THIS_IP_);
 	}
+#ifndef __illumos__
 	dma_resv_init(&vm->_resv);
+#else
+	/*
+	 * The caller has initialised vm->_resv (ggtt_probe_hw(), ppgtt_init(),
+	 * i915_dpt_create()). The facade's dma_resv_init() keeps the first
+	 * reservation and warns on a second init; on Linux a re-init of the
+	 * idle reservation is harmless.
+	 */
+#endif
 
 	GEM_BUG_ON(!vm->total);
 	drm_mm_init(&vm->mm, 0, vm->total);

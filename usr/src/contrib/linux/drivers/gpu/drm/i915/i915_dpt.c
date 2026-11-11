@@ -229,6 +229,13 @@ static struct intel_dpt *i915_dpt_create(struct drm_gem_object *obj, size_t size
 	vm->total = (size / sizeof(gen8_pte_t)) * I915_GTT_PAGE_SIZE;
 	vm->is_dpt = true;
 
+#ifdef __illumos__
+	/*
+	 * i915_address_space_init() leaves vm->_resv to its caller; GGTT
+	 * and PPGTT initialise it before it, too.
+	 */
+	dma_resv_init(&vm->_resv);
+#endif
 	i915_address_space_init(vm, VM_CLASS_DPT);
 
 	vm->insert_page = dpt_insert_page;
