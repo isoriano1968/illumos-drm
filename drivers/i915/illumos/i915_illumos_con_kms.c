@@ -247,7 +247,26 @@ con_fb_matches(struct drm_device *drm, struct drm_framebuffer *fb,
 		    "is not XRGB8888\n", &fb->format->format);
 		return (false);
 	}
-	if (fb->modifier != DRM_FORMAT_MOD_LINEAR ||
+	/*
+	 * Apple's EFI GOP leaves an X-tiled surface on the pipe and hands the
+	 * OS its aperture address: a fence made the aperture show it linearly.
+	 * i915 clears all fences at init and, without FBC on the plane, the
+	 * readout pins none (intel_plane_uses_fence()), so the console fences
+	 * it itself (i915n_con_kms_takeover()); here it only has to be one a
+	 * fence can cover: X-tiled with the console's pitch, map-and-fenceable.
+	 */
+	if (fb->modifier == I915_FORMAT_MOD_X_TILED &&
+	    (i915_gem_object_get_tiling(vma->obj) != I915_TILING_X ||
+	    i915_gem_object_get_stride(vma->obj) != want->pitch ||
+	    !i915_vma_is_map_and_fenceable(vma))) {
+		drm_info(drm, "console: X-tiled firmware framebuffer (tiling "
+		    "%u stride %u) cannot be fenced for the console's pitch "
+		    "%u\n", i915_gem_object_get_tiling(vma->obj),
+		    i915_gem_object_get_stride(vma->obj), want->pitch);
+		return (false);
+	}
+	if ((fb->modifier != DRM_FORMAT_MOD_LINEAR &&
+	    fb->modifier != I915_FORMAT_MOD_X_TILED) ||
 	    fb->pitches[0] != want->pitch || want->bpp != 4 ||
 	    fb->width < want->width || fb->height < want->height ||
 	    vma->size < (u64)want->pitch * want->height) {
@@ -303,8 +322,26 @@ i915n_con_kms_takeover(dev_info_t *dip, const struct i915n_con_fb *want)
 		return (-ENOENT);
 	}
 	/* The console's memory and its GGTT binding, for the device's life. */
-	drm_framebuffer_get(fb);
 	__i915_vma_pin(vma);
+	if (fb->modifier == I915_FORMAT_MOD_X_TILED) {
+		intel_wakeref_t wf = intel_runtime_pm_get(&i915->runtime_pm);
+		int ret = i915_vma_pin_fence(vma);
+
+		intel_runtime_pm_put(&i915->runtime_pm, wf);
+		if (ret != 0 || vma->fence == NULL) {
+			if (ret == 0)
+				i915_vma_unpin_fence(vma);
+			__i915_vma_unpin(vma);
+			drm_modeset_unlock_all(drm);
+			drm_info(drm, "console: no fence for the X-tiled "
+			    "firmware framebuffer (%d); no console on this "
+			    "device\n", ret);
+			return (-ENOENT);
+		}
+		drm_info(drm, "console: X-tiled firmware framebuffer shown "
+		    "linearly through fence %d\n", vma->fence->id);
+	}
+	drm_framebuffer_get(fb);
 	i915n_con.drm = drm;
 	i915n_con.fb = fb;
 	i915n_con.vma = vma;
@@ -530,6 +567,8 @@ i915n_con_kms_panic(uint32_t *surfp)
 	cntr = intel_de_read_fw(display, DSPCNTR(display, p));
 	cntr &= ~(DISP_FORMAT_MASK | DISP_TILED);
 	cntr |= DISP_ENABLE | DISP_FORMAT_BGRX888;
+	if (i915n_con.fb->modifier == I915_FORMAT_MOD_X_TILED)
+		cntr |= DISP_TILED;
 	intel_de_write_fw(display, DSPSTRIDE(display, p),
 	    i915n_con.fb->pitches[0]);
 	intel_de_write_fw(display, DSPLINOFF(display, p), 0);
