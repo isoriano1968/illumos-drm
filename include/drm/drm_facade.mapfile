@@ -104,6 +104,7 @@ SYMBOL_SCOPE {
 		drm_illumos_gem_umem	{ FLAGS = EXTERN };
 		drm_illumos_gem_vaddr	{ FLAGS = EXTERN };
 		drm_illumos_ioctl_cmd	{ FLAGS = EXTERN };
+		drm_illumos_ioctl_nonblock	{ FLAGS = EXTERN };
 		drm_illumos_ioctl_user_cmd	{ FLAGS = EXTERN };
 		drm_illumos_mapping_cookie	{ FLAGS = EXTERN };
 		drm_illumos_mapping_is_settled	{ FLAGS = EXTERN };

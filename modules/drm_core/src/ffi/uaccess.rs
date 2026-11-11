@@ -4,7 +4,7 @@
 
 //! `drm_copy_from_user` and `drm_copy_to_user` of `drm_ioctl.h`: copies
 //! with the data model and `FKIOCTL` flag of the calling thread's ioctl,
-//! and the command values of that ioctl.
+//! and the command values and non-blocking status of that ioctl.
 
 use core::ffi::c_void;
 
@@ -52,4 +52,11 @@ pub extern "C" fn drm_illumos_ioctl_cmd() -> u32 {
 #[unsafe(no_mangle)]
 pub extern "C" fn drm_illumos_ioctl_user_cmd() -> u32 {
     crate::ctxt::with_current(|fr, _| fr.user_cmd).unwrap_or(0)
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn drm_illumos_ioctl_nonblock() -> bool {
+    // The ioctl's mode is the file's current flags (a later
+    // fcntl(F_SETFL) included), tested as read(9E) tests them.
+    crate::ctxt::with_current(|_, arg| arg.mode() & (sys::FNONBLOCK | sys::FNDELAY) != 0).unwrap_or(false)
 }

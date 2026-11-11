@@ -38,7 +38,7 @@ file path=kernel/misc/amd64/drm_kms owner=root group=sys mode=0755 reboot-needed
 depend fmri=pkg:/driver/graphics/drm-core@0.0.2 type=require
 depend fmri=pkg:/driver/graphics/linuxkpi@0.0.2 type=require
 depend fmri=pkg:/driver/graphics/drm-helpers@0.0.2 type=require
-# Built against facade 2.0 and the LinuxKPI ABI of this version.
+# Built against facade 2.1 and the LinuxKPI ABI of this version.
 depend fmri=pkg:/driver/graphics/drm-core@0.0.2 type=incorporate
 depend fmri=pkg:/driver/graphics/linuxkpi@0.0.2 type=incorporate
 license LICENSE.drm_kms license=MIT-drm_kms

@@ -94,6 +94,16 @@ extern int drm_copy_to_user(uint64_t uaddr, const void *src, size_t len);
 extern unsigned int drm_illumos_ioctl_cmd(void);
 extern unsigned int drm_illumos_ioctl_user_cmd(void);
 
+/*
+ * Whether the file the calling thread's ioctl came through is
+ * non-blocking now (FNONBLOCK or FNDELAY in the ioctl's mode, which is
+ * the file's current flags: O_NONBLOCK at open(2) as well as a later
+ * fcntl(F_SETFL)); false outside a handler. An illumos addition (facade
+ * 2.1): a handler's drm_file has no struct file (filp is NULL), so this
+ * stands for Linux's file->f_flags & O_NONBLOCK.
+ */
+extern bool drm_illumos_ioctl_nonblock(void);
+
 #ifdef	__cplusplus
 }
 #endif

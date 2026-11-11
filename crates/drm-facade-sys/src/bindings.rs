@@ -65,7 +65,7 @@ pub const GFP_KERNEL: u32 = 1024;
 pub const GFP_NOWAIT: u32 = 0;
 pub const GFP_ATOMIC: u32 = 0;
 pub const DRM_FACADE_MAJOR: u32 = 2;
-pub const DRM_FACADE_MINOR: u32 = 0;
+pub const DRM_FACADE_MINOR: u32 = 1;
 pub const DRM_FACADE_MAX_SIZES: u32 = 64;
 pub const DRM_FACADE_KMS_DEVICE_WORDS: u32 = 1024;
 pub const DRM_FACADE_KMS_FILE_WORDS: u32 = 32;
@@ -828,6 +828,9 @@ unsafe extern "C" {
 }
 unsafe extern "C" {
     pub fn drm_illumos_ioctl_user_cmd() -> core::ffi::c_uint;
+}
+unsafe extern "C" {
+    pub fn drm_illumos_ioctl_nonblock() -> bool;
 }
 pub const DMA_RESV_USAGE_KERNEL: dma_resv_usage = 0;
 pub const DMA_RESV_USAGE_WRITE: dma_resv_usage = 1;
