@@ -14,6 +14,17 @@
  * framebuffer reference and an extra VMA pin): whatever X does, the
  * aperture range keeps backing the console's memory.
  *
+ * X-tiled firmware framebuffers: the firmware (Apple's EFI GOP) may leave
+ * an X-tiled surface that its own fence showed linearly at the aperture
+ * address. i915 clears all fences at init, so the console pins a fence of
+ * its own at takeover; GPU reset and resume rewrite the register from the
+ * software state (intel_ggtt_restore_fences()). The console's aperture
+ * writes, linear or fenced, need the device awake: the LinuxKPI's runtime
+ * PM keeps it always active today, and the wakeref held with the fence
+ * pin states that for the fence. The panic path sets the plane's tiling
+ * bit only where it runs at all (Ivy Bridge today; Haswell and Skylake
+ * return early).
+ *
  * Restore (Linux: drm_fb_helper_restore_fbdev_mode_unlocked(), here
  * i915n_con_kms_restore()): an atomic commit of the configuration the
  * console had at attach (its CRTC with its mode, its connectors, the
@@ -85,6 +96,17 @@ static struct i915n_con_kms {
 	struct drm_device	*drm;
 	struct drm_framebuffer	*fb;
 	struct i915_vma		*vma;
+	/*
+	 * An X-tiled console framebuffer's fence pin is the console's own,
+	 * independent of any plane or FBC pin of the same register (the pin
+	 * count is shared; fence_find() skips pinned fences). It is held,
+	 * with this runtime-PM wakeref that i915_vma_pin_fence() requires
+	 * for as long as the fence is used, for the device's life like the
+	 * framebuffer reference and the VMA pin: a console device refuses
+	 * detach, so nothing releases them. A release path must drop the
+	 * fence pin, the wakeref, the VMA pin and the framebuffer reference.
+	 */
+	intel_wakeref_t		fence_wakeref;
 	struct drm_crtc		*crtc;
 	struct drm_connector	*conns[I915N_CON_MAX_CONNECTORS];
 	unsigned int		nconns;
@@ -247,7 +269,26 @@ con_fb_matches(struct drm_device *drm, struct drm_framebuffer *fb,
 		    "is not XRGB8888\n", &fb->format->format);
 		return (false);
 	}
-	if (fb->modifier != DRM_FORMAT_MOD_LINEAR ||
+	/*
+	 * Apple's EFI GOP leaves an X-tiled surface on the pipe and hands the
+	 * OS its aperture address: a fence made the aperture show it linearly.
+	 * i915 clears all fences at init and, without FBC on the plane, the
+	 * readout pins none (intel_plane_uses_fence()), so the console fences
+	 * it itself (i915n_con_kms_takeover()); here it only has to be one a
+	 * fence can cover: X-tiled with the console's pitch, map-and-fenceable.
+	 */
+	if (fb->modifier == I915_FORMAT_MOD_X_TILED &&
+	    (i915_gem_object_get_tiling(vma->obj) != I915_TILING_X ||
+	    i915_gem_object_get_stride(vma->obj) != want->pitch ||
+	    !i915_vma_is_map_and_fenceable(vma))) {
+		drm_info(drm, "console: X-tiled firmware framebuffer (tiling "
+		    "%u stride %u) cannot be fenced for the console's pitch "
+		    "%u\n", i915_gem_object_get_tiling(vma->obj),
+		    i915_gem_object_get_stride(vma->obj), want->pitch);
+		return (false);
+	}
+	if ((fb->modifier != DRM_FORMAT_MOD_LINEAR &&
+	    fb->modifier != I915_FORMAT_MOD_X_TILED) ||
 	    fb->pitches[0] != want->pitch || want->bpp != 4 ||
 	    fb->width < want->width || fb->height < want->height ||
 	    vma->size < (u64)want->pitch * want->height) {
@@ -303,8 +344,28 @@ i915n_con_kms_takeover(dev_info_t *dip, const struct i915n_con_fb *want)
 		return (-ENOENT);
 	}
 	/* The console's memory and its GGTT binding, for the device's life. */
-	drm_framebuffer_get(fb);
 	__i915_vma_pin(vma);
+	if (fb->modifier == I915_FORMAT_MOD_X_TILED) {
+		intel_wakeref_t wf = intel_runtime_pm_get(&i915->runtime_pm);
+		int ret = i915_vma_pin_fence(vma);
+
+		if (ret != 0 || vma->fence == NULL) {
+			if (ret == 0)
+				i915_vma_unpin_fence(vma);
+			intel_runtime_pm_put(&i915->runtime_pm, wf);
+			__i915_vma_unpin(vma);
+			drm_modeset_unlock_all(drm);
+			drm_info(drm, "console: no fence for the X-tiled "
+			    "firmware framebuffer (%d); no console on this "
+			    "device\n", ret);
+			return (ret != 0 ? ret : -ENOENT);
+		}
+		/* Kept with the fence pin (struct i915n_con_kms). */
+		i915n_con.fence_wakeref = wf;
+		drm_info(drm, "console: X-tiled firmware framebuffer shown "
+		    "linearly through fence %d\n", vma->fence->id);
+	}
+	drm_framebuffer_get(fb);
 	i915n_con.drm = drm;
 	i915n_con.fb = fb;
 	i915n_con.vma = vma;
@@ -530,6 +591,8 @@ i915n_con_kms_panic(uint32_t *surfp)
 	cntr = intel_de_read_fw(display, DSPCNTR(display, p));
 	cntr &= ~(DISP_FORMAT_MASK | DISP_TILED);
 	cntr |= DISP_ENABLE | DISP_FORMAT_BGRX888;
+	if (i915n_con.fb->modifier == I915_FORMAT_MOD_X_TILED)
+		cntr |= DISP_TILED;
 	intel_de_write_fw(display, DSPSTRIDE(display, p),
 	    i915n_con.fb->pitches[0]);
 	intel_de_write_fw(display, DSPLINOFF(display, p), 0);

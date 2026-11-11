@@ -30,7 +30,9 @@
  * in C: the KMS areas of drm_device and drm_file, the client-capability
  * booleans of drm_file, drm_driver.illumos_lkms and drm_lkms.h's hooks,
  * drm_dev_illumos_lkms_register and the event functions,
- * drm_illumos_mode_config.async_page_flip.
+ * drm_illumos_mode_config.async_page_flip; 2.1 drm_illumos_ioctl_nonblock
+ * (whether the calling thread's ioctl came through a non-blocking file;
+ * layouts unchanged).
  */
 
 #ifndef _DRM_FACADE_VERSION_H
@@ -43,7 +45,7 @@ extern "C" {
 #endif
 
 #define	DRM_FACADE_MAJOR	2
-#define	DRM_FACADE_MINOR	0
+#define	DRM_FACADE_MINOR	1
 
 /*
  * The structures whose sizes are part of the version, in the order of

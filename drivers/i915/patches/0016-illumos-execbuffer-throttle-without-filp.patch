@@ -1,0 +1,40 @@
+From: Ignacio Soriano <isoriano1968@users.noreply.github.com>
+Subject: [PATCH 16] i915: execbuffer throttling without a struct file on illumos
+
+eb_pin_timeline() reads eb->file->filp->f_flags to decide whether the wait
+for an older request of the same context (eb_throttle()) may block. The
+facade's struct drm_file has no struct file on illumos (filp is NULL, see
+include/drm/drm_file.h), so an execbuffer on a context that still has a
+request in flight dereferences NULL: BAD TRAP type=e addr=0x2c in
+eb_pin_timeline+0x105, on a Haswell GT3e (8086:0d22, iMac14,1) with the
+headless i915n, in a loop of EXECBUFFER2 on the render ring. On illumos
+the core reports whether the file is non-blocking (the ioctl's current
+file flags, drm_illumos_ioctl_nonblock()), so a blocking file waits
+interruptibly as before and a non-blocking one gets -EWOULDBLOCK as on
+Linux. The fix for the NULL dereference is Ignacio's; asking the core
+instead of always waiting was added on top of it in illumos-drm.
+
+License: the hunk is a trivial preprocessor guard on a MIT Linux file;
+this patch is applied to the pinned Linux tree, not part of illumos-drm's
+sources.
+
+diff --git a/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c b/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c
+--- a/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c
++++ b/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c
+@@ -2524,7 +2524,16 @@
+ 	intel_context_timeline_unlock(tl);
+ 
+ 	if (rq) {
++#ifdef __illumos__
++		/*
++		 * The facade's drm_file has no struct file (filp is NULL):
++		 * the core reports whether this ioctl's file is non-blocking
++		 * (drm_illumos_ioctl_nonblock()).
++		 */
++		bool nonblock = drm_illumos_ioctl_nonblock();
++#else
+ 		bool nonblock = eb->file->filp->f_flags & O_NONBLOCK;
++#endif
+ 		long timeout = nonblock ? 0 : MAX_SCHEDULE_TIMEOUT;
+ 
+ 		if (i915_request_wait(rq, I915_WAIT_INTERRUPTIBLE,

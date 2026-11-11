@@ -32,7 +32,7 @@
 # firmware/i915 in the module path; without DMC, display power saving is
 # disabled by the carried driver. See firmware/README.md and docs/i915n-display.md.
 #
-set name=pkg.fmri value=pkg://illumos-drm/driver/graphics/i915n@0.0.2,5.11-2026.0.0.0
+set name=pkg.fmri value=pkg://illumos-drm/driver/graphics/i915n@0.0.2.1,5.11-2026.0.0.0
 set name=pkg.summary value="Intel GPU driver from Linux i915 (i915n)"
 set name=pkg.description value="i915n, the i915 driver of Linux v7.2 built for the illumos-drm DRM core, its Linux compatibility layer and Linux's mode-setting code (misc/drm_kms): GEM, execbuffer, contexts and render nodes for Intel integrated GPUs of gen6 to gen9.5 with a PCH (gen7 and gen9.5 targeted), and mode setting (KMS) on those admitted GPUs. Other generations are refused. Driver configuration can explicitly disable display. Display beyond Ivy Bridge is experimental. Includes Intel DMC firmware for SKL/KBL-family display power control. Ships no PCI aliases; select it with drmadm select new."
 set name=info.classification value=org.opensolaris.category.2008:Drivers/Display
@@ -50,16 +50,16 @@ file packaging/i915n.conf path=kernel/drv/i915n.conf owner=root group=sys mode=0
 # add_drv/update_drv -m in this order: the catch-all first, gfx* last.
 driver name=i915n perms="* 0666 root sys" perms="gfx* 0600 root sys" \
     devlink=type=ddi_display:drm;name=i915n\tdri/\M0
-depend fmri=pkg:/driver/graphics/drm-core@0.0.2 type=require
-depend fmri=pkg:/driver/graphics/linuxkpi@0.0.2 type=require
-depend fmri=pkg:/driver/graphics/drm-helpers@0.0.2 type=require
-depend fmri=pkg:/driver/graphics/drm-kms@0.0.2 type=require
-depend fmri=pkg:/driver/graphics/drmadm@0.0.2 type=require
-# The facade and the layer are unstable (major version 0): built for these
+depend fmri=pkg:/driver/graphics/drm-core@0.0.2.1 type=require
+depend fmri=pkg:/driver/graphics/linuxkpi@0.0.2.1 type=require
+depend fmri=pkg:/driver/graphics/drm-helpers@0.0.2.1 type=require
+depend fmri=pkg:/driver/graphics/drm-kms@0.0.2.1 type=require
+depend fmri=pkg:/driver/graphics/drmadm@0.0.2.1 type=require
+# Built against facade 2.1 and the LinuxKPI ABI of this version: for these
 # versions only.
-depend fmri=pkg:/driver/graphics/drm-core@0.0.2 type=incorporate
-depend fmri=pkg:/driver/graphics/linuxkpi@0.0.2 type=incorporate
-depend fmri=pkg:/driver/graphics/drm-kms@0.0.2 type=incorporate
+depend fmri=pkg:/driver/graphics/drm-core@0.0.2.1 type=incorporate
+depend fmri=pkg:/driver/graphics/linuxkpi@0.0.2.1 type=incorporate
+depend fmri=pkg:/driver/graphics/drm-kms@0.0.2.1 type=incorporate
 license LICENSE.i915n license=MIT-i915
 
 # Inactive PCI data; installing this package never binds a GPU.
