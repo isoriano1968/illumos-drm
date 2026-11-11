@@ -2524,7 +2524,15 @@ static int eb_pin_timeline(struct i915_execbuffer *eb, struct intel_context *ce,
 	intel_context_timeline_unlock(tl);
 
 	if (rq) {
+#ifdef __illumos__
+		/*
+		 * The facade's drm_file has no struct file (filp is NULL):
+		 * wait as on a blocking file, interruptibly.
+		 */
+		bool nonblock = false;
+#else
 		bool nonblock = eb->file->filp->f_flags & O_NONBLOCK;
+#endif
 		long timeout = nonblock ? 0 : MAX_SCHEDULE_TIMEOUT;
 
 		if (i915_request_wait(rq, I915_WAIT_INTERRUPTIBLE,
