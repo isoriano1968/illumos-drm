@@ -2,8 +2,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright 2026 The illumos-drm authors
 #
-# IPS manifest of i915n, Linux v7.2's i915 (display on Ivy Bridge, every
-# other platform headless; no local memory) built for the illumos-drm
+# IPS manifest of i915n, Linux v7.2's i915 (display on admitted Gen6-Gen9.5 PCH GPUs; no local memory) built for the illumos-drm
 # facade, misc/linuxkpi and misc/drm_kms (drivers/i915). Publish from a
 # directory holding the module linked by
 # drivers/i915/build.sh as kernel/drv/amd64/i915n and its licence file
@@ -12,7 +11,7 @@
 #   drivers/i915/build.sh all      # $OUT/i915n
 #   cp $OUT/i915n <proto>/kernel/drv/amd64/i915n
 #   drivers/i915/gen-license.sh $LINUX <proto>/LICENSE.i915n $OUT/linux-inputs.txt
-#   pkgsend publish -s <repo> -d <proto> packaging/i915n.p5m
+#   pkgsend publish -s <repo> -d <proto> -d . packaging/i915n.p5m
 #
 # The driver action has no PCI aliases: the Intel GPU aliases belong to
 # gfx-drm's i915 (driver/graphics/drm) until `drmadm select new` moves them
@@ -26,14 +25,16 @@
 # -N misc/drm_helpers -N misc/drm_kms, so the package requires their
 # packages (drm-kms: Linux's mode-setting code, which the display uses).
 # The licence file covers every Linux file compiled in, the display's
-# included (build.sh's linux-inputs.txt). No
-# firmware is delivered: gen6/gen7 submit through rings and gen8 to gen9.5
+# included (build.sh's linux-inputs.txt). Intel DMC blobs carry their own
+# licence. No GuC/HuC firmware is delivered: gen6/gen7 submit through rings and gen8 to gen9.5
 # through execlists, neither needs firmware; GuC/HuC firmware is optional
-# there and absent firmware is not an error (i915 logs it and continues).
+# there. Gen9 display DMC firmware is separate: the loader looks in
+# firmware/i915 in the module path; without DMC, display power saving is
+# disabled by the carried driver. See firmware/README.md and docs/i915n-display.md.
 #
 set name=pkg.fmri value=pkg://illumos-drm/driver/graphics/i915n@0.0.2,5.11-2026.0.0.0
 set name=pkg.summary value="Intel GPU driver from Linux i915 (i915n)"
-set name=pkg.description value="i915n, the i915 driver of Linux v7.2 built for the illumos-drm DRM core, its Linux compatibility layer and Linux's mode-setting code (misc/drm_kms): GEM, execbuffer, contexts and render nodes for Intel integrated GPUs of gen6 to gen9.5 with a PCH (gen7 and gen9.5 targeted), and mode setting (KMS) on Ivy Bridge; other GPUs run without display. Ships no PCI aliases; select it with drmadm select new."
+set name=pkg.description value="i915n, the i915 driver of Linux v7.2 built for the illumos-drm DRM core, its Linux compatibility layer and Linux's mode-setting code (misc/drm_kms): GEM, execbuffer, contexts and render nodes for Intel integrated GPUs of gen6 to gen9.5 with a PCH (gen7 and gen9.5 targeted), and mode setting (KMS) on those admitted GPUs. Other generations are refused. Driver configuration can explicitly disable display. Display beyond Ivy Bridge is experimental. Includes Intel DMC firmware for SKL/KBL-family display power control. Ships no PCI aliases; select it with drmadm select new."
 set name=info.classification value=org.opensolaris.category.2008:Drivers/Display
 set name=info.source-url value=https://code.aopc.cloud/illumos/illumos-drm
 set name=variant.arch value=i386
@@ -42,6 +43,7 @@ dir  path=kernel owner=root group=sys mode=0755
 dir  path=kernel/drv owner=root group=sys mode=0755
 dir  path=kernel/drv/amd64 owner=root group=sys mode=0755
 file path=kernel/drv/amd64/i915n owner=root group=sys mode=0755 reboot-needed=true
+file packaging/i915n.conf path=kernel/drv/i915n.conf owner=root group=sys mode=0644 preserve=true reboot-needed=true
 # The DRM minors are 0666 (drmadm perms keeps them so); the console minor
 # gfx0 is 0600 and logindevperm gives it to the console user. devfsadm
 # applies the last matching minor_perm entry, and pkg hands the perms to
@@ -59,3 +61,16 @@ depend fmri=pkg:/driver/graphics/drm-core@0.0.2 type=incorporate
 depend fmri=pkg:/driver/graphics/linuxkpi@0.0.2 type=incorporate
 depend fmri=pkg:/driver/graphics/drm-kms@0.0.2 type=incorporate
 license LICENSE.i915n license=MIT-i915
+
+# Inactive PCI data; installing this package never binds a GPU.
+dir path=usr owner=root group=sys mode=0755
+dir path=usr/share owner=root group=sys mode=0755
+dir path=usr/share/drmadm owner=root group=bin mode=0755
+file packaging/i915n.aliases path=usr/share/drmadm/i915n.aliases owner=root group=bin mode=0444
+
+# Unmodified Intel DMC firmware; a separate licence from the driver code.
+dir path=kernel/firmware owner=root group=sys mode=0755
+dir path=kernel/firmware/i915 owner=root group=sys mode=0755
+file firmware/i915/skl_dmc_ver1_27.bin path=kernel/firmware/i915/skl_dmc_ver1_27.bin owner=root group=sys mode=0444 reboot-needed=true
+file firmware/i915/kbl_dmc_ver1_04.bin path=kernel/firmware/i915/kbl_dmc_ver1_04.bin owner=root group=sys mode=0444 reboot-needed=true
+license firmware/LICENSE.i915 license=Intel-DMC
