@@ -148,7 +148,7 @@ done
 echo "fetch-and-patch: $dest ready (Linux $LINUX_TAG $LINUX_REV, $(echo "$series" | grep -c . || true) patches)"
 
 # Keep opt-in binding data tied to the same PCI table and admission groups.
-python3 "$HERE/gen-aliases.py" "$dest" > "$dest/.illumos/i915n.aliases"
+sh "$HERE/gen-aliases.sh" "$dest" > "$dest/.illumos/i915n.aliases"
 if ! cmp -s "$dest/.illumos/i915n.aliases" "$REPO/packaging/i915n.aliases"; then
 	echo "fetch-and-patch: regenerate packaging/i915n.aliases for this PIN" >&2
 	exit 1
