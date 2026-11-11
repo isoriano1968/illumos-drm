@@ -2527,9 +2527,10 @@ static int eb_pin_timeline(struct i915_execbuffer *eb, struct intel_context *ce,
 #ifdef __illumos__
 		/*
 		 * The facade's drm_file has no struct file (filp is NULL):
-		 * wait as on a blocking file, interruptibly.
+		 * the core reports whether this ioctl's file is non-blocking
+		 * (drm_illumos_ioctl_nonblock()).
 		 */
-		bool nonblock = false;
+		bool nonblock = drm_illumos_ioctl_nonblock();
 #else
 		bool nonblock = eb->file->filp->f_flags & O_NONBLOCK;
 #endif
