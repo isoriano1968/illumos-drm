@@ -1,0 +1,60 @@
+From: illumos-drm <illumos-drm@code.aopc.cloud>
+Subject: [PATCH 17] i915: an address space's reservation is initialised once on illumos
+
+Linux initialises the reservation of the GGTT and of every PPGTT twice:
+ggtt_probe_hw() and ppgtt_init() call dma_resv_init(&vm->_resv), and
+i915_address_space_init(), which follows, calls it again. On Linux the
+second init of the still idle reservation is harmless. The facade's
+dma_resv_init() keeps the first reservation and warns on a second, so an
+attach warned once for every address space it set up (on Ivy Bridge and
+Haswell the GGTT, the aliasing PPGTT and the migration context's PPGTT
+from intel_migrate_init()), and full-PPGTT hardware once more for each
+PPGTT created later.
+
+On illumos i915_address_space_init() leaves vm->_resv to its caller, and
+i915_dpt_create(), the one caller that did not initialise it first, does
+so before it. Every address space is then initialised once and finished
+once, as before: the GGTT by i915_ggtt_driver_late_release() (or the
+ggtt_probe_hw() error path), PPGTT and DPT by i915_vm_resv_release().
+
+License: the hunks are trivial preprocessor guards on MIT Linux files;
+this patch is applied to the pinned Linux tree, not part of illumos-drm's
+sources.
+
+diff --git a/drivers/gpu/drm/i915/gt/intel_gtt.c b/drivers/gpu/drm/i915/gt/intel_gtt.c
+--- a/drivers/gpu/drm/i915/gt/intel_gtt.c
++++ b/drivers/gpu/drm/i915/gt/intel_gtt.c
+@@ -295,7 +295,16 @@ void i915_address_space_init(struct i915_address_space *vm, int subclass)
+ 		might_alloc(GFP_KERNEL);
+ 		mutex_release(&vm->mutex.dep_map, _THIS_IP_);
+ 	}
++#ifndef __illumos__
+ 	dma_resv_init(&vm->_resv);
++#else
++	/*
++	 * The caller has initialised vm->_resv (ggtt_probe_hw(), ppgtt_init(),
++	 * i915_dpt_create()). The facade's dma_resv_init() keeps the first
++	 * reservation and warns on a second init; on Linux a re-init of the
++	 * idle reservation is harmless.
++	 */
++#endif
+ 
+ 	GEM_BUG_ON(!vm->total);
+ 	drm_mm_init(&vm->mm, 0, vm->total);
+diff --git a/drivers/gpu/drm/i915/i915_dpt.c b/drivers/gpu/drm/i915/i915_dpt.c
+--- a/drivers/gpu/drm/i915/i915_dpt.c
++++ b/drivers/gpu/drm/i915/i915_dpt.c
+@@ -229,6 +229,13 @@ static struct intel_dpt *i915_dpt_create(struct drm_gem_object *obj, size_t size
+ 	vm->total = (size / sizeof(gen8_pte_t)) * I915_GTT_PAGE_SIZE;
+ 	vm->is_dpt = true;
+ 
++#ifdef __illumos__
++	/*
++	 * i915_address_space_init() leaves vm->_resv to its caller; GGTT
++	 * and PPGTT initialise it before it, too.
++	 */
++	dma_resv_init(&vm->_resv);
++#endif
+ 	i915_address_space_init(vm, VM_CLASS_DPT);
+ 
+ 	vm->insert_page = dpt_insert_page;
