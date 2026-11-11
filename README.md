@@ -2088,8 +2088,9 @@ ioctl(9E)), read from the core's per-thread ioctl frame; outside an ioctl
 handler it is false. One function is added and no layout changes, so the
 minor version becomes 1: drivers built for 2.0 still load on a 2.1 core,
 drivers built for 2.1 refuse a 2.0 core. The packages are versioned
-0.0.2.1 and require and incorporate each other at that version, so the
-core and its drivers update together.
+0.0.2.1: IPS refuses a driver at that version beside an older core. A
+0.0.2.1 core beside an older driver package still plans, which is allowed
+because a driver built for facade 2.0 loads on a 2.1 core.
 
 **R4: the virtio framework.** The driver runs the device through the
 gate's virtio framework (`misc/virtio`), a private interface, through
