@@ -38,6 +38,7 @@
 #include <drm/drm_gem_atomic_helper.h>
 #include <drm/display/drm_hdcp_helper.h>
 
+#include "drm_kms_illumos.h"
 #include "drm_internal.h"
 #include "drm_crtc_internal.h"
 
@@ -148,8 +149,8 @@ EXPORT_SYMBOL(drm_lease_filter_crtcs);
 
 /*
  * --- sysfs (drm_sysfs.c) ----------------------------------------------------
- * illumos has no sysfs: hotplug and property events are not sent to user
- * space (Xorg on illumos has no udev and probes on its own). A connector
+ * illumos has no sysfs: hotplug/property notifications use the bounded
+ * sysevent bridge in drm_kms_hotplug.c. A connector
  * still gets its class device, as on Linux (connector->kdev, named
  * card<N>-<connector>, child of the DRM device's struct device), because
  * drivers use it as the parent and name of what hangs off the connector:
@@ -196,12 +197,14 @@ drm_sysfs_connector_add(struct drm_connector *connector)
 int
 drm_sysfs_connector_add_late(struct drm_connector *connector)
 {
+	drm_kms_hotplug_notify(connector->dev, 0, 2);
 	return (0);
 }
 
 void
 drm_sysfs_connector_remove_early(struct drm_connector *connector)
 {
+	drm_kms_hotplug_notify(connector->dev, 0, 2);
 }
 
 void
@@ -218,12 +221,14 @@ drm_sysfs_connector_remove(struct drm_connector *connector)
 void
 drm_sysfs_hotplug_event(struct drm_device *dev)
 {
+	drm_kms_hotplug_notify(dev, 0, 1);
 }
 EXPORT_SYMBOL(drm_sysfs_hotplug_event);
 
 void
 drm_sysfs_connector_hotplug_event(struct drm_connector *connector)
 {
+	drm_kms_hotplug_notify(connector->dev, connector->base.id, 1);
 }
 EXPORT_SYMBOL(drm_sysfs_connector_hotplug_event);
 
@@ -231,6 +236,7 @@ void
 drm_sysfs_connector_property_event(struct drm_connector *connector,
     struct drm_property *property)
 {
+	drm_kms_hotplug_notify(connector->dev, connector->base.id, 4);
 }
 EXPORT_SYMBOL(drm_sysfs_connector_property_event);
 
