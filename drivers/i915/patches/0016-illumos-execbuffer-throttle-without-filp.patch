@@ -8,7 +8,11 @@ include/drm/drm_file.h), so an execbuffer on a context that still has a
 request in flight dereferences NULL: BAD TRAP type=e addr=0x2c in
 eb_pin_timeline+0x105, on a Haswell GT3e (8086:0d22, iMac14,1) with the
 headless i915n, in a loop of EXECBUFFER2 on the render ring. On illumos
-the wait is that of a blocking file and stays interruptible.
+the core reports whether the file is non-blocking (the ioctl's current
+file flags, drm_illumos_ioctl_nonblock()), so a blocking file waits
+interruptibly as before and a non-blocking one gets -EWOULDBLOCK as on
+Linux. The fix for the NULL dereference is Ignacio's; asking the core
+instead of always waiting was added on top of it in illumos-drm.
 
 License: the hunk is a trivial preprocessor guard on a MIT Linux file;
 this patch is applied to the pinned Linux tree, not part of illumos-drm's
@@ -17,16 +21,17 @@ sources.
 diff --git a/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c b/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c
 --- a/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c
 +++ b/drivers/gpu/drm/i915/gem/i915_gem_execbuffer.c
-@@ -2524,7 +2524,15 @@
+@@ -2524,7 +2524,16 @@
  	intel_context_timeline_unlock(tl);
  
  	if (rq) {
 +#ifdef __illumos__
 +		/*
 +		 * The facade's drm_file has no struct file (filp is NULL):
-+		 * wait as on a blocking file, interruptibly.
++		 * the core reports whether this ioctl's file is non-blocking
++		 * (drm_illumos_ioctl_nonblock()).
 +		 */
-+		bool nonblock = false;
++		bool nonblock = drm_illumos_ioctl_nonblock();
 +#else
  		bool nonblock = eb->file->filp->f_flags & O_NONBLOCK;
 +#endif
