@@ -575,12 +575,13 @@ each (`linuxkpi/private.d/`), the kernel flags of everything built on it
 `drivers/i915/` builds `i915n`, Linux v7.2's i915 (with display on Ivy
 Bridge since facade 2.0, see *i915n with display* below), on
 it: the pin (`PIN`), the configuration (`config/`), the translation units
-(`tus.txt`, and `display-tus.txt` for the display), the MIT Linux headers used unchanged (`mit-headers.txt`), the
-illumos patch series (`patches/`), `fetch-and-patch.sh` (no Linux source
-is in this repository), `build.sh`, the licence checks
+(`tus.txt`, and `display-tus.txt` for the display), `build.sh`, the licence checks
 (`check-licences.py`, `gen-license.sh`) and the illumos glue
 (`illumos/`). `packaging/linuxkpi.p5m` and `packaging/i915n.p5m` package
-them.
+them. The Linux sources, including the port changes and MIT header stand-ins,
+are in `usr/src/contrib/linux`; the build uses them by default. During the
+transition, `LINUX` may also name a tree prepared by `fetch-and-patch.sh`.
+The vendored tree's `README` describes its import and pin-update procedure.
 
 ### misc/drm_kms
 
@@ -2662,16 +2663,15 @@ disposable guest (see its header). Since R5c the helpers build on the
 compatibility layer, so `carried/build.sh` needs `LKPI_MAPFILE` (below).
 
 The compatibility layer and i915n (R5c) build on illumos with gcc (bash,
-GNU grep, python3, the pinned Linux tree fetched once, about 260 MB):
+GNU grep and python3), using the vendored Linux sources:
 
 ```sh
 export DDI_MAPFILE=<gate>/usr/src/uts/common/mapfiles/ddi.mapfile JOBS=2
 OUT=target/linuxkpi linuxkpi/build.sh all      # misc/linuxkpi, linuxkpi_selftest, linuxkpi.mapfile
 LKPI_MAPFILE=target/linuxkpi/linuxkpi.mapfile OUT=target/carried carried/build.sh
-drivers/i915/fetch-and-patch.sh target/linux   # Linux v7.2 + patches/, licence checks
-LINUX=target/linux LKPI_MAPFILE=target/linuxkpi/linuxkpi.mapfile \
+LKPI_MAPFILE=target/linuxkpi/linuxkpi.mapfile \
     OUT=target/i915 drivers/i915/build.sh all  # i915n, linked -z defs
-drivers/i915/gen-license.sh target/linux target/i915/LICENSE.i915n \
+drivers/i915/gen-license.sh "" target/i915/LICENSE.i915n \
     target/i915/linux-inputs.txt               # the package's licence file
 linuxkpi/tests/host/host-test.sh               # the layer's host tests
 ```

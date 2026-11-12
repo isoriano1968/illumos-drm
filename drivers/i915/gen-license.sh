@@ -11,14 +11,16 @@
 # without it, the TUs of tus.txt and display-tus.txt, i915's own headers
 # and mit-headers.txt.
 #
-#   drivers/i915/gen-license.sh <patched Linux tree> <output file> [inputs]
+#   drivers/i915/gen-license.sh <Linux tree or ""> <output file> [inputs]
+# An empty tree argument uses LINUX or the repository's vendored tree.
 #
 # MODULE=drm_kms writes misc/drm_kms' licence file instead (inputs: the
 # linux-inputs.txt of carried/drm_kms/build.sh).
 set -euo pipefail
 PATH=/usr/gnu/bin:$PATH
 HERE=$(cd "$(dirname "$0")" && pwd)
-LINUX=${1:?usage: gen-license.sh <linux> <out>}
+REPO=$(cd "$HERE/../.." && pwd)
+LINUX=${1:-${LINUX:-$REPO/usr/src/contrib/linux}}
 out=${2:?usage: gen-license.sh <linux> <out>}
 I915=drivers/gpu/drm/i915
 

@@ -4,8 +4,7 @@
 # Copyright 2026 The illumos-drm authors
 #
 # Builds misc/drm_kms: Linux's DRM KMS code (the TUs of tus.txt, from the
-# Linux tree that drivers/i915/fetch-and-patch.sh prepared, with this
-# directory's patches applied) and the illumos sources of illumos/, with
+# vendored Linux tree) and the illumos sources of illumos/, with
 # the kernel flags of linuxkpi/kflags.sh and i915n's configuration
 # (drivers/i915/config.h), then links the kernel module
 #   ld -ztype=kmod -N misc/drm_core -N misc/linuxkpi -N misc/drm_helpers \
@@ -28,8 +27,7 @@
 #   carried/drm_kms/build.sh all        both
 #
 # Environment (defaults in brackets):
-#   LINUX        the patched Linux tree (drivers/i915/fetch-and-patch.sh)
-#                [required]
+#   LINUX        the Linux sources [REPO/usr/src/contrib/linux]
 #   REPO         the illumos-drm checkout [two directories above]
 #   CC           the compiler [gcc]
 #   LD           the illumos link-editor [/usr/bin/ld]
@@ -48,7 +46,7 @@ export LC_ALL=C
 
 HERE=$(cd "$(dirname "$0")" && pwd)
 REPO=${REPO:-$(cd "$HERE/../.." && pwd)}
-: "${LINUX:?set LINUX to the patched Linux tree}"
+LINUX=${LINUX:-$REPO/usr/src/contrib/linux}
 CC=${CC:-gcc}
 LD=${LD:-/usr/bin/ld}
 SYSINC=${SYSINC:-/usr/include}
@@ -69,8 +67,15 @@ die() {
 	exit 1
 }
 
-[ -f "$LINUX/.illumos/applied" ] ||
-    die "$LINUX is not prepared: run drivers/i915/fetch-and-patch.sh $LINUX"
+# SOURCES identifies the vendored subset; the old prepared tree uses a
+# separate MIT include directory and must have its applied stamp.
+if [ -f "$LINUX/SOURCES" ]; then
+	LINUX_INCLUDE=$LINUX/include
+elif [ -f "$LINUX/.illumos/applied" ]; then
+	LINUX_INCLUDE=$LINUX/.illumos/mit-include
+else
+	die "$LINUX is not a vendored or prepared Linux tree"
+fi
 mkdir -p "$OUT/obj" "$OUT/log"
 OUT=$(cd "$OUT" && pwd)
 # shellcheck disable=SC1091
@@ -78,7 +83,7 @@ OUT=$(cd "$OUT" && pwd)
 CFLAGS=$LKPI_CFLAGS
 CPPFLAGS="$LKPI_CPPFLAGS -DKBUILD_MODNAME=\"drm_kms\""
 CPPFLAGS="$CPPFLAGS -nostdinc -I$REPO/linuxkpi/include -I$REPO/include"
-CPPFLAGS="$CPPFLAGS -I$LINUX/.illumos/mit-include -I$LINUX/.illumos/mit-include/uapi"
+CPPFLAGS="$CPPFLAGS -I$LINUX_INCLUDE -I$LINUX_INCLUDE/uapi"
 CPPFLAGS="$CPPFLAGS -I$LINUX/drivers/gpu/drm -I$OUT/sysinc"
 CPPFLAGS="$CPPFLAGS -include $I915/config.h -include $REPO/linuxkpi/include/linux/kconfig.h"
 CPPFLAGS="$CPPFLAGS -include $REPO/linuxkpi/include/lkpi/prologue.h"
