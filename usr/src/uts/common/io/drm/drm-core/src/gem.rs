@@ -570,12 +570,13 @@ impl DmaTarget<'_> {
     }
 }
 
-/// The scatter/gather table of a [`SysMem`], from `ddi_dma_cookie_iter(9F)`.
+/// The scatter/gather table of a [`SysMem`] or a [`KernelBinding`], from
+/// `ddi_dma_cookie_iter(9F)`.
 pub struct SgIter<'a> {
     handle: sys::ddi_dma_handle_t,
     cur: *const sys::ddi_dma_cookie_t,
     remaining: usize,
-    _mem: PhantomData<&'a SysMem>,
+    _mem: PhantomData<&'a ()>,
 }
 
 impl Iterator for SgIter<'_> {
@@ -606,6 +607,43 @@ impl Iterator for SgIter<'_> {
 
 impl ExactSizeIterator for SgIter<'_> {}
 impl FusedIterator for SgIter<'_> {}
+
+// --- other memory bound for this device (PRIME imports) ------------------------
+
+/// A DMA binding, against the device's own node, of kernel memory that the
+/// GEM state did not allocate: another device's dma-buf mapped for this one
+/// ([`GemCore::bind_kernel`]). Unbound when dropped; the handle is freed
+/// after that by its own `Drop`.
+pub struct KernelBinding {
+    handle: ddi::DmaHandle,
+    ncookies: usize,
+}
+
+// SAFETY: as for SysMem: the DMA handle may be used and freed from any
+// thread, and the type hands out no references to the memory.
+unsafe impl Send for KernelBinding {}
+// SAFETY: as above; &KernelBinding only reads the fixed fields.
+unsafe impl Sync for KernelBinding {}
+
+impl KernelBinding {
+    /// Returns the number of scatter/gather entries.
+    pub fn sg_len(&self) -> usize {
+        self.ncookies
+    }
+
+    /// Iterates over the binding's DMA cookies, in order.
+    pub fn sg_iter(&self) -> SgIter<'_> {
+        SgIter { handle: self.handle.as_raw(), cur: ptr::null(), remaining: self.ncookies, _mem: PhantomData }
+    }
+}
+
+impl Drop for KernelBinding {
+    fn drop(&mut self) {
+        // SAFETY: bound in GemCore::bind_kernel and unbound once, here,
+        // before the handle is freed by its own Drop.
+        unsafe { sys::ddi_dma_unbind_handle(self.handle.as_raw()) };
+    }
+}
 
 // --- the object trait -----------------------------------------------------------
 
@@ -2382,4 +2420,58 @@ unsafe extern "C" fn access_cb<O: GemObject>(
     // adaptive mutex may be taken.
     core.publish();
     r
+}
+
+impl<O: GemObject> GemCore<O> {
+    /// Binds `size` bytes of kernel memory at `kaddr` for DMA by this
+    /// device, against its own node, with `attr` or, if `None`, the
+    /// device's own attributes ([`Driver::gem_dma`](crate::Driver::gem_dma)):
+    /// `ENOTSUP` if it has none. For the memory of another device's
+    /// dma-buf. Fails as [`SysMem::new`]'s binding does.
+    ///
+    /// # Safety
+    /// `kaddr..kaddr + size` is mapped kernel memory whose pages stay locked
+    /// and mapped until the binding is dropped.
+    pub unsafe fn bind_kernel(
+        &self,
+        kaddr: NonNull<u8>,
+        size: usize,
+        attr: Option<&DmaAttr>,
+        ctx: &Sleepable,
+    ) -> Result<KernelBinding, Errno> {
+        if size == 0 {
+            return Err(Errno::EINVAL);
+        }
+        let attr = attr.or(self.dma.as_ref()).ok_or(Errno::ENOTSUP)?;
+        let handle = ddi::DmaHandle::new(&self.node, attr, ctx).map_err(dmaerr::object_errno)?;
+        // SAFETY: a fresh handle; the range is mapped kernel memory (the
+        // caller's contract) in the kernel address space (NULL `as`);
+        // DDI_DMA_SLEEP from thread context; NULL cookie and count pointers
+        // as the manual asks of new callers.
+        let r = unsafe {
+            sys::ddi_dma_addr_bind_handle(
+                handle.as_raw(),
+                ptr::null_mut(),
+                kaddr.as_ptr() as sys::caddr_t,
+                size,
+                sys::DDI_DMA_RDWR | sys::DDI_DMA_CONSISTENT,
+                sys::DDI_DMA_SLEEP,
+                ptr::null_mut(),
+                ptr::null_mut(),
+                ptr::null_mut(),
+            )
+        };
+        match r {
+            sys::DDI_DMA_MAPPED => {}
+            sys::DDI_DMA_PARTIAL_MAP => {
+                // SAFETY: the handle was bound by the call above.
+                unsafe { sys::ddi_dma_unbind_handle(handle.as_raw()) };
+                return Err(dmaerr::object_errno(DmaError::PartialMap));
+            }
+            _ => return Err(dmaerr::code_errno(r)),
+        }
+        // SAFETY: the handle is bound.
+        let n = unsafe { sys::ddi_dma_ncookies(handle.as_raw()) };
+        Ok(KernelBinding { handle, ncookies: usize::try_from(n).unwrap_or(0) })
+    }
 }

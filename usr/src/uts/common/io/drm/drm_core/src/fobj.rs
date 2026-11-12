@@ -183,6 +183,17 @@ impl FObj {
         Ok(l.len() - 1)
     }
 
+    /// The kernel address of the object's memory if the core allocated it
+    /// as one piece (one backing covering the object), for a PRIME import.
+    /// The memory lives as long as the object.
+    pub(crate) fn kernel_memory(&self) -> Option<NonNull<u8>> {
+        let l = self.mem.lock();
+        match &l[..] {
+            [m] if m.size() >= self.size => Some(m.kernel_ptr()),
+            _ => None,
+        }
+    }
+
     /// Runs `f` on backing `i`.
     pub(crate) fn with_backing<R>(&self, i: usize, f: impl FnOnce(&SysMem) -> R) -> Option<R> {
         let l = self.mem.lock();
@@ -312,8 +323,14 @@ impl GemObject for FObj {
         }
         // The core has released everything that refers to the object; the
         // C structure goes now. Its tail no longer names a live object.
-        // SAFETY: the C structure is live until this call.
+        // The driver's free still uses the reservation (Linux: TTM's
+        // release and delayed delete; drm_gem_object_release() from the
+        // driver's destroy finalises it), which lives in the core's object:
+        // it gets a reservation of its own first (ffi::resv).
+        // SAFETY: the C structure is live until this call; the core's
+        // object (and its reservation) until release returns.
         unsafe {
+            crate::ffi::resv::detach_gem_resv(ptr::addr_of_mut!((*self.base())._resv), _ctx);
             (*self.base()).__core[0] = 0;
             (*self.base()).__core[1] = 0;
         }
@@ -350,8 +367,12 @@ pub(crate) struct ImportBox {
 
 unsafe extern "C" fn import_free(obj: *mut f::drm_gem_object) {
     // SAFETY: obj is the first field of an ImportBox made by
-    // import_object, freed once.
-    drop(unsafe { Box::from_raw(obj as *mut ImportBox) });
+    // import_object, freed once; its reservation as a driver's free would
+    // (drm_gem_object_release()).
+    unsafe {
+        crate::ffi::resv::dma_resv_fini(ptr::addr_of_mut!((*obj)._resv));
+        drop(Box::from_raw(obj as *mut ImportBox));
+    }
 }
 
 static IMPORT_FUNCS: f::drm_gem_object_funcs = f::drm_gem_object_funcs {
@@ -411,7 +432,12 @@ pub(crate) unsafe fn init_public(obj: *mut f::drm_gem_object, core: &DevCore, r:
         (*obj).size = r.object().size();
         (*obj).resv = ptr::addr_of_mut!((*obj)._resv);
         (*obj)._resv.__core[0] = r.resv() as *const _ as u64;
-        (*obj)._resv.__core[1] = (*obj)._resv.__core[0] ^ crate::MAGIC_RESV_GEM;
+        // Bound to the structure's address (as `__core` with MAGIC_GEM): a
+        // byte copy of the object (TTM's ghost objects) does not carry a
+        // valid pair, so its dma_resv_init() gives it a reservation of its
+        // own instead of sharing this one.
+        (*obj)._resv.__core[1] =
+            (*obj)._resv.__core[0] ^ crate::MAGIC_RESV_GEM ^ (ptr::addr_of!((*obj)._resv) as u64);
         let l = ptr::addr_of_mut!((*obj).gpuva.list);
         (*l).next = l;
         (*l).prev = l;

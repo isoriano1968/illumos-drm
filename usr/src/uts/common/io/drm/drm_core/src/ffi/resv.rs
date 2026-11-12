@@ -184,7 +184,10 @@ pub unsafe extern "C" fn dma_resv_init(obj: *mut f::dma_resv) {
     // second init) keeps it: overwriting would orphan the core's.
     // SAFETY: the caller's structure; a fresh one holds no matching pair.
     let (c0, c1) = unsafe { ((*obj).__core[0], (*obj).__core[1]) };
-    if c0 != 0 && (c1 == c0 ^ crate::MAGIC_RESV || c1 == c0 ^ crate::MAGIC_RESV_GEM) {
+    // The pair includes the structure's address: a byte copy of another
+    // reservation (TTM's ghost objects copy a whole BO) is a fresh one.
+    let a = obj as u64;
+    if c0 != 0 && (c1 == c0 ^ crate::MAGIC_RESV ^ a || c1 == c0 ^ crate::MAGIC_RESV_GEM ^ a) {
         // SAFETY: a constant format without arguments.
         unsafe {
             ddi::sys::cmn_err(
@@ -205,7 +208,7 @@ pub unsafe extern "C" fn dma_resv_init(obj: *mut f::dma_resv) {
     // SAFETY: as above.
     unsafe {
         (*obj).__core[0] = p;
-        (*obj).__core[1] = p ^ crate::MAGIC_RESV;
+        (*obj).__core[1] = p ^ crate::MAGIC_RESV ^ (obj as u64);
     }
 }
 
@@ -219,7 +222,7 @@ pub unsafe extern "C" fn dma_resv_fini(obj: *mut f::dma_resv) {
     }
     // SAFETY: the caller's structure.
     let (p, check) = unsafe { ((*obj).__core[0], (*obj).__core[1]) };
-    if p == 0 || p ^ crate::MAGIC_RESV != check {
+    if p == 0 || p ^ crate::MAGIC_RESV ^ (obj as u64) != check {
         return;
     }
     // SAFETY: allocated by dma_resv_init.
@@ -239,6 +242,62 @@ pub unsafe extern "C" fn dma_resv_fini(obj: *mut f::dma_resv) {
         (*obj).__core[0] = 0;
         (*obj).__core[1] = 0;
         drop(Box::from_raw(p as *mut Resv));
+    }
+}
+
+/// Gives a GEM object's `_resv` a reservation of its own before the core's
+/// object (and with it the core's reservation) goes, with the fences moved
+/// over. Linux's order: the driver's free still uses `obj->_resv` (TTM's
+/// `ttm_bo_release()` locks and tests it, its delayed delete waits on it
+/// from a work queue) until the driver's destroy calls
+/// `drm_gem_object_release()`, which releases it (`dma_resv_fini`). A
+/// reservation that is not a GEM object's is left alone.
+///
+/// # Safety
+/// `obj` is the `_resv` of a GEM object whose core object is being
+/// destroyed and still alive; nobody holds its lock.
+pub(crate) unsafe fn detach_gem_resv(obj: *mut f::dma_resv, ctx: &ddi::Sleepable) {
+    // SAFETY: the caller's structure.
+    let (c0, c1) = unsafe { ((*obj).__core[0], (*obj).__core[1]) };
+    if c0 == 0 || c1 != c0 ^ crate::MAGIC_RESV_GEM ^ (obj as u64) {
+        return;
+    }
+    // SAFETY: the core object's reservation, alive during its release.
+    let old = unsafe { &*(c0 as *const Resv) };
+    let new = Box::new(Resv::new());
+    old.move_fences_to(&new, ctx);
+    let p = Box::into_raw(new) as u64;
+    // SAFETY: the caller's structure; from here dma_resv_fini frees it.
+    unsafe {
+        (*obj).__core[0] = p;
+        (*obj).__core[1] = p ^ crate::MAGIC_RESV ^ (obj as u64);
+    }
+}
+
+/// Facade 2.1: Linux's `dma_resv_replace_fences`, for the LinuxKPI layer.
+/// The calling thread holds `obj` (dma_resv_lock); 0, or `-EINVAL` (not
+/// held, no reservation or fence, bad usage), `-ENOMEM`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn drm_illumos_resv_replace_fences(
+    obj: *mut f::dma_resv,
+    context: u64,
+    fence: *mut f::dma_fence,
+    u: f::dma_resv_usage,
+) -> i32 {
+    // SAFETY: documented for thread context.
+    let ctx = unsafe { super::sleepable() };
+    // SAFETY: the caller holds the object and the fence.
+    let (Some(r), Some(fc)) = (unsafe { resv(obj) }, unsafe { super::fence::core_fence(fence) }) else {
+        return neg(Errno::EINVAL);
+    };
+    let ret = match usage(u) {
+        Some(u) => r.replace_fences_raw(context, &fc, u, &ctx),
+        None => Err(Errno::EINVAL),
+    };
+    fc.put(Ctx::Sleep(&ctx));
+    match ret {
+        Ok(()) => 0,
+        Err(e) => neg(e),
     }
 }
 

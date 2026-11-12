@@ -32,7 +32,9 @@
  * drm_dev_illumos_lkms_register and the event functions,
  * drm_illumos_mode_config.async_page_flip; 2.1 drm_illumos_ioctl_nonblock
  * (whether the calling thread's ioctl came through a non-blocking file;
- * layouts unchanged).
+ * layouts unchanged); 2.2 (amdgpu) drm_illumos_resv_replace_fences,
+ * drm_illumos_prime_map/_nsegs/_segs/_unmap, drm_dev_illumos_set_prime_export,
+ * drm_syncobj_get_fd and drm_syncobj_get_handle (layouts unchanged).
  */
 
 #ifndef _DRM_FACADE_VERSION_H
@@ -45,7 +47,7 @@ extern "C" {
 #endif
 
 #define	DRM_FACADE_MAJOR	2
-#define	DRM_FACADE_MINOR	1
+#define	DRM_FACADE_MINOR	2
 
 /*
  * The structures whose sizes are part of the version, in the order of

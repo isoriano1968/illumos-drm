@@ -44,6 +44,9 @@ pub(crate) struct Setup {
     pub(crate) unplugged: bool,
     pub(crate) dma: Option<DmaAttr>,
     pub(crate) fence_pri: Option<IntrPriority>,
+    /// The exporter callbacks for objects without core memory
+    /// (`drm_dev_illumos_set_prime_export`).
+    pub(crate) prime_export: Option<f::drm_illumos_prime_export_funcs>,
     /// The bus ID (`drm_dev_set_unique`), NUL-terminated.
     pub(crate) unique: [u8; BUS_ID_MAX + 1],
     pub(crate) unique_len: usize,
@@ -273,6 +276,7 @@ impl DevCore {
                 unplugged: false,
                 dma: None,
                 fence_pri: None,
+                prime_export: None,
                 unique: [0; BUS_ID_MAX + 1],
                 unique_len: 0,
                 lkms_reg: Registration::new(),
