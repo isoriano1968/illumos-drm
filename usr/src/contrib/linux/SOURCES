@@ -10,6 +10,7 @@ drivers/gpu/drm/drm_atomic_helper.c	7b2267d388360d00e5f666d71f5c23de8758afa259b9
 drivers/gpu/drm/drm_atomic_state_helper.c	1c4568be50cfda7978a7645f0c3ff5d5ab6ebed39badd6991aaf159732ed8dca	MIT (permission notice)
 drivers/gpu/drm/drm_atomic_uapi.c	bcde60b1ff37b913fe8c93f6dc8b638fbf3155138fbf989d2142b8cb6eb95e1f	MIT (permission notice)
 drivers/gpu/drm/drm_blend.c	870f1a71291b8af7e80b9d9fc0da31a9351d7c5ae5073ace2dc9261b45e8c5cb	HPND/X11 (permission notice)
+drivers/gpu/drm/drm_cache.c	510ffa7f075630669f8c011b486c6a3683881dbd10aa6f0e502de9821681d337	MIT (permission notice)
 drivers/gpu/drm/drm_color_mgmt.c	4de212252bac90c4f538a85e2705c7750fa5c21b75251ab3c8adcca6491ca80d	HPND/X11 (permission notice)
 drivers/gpu/drm/drm_colorop.c	3ca2ad975397ee1249866e3a3cb4110c4b7822c01cdcb61dc7c20c660838b922	MIT
 drivers/gpu/drm/drm_connector.c	8b921799918af4ca14121b96a0ee42fa3ed13a831c4ac7a6a788f0d1b5194ff8	HPND/X11 (permission notice)
@@ -25,6 +26,7 @@ drivers/gpu/drm/drm_encoder.c	8a2b79dde53f2006da716cfc355540570b5ecf2952aacbd670
 drivers/gpu/drm/drm_fourcc.c	a4873507d66a0b4d6f0b9d348285e37ecc3c616bf3ffe82afc160aa9ee24dc2a	HPND/X11 (permission notice)
 drivers/gpu/drm/drm_framebuffer.c	4ed07c3bd501918da80d4489c8a71737d8ec08cc0ba770814c31e4a5699e4f84	HPND/X11 (permission notice)
 drivers/gpu/drm/drm_internal.h	c26a9a51eef36ca4952a0f946ba31f48ca5270c53732e8faabffaca8d47ca94e	MIT (permission notice)
+drivers/gpu/drm/drm_mm.c	456a003da23d8d4b243d6ea2e59d69ddf593aef09d81c5b70015726fd666adbf	MIT (permission notice)
 drivers/gpu/drm/drm_mode_config.c	1128bf0205aec09995cfef1e1ce3c3e9845da324b677a75a4fd5ae0d1b00f6b7	HPND/X11 (permission notice)
 drivers/gpu/drm/drm_mode_object.c	421ad21ddc040c71b180780dc406089b0810c1ce410ca270e1c804e18fd5b9f6	HPND/X11 (permission notice)
 drivers/gpu/drm/drm_modes.c	e02b2099537b8e6a2ddabb26e9ff31bc6bdb3acd49f210790f8cb426427e9676	MIT (permission notice)
