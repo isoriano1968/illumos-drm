@@ -1,2 +1,4 @@
 /target
 *.kmod
+# amdgpu firmware (linux-firmware, AMD licence): fetched, never committed
+firmware/amdgpu/*.bin
