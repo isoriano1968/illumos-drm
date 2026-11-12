@@ -20,11 +20,24 @@ HPND_NOTICE = "Permission to use, copy, modify, distribute, and sell"
 
 
 def spdx_ok(expr):
-    e = expr.replace("(", " ").replace(")", " ")
-    words = e.split()
-    if "AND" in words or "WITH" in words:
+    # Top-level OR alternatives: "(GPL-2.0 WITH Linux-syscall-note) OR MIT"
+    # offers MIT; an alternative that is exactly MIT accepts the file, and
+    # an AND anywhere refuses it.
+    depth, cur, alternatives = 0, "", []
+    for tok in expr.replace("(", " ( ").replace(")", " ) ").split():
+        if tok == "(":
+            depth += 1
+        elif tok == ")":
+            depth -= 1
+        elif tok.upper() == "OR" and depth == 0:
+            alternatives.append(cur.strip())
+            cur = ""
+            continue
+        if tok not in "()":
+            cur += " " + tok
+    alternatives.append(cur.strip())
+    if any("AND" in a.upper().split() for a in alternatives):
         return False
-    alternatives = [w for w in words if w != "OR"]
     return "MIT" in alternatives
 
 
