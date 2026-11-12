@@ -2154,6 +2154,12 @@ static void intel_user_framebuffer_fence_wake(struct dma_fence *dma,
 	dma_fence_put(dma);
 }
 
+#ifdef __illumos__
+/* usr/src/uts/intel/io/i915n/illumos/i915_illumos.c */
+extern void i915_illumos_fb_dirty(struct drm_framebuffer *fb,
+    const struct drm_clip_rect *clips, unsigned int num_clips);
+#endif
+
 static int intel_user_framebuffer_dirty(struct drm_framebuffer *fb,
 					struct drm_file *file,
 					unsigned int flags, unsigned int color,
@@ -2165,6 +2171,14 @@ static int intel_user_framebuffer_dirty(struct drm_framebuffer *fb,
 	struct dma_fence *fence;
 	struct frontbuffer_fence_cb *cb;
 	int ret = 0;
+
+#ifdef __illumos__
+	/*
+	 * A write-back user mapping may stand for WC: flush what user space
+	 * wrote through it, which the display engine does not snoop.
+	 */
+	i915_illumos_fb_dirty(fb, clips, num_clips);
+#endif
 
 	if (!atomic_read(&front->bits))
 		return 0;

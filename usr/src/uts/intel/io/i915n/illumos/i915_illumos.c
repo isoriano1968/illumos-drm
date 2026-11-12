@@ -17,7 +17,8 @@
  * module_exit.
  *
  * Also here: the GEM handle lookups patch 0003 routes to the DRM core,
- * the user mappings of patch 0005, and the display-engine interrupt
+ * the user mappings of patch 0005 (and, on the display build, the cache
+ * flush DIRTYFB needs for them), and the display-engine interrupt
  * registers that patch 0006 needs on a device without display.
  */
 
@@ -35,6 +36,9 @@
 #include "display/intel_display_device.h"
 #include "display/intel_display_irq.h"
 #ifdef I915N_DISPLAY
+#include <drm/drm_cache.h>
+#include <drm/drm_fourcc.h>
+#include <drm/drm_framebuffer.h>
 #include "i915_illumos_con.h"
 #endif
 
@@ -385,6 +389,148 @@ i915_illumos_mmap_offset(struct drm_i915_gem_object *obj,
 	*offset = drm_vma_node_offset_addr(&obj->base.vma_node);
 	return (0);
 }
+
+#ifdef I915N_DISPLAY
+/*
+ * DIRTYFB of a framebuffer whose object has a write-back mapping standing
+ * for WC. Scanout moves the object to an uncached level directly
+ * (i915_gem_object_pin_to_display_plane()), past the SET_CACHING guard,
+ * and the display engine does not snoop the CPU cache: what user space
+ * wrote through the mapping is flushed here, the damaged rows only.
+ */
+
+/* More clips than this are flushed as the whole framebuffer. */
+#define	I915N_DIRTY_MAX_CLIPS	16
+
+struct i915n_dirty_range {
+	u64	start;
+	u64	end;
+};
+
+/*
+ * The byte ranges of the rows that clips damage in plane 0 (at offset,
+ * pitch bytes a row, width x height), clamped to the framebuffer and to
+ * the object's size; at most I915N_DIRTY_MAX_CLIPS in r. No clips, too
+ * many or clips summing to more than half the rows give the framebuffer's
+ * range once. Returns the number of ranges. No kernel state:
+ * test-dirtyfb-ranges.sh compiles it on the build host.
+ */
+static unsigned int
+i915n_dirty_ranges(u64 offset, u64 pitch, u64 width, u64 height, u64 size,
+    const struct drm_clip_rect *clips, unsigned int nclips,
+    struct i915n_dirty_range *r)
+{
+	u64 end = offset + pitch * height;
+	u64 rows = 0, x1, x2, y1, y2;
+	unsigned int i, n = 0;
+
+	if (end > size)
+		end = size;
+	if (pitch == 0 || offset >= end)
+		return (0);
+	if (nclips == 0 || nclips > I915N_DIRTY_MAX_CLIPS)
+		goto whole;
+	for (i = 0; i < nclips; i++) {
+		x1 = clips[i].x1;
+		x2 = clips[i].x2;
+		y1 = clips[i].y1;
+		y2 = clips[i].y2;
+		if (y2 > height)
+			y2 = height;
+		if (x1 >= x2 || x1 >= width || y1 >= y2)
+			continue;
+		rows += y2 - y1;
+		r[n].start = offset + y1 * pitch;
+		r[n].end = offset + y2 * pitch;
+		if (r[n].end > end)
+			r[n].end = end;
+		if (r[n].start < r[n].end)
+			n++;
+	}
+	if (rows * 2 <= height)
+		return (n);
+whole:
+	r[0].start = offset;
+	r[0].end = end;
+	return (1);
+}
+
+/* For mdb: DIRTYFB calls that flushed, and the bytes they flushed. */
+u64 i915n_dirtyfb_flushed;
+u64 i915n_dirtyfb_flushed_bytes;
+
+/*
+ * Flushes bytes [start, end) of the object's pages: the shmem backing the
+ * user mapping maps (lkpi_shmem.c), through each page's kernel address as
+ * drm_clflush_sg() does. Returns the bytes flushed.
+ */
+static u64
+i915n_clflush_range(struct sg_table *st, u64 start, u64 end)
+{
+	struct sg_page_iter it;
+	u64 pos = start & ~(u64)(PAGE_SIZE - 1);
+	u64 s, e, done = 0;
+
+	for_each_sgtable_page(st, &it, start >> PAGE_SHIFT) {
+		s = max_t(u64, pos, start);
+		e = min_t(u64, pos + PAGE_SIZE, end);
+		drm_clflush_virt_range((char *)page_address(
+		    sg_page_iter_page(&it)) + (s - pos), e - s);
+		done += e - s;
+		pos += PAGE_SIZE;
+		if (pos >= end)
+			break;
+	}
+	return (done);
+}
+
+/*
+ * Called by intel_user_framebuffer_dirty() (DRM_IOCTL_MODE_DIRTYFB, no
+ * locks held) before the frontbuffer flush, also for a framebuffer not on
+ * a plane: pinning it for scanout again flushes nothing once its level is
+ * uncached. The object lock keeps its pages (putting them takes it).
+ * Without pages the object is on no plane (scanout pins them) and nothing
+ * is flushed: the user mapping outlives them here, so writes made then
+ * are not covered.
+ */
+void
+i915_illumos_fb_dirty(struct drm_framebuffer *fb,
+    const struct drm_clip_rect *clips, unsigned int num_clips)
+{
+	struct drm_i915_gem_object *obj = to_intel_bo(fb->obj[0]);
+	struct i915n_dirty_range r[I915N_DIRTY_MAX_CLIPS];
+	unsigned int i, n;
+	u64 bytes = 0;
+
+	if (!test_bit(I915_BO_ILLUMOS_WB_FOR_WC_BIT, &obj->flags))
+		return;
+	if (fb->modifier != DRM_FORMAT_MOD_LINEAR ||
+	    fb->format->num_planes != 1) {
+		/* Rows are not linear in memory: the whole object. */
+		r[0].start = 0;
+		r[0].end = obj->base.size;
+		n = 1;
+	} else {
+		n = i915n_dirty_ranges(fb->offsets[0], fb->pitches[0],
+		    fb->width, fb->height, obj->base.size, clips, num_clips, r);
+	}
+	if (n == 0)
+		return;
+	(void) i915_gem_object_lock(obj, NULL);
+	if (i915_gem_object_has_pages(obj)) {
+		for (i = 0; i < n; i++)
+			bytes += i915n_clflush_range(obj->mm.pages,
+			    r[i].start, r[i].end);
+	}
+	i915_gem_object_unlock(obj);
+	if (bytes != 0) {
+		__atomic_add_fetch(&i915n_dirtyfb_flushed, 1,
+		    __ATOMIC_RELAXED);
+		__atomic_add_fetch(&i915n_dirtyfb_flushed_bytes, bytes,
+		    __ATOMIC_RELAXED);
+	}
+}
+#endif	/* I915N_DISPLAY */
 
 /* --- display-engine interrupt registers (patch 0006) --------------------- */
 
