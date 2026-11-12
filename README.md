@@ -28,7 +28,7 @@ R5b (public-layout base objects, facade 1.0; see *R5b* under *Decisions*):
 on 3 October 2026, on fresh guests of `golden-20260930` (illumos
 `7e802e88a3`, libdrm 2.4.134) with a virtio-gpu device, at commit
 `c24a58e` (the later commits change tests and comments only),
-`tools/test/run-r5b-test.sh` passed: `run-r5a-test.sh` (R0 to R4 on the
+`usr/src/test/drm-tests/run-r5b-test.sh` passed: `run-r5a-test.sh` (R0 to R4 on the
 three drivers, R5a's cross-driver test after three unload orders, G6,
 R1 for two `cdrmnull` devices, the facade mismatch probes including a
 same-size `drm_device` with a smaller private tail; 168 passing checks,
@@ -56,12 +56,12 @@ and the run after it passed (76 checks). Logs:
 R5e (the Linux DRM helpers C drivers need; see *R5e* under *Decisions*):
 `misc/drm_helpers` carries Linux v7.2's `drm_mm` unmodified and
 `drm_cache`'s `drm_clflush_virt_range` (one patch of conditionals), on MIT
-reimplementations of the Linux interfaces they need (`linuxkpi/`), and
+reimplementations of the Linux interfaces they need (`usr/src/uts/common/io/linuxkpi/`), and
 exports exactly the eleven functions of them i915's headless build imports.
 On 5 October 2026, at `65afae7`, it was built on illumos (gcc 14.3, the
 gate's kernel flags, `-z defs`; 14 global symbols, as its scope mapfile)
 and tested on a fresh guest of `golden-20260930` (illumos `7e802e88a3`)
-with `tools/test/run-r5e-test.sh`: 27 checks passed, none failed (as on
+with `usr/src/test/drm-tests/run-r5e-test.sh`: 27 checks passed, none failed (as on
 4 October at `b5670f9`). The module loaded and unloaded
 alone; the test driver `drm_helpers_test`, linked with
 `-N misc/drm_helpers` against the exported functions only, ran the 16
@@ -70,18 +70,18 @@ scale 50 (130,876 checks at scale 1, 6,464,544 at scale 50, none failed,
 9.1 s); `misc/drm_helpers` refused to unload under it and unloaded after
 `rem_drv`; an injected failing check was counted and logged with the attach
 still succeeding; `/etc` and `/devices/pseudo` were as before; and the
-package (`packaging/drm-helpers.p5m`, published, pkglint-clean, as a p5p)
+package (`usr/src/pkg/manifests/drm-helpers.p5m`, published, pkglint-clean, as a p5p)
 installed the tested module into a scratch boot environment, verified and
-uninstalled. `carried/host-test.sh` runs the same tests plus host-only and
+uninstalled. `usr/src/uts/common/io/drm_helpers/host-test.sh` runs the same tests plus host-only and
 red-black/interval tree tests: 26 tests and 840,436 checks with gcc on
 illumos, 24 tests and 839,569 checks with clang under AddressSanitizer and
 UndefinedBehaviorSanitizer on arm64 (no `drm_cache` there); a seed gives
 the same `drm_mm` counts on every compiler and in the kernel.
 
 R5c (the Linux compatibility layer and the headless i915; see *R5c* under
-*Decisions*): `misc/linuxkpi` (`linuxkpi/`, MIT) implements the Linux
+*Decisions*): `misc/linuxkpi` (`usr/src/uts/common/io/linuxkpi/`, MIT) implements the Linux
 kernel interfaces Linux v7.2's i915 needs over the DDI and the facade
-(1.1), and `i915n` (`drivers/i915/`: 154 Linux translation units, ten
+(1.1), and `i915n` (`usr/src/uts/intel/io/i915n/`: 154 Linux translation units, ten
 illumos patches, generated display stubs) links against it with `-z defs`
 and no unresolved symbol. On 5 October 2026, at `05e43d0` (modules built
 at `57022d7`, the following commit changed the test script only), on
@@ -89,7 +89,7 @@ oibuild (gcc 14.3.0-oi-4): 35 layer files, 157 i915 units, every one of
 the 483 Linux files the compiler read MIT or HPND, `i915n` linked, and the
 three packages (`linuxkpi`, `drm-helpers`, `i915n`) published as a p5p,
 pkglint-clean. On a guest of `golden-20260930` (illumos `7e802e88a3`,
-`-device pci-testdev`) `tools/test/run-r5c-test.sh` passed 22 checks (its
+`-device pci-testdev`) `usr/src/test/drm-tests/run-r5c-test.sh` passed 22 checks (its
 second run there; the first, on the fresh guest, failed only the test
 script's lookup of the DRM node, fixed in `05e43d0`): no module defines a kernel symbol, `linuxkpi_selftest`
 passed 157 checks (including the concurrency tests of the scheduling,
@@ -139,7 +139,7 @@ of `golden-20260930` (illumos `7e802e88a3`) with a virtio-gpu device,
 gfx-drm's `driver/graphics/drm` built with the reverse guard (gfx-drm
 branch `drm-coexist` on top of `libdrm-update`, with `drm-devlink` and
 libdrm 2.4.134) and this repository's `drm-core`, `drmadm`, `virtio-gpu`
-and `cdrmnull` installed into one boot environment, `tools/test/run-g7-test.sh`
+and `cdrmnull` installed into one boot environment, `usr/src/test/drm-tests/run-g7-test.sh`
 passed every phase (81 checks, no failure; logs
 `logs/hephaistos/illumos-drm/20261003-g7-run3-*` in the workspace; the
 phases up to `select-root` ran at commit `89ea95e`, `overlap`, `rollback`
@@ -201,11 +201,11 @@ G7's `select-new` (13) and `repair` (17) (`...-g10-run4-*`).
 
 R5a (`misc/drm_core` and the C facade): since 1 October 2026 the core is one
 kernel module, `misc/drm_core`, that exports a C interface (the headers in
-`include/drm`), and every driver is linked against it with
+`usr/src/uts/common/drm`), and every driver is linked against it with
 `-N misc/drm_core`: `rdrmnull` and `virtio_gpu` through the safe Rust crate
 `drm-facade`, and `cdrmnull`, a C port of `rdrmnull`, directly. See
 *R5a* under *Decisions* for the design. On 3 October 2026, at commit
-`b040324` (illumos-ddi `10bdfba`), `tools/test/run-r5a-test.sh` passed on a
+`b040324` (illumos-ddi `10bdfba`), `usr/src/test/drm-tests/run-r5a-test.sh` passed on a
 fresh guest of `golden-20260930` (illumos `7e802e88a3`, libdrm 2.4.134)
 with 167 checks and no failure. `misc/drm_core` exports exactly the 102
 symbols of `drm_core.mapfile` and loads and unloads alone; gcc's view of
@@ -322,7 +322,7 @@ gfx-drm's build of the libdrm 2.4.109 tests) lists every object with its
 properties and decodes the `IN_FORMATS` blobs, sets 1024x768 with a dumb
 framebuffer (`-s`), page-flips at 60.00 Hz with vblank events (`-v`) and
 sets the mode and primary plane through the atomic ioctl (`-a`).
-`tools/test/drm_r3_test.c` (180 checks) covers mode objects, properties
+`usr/src/test/drm-tests/drm_r3_test.c` (180 checks) covers mode objects, properties
 and their get/set round trips, blobs, `ADDFB`/`ADDFB2`/`GETFB`/`GETFB2`
 (an unsupported modifier is `EINVAL`), `TEST_ONLY` that changes nothing,
 real commits with page-flip events read through `poll(2)` and `read(2)`,
@@ -342,7 +342,7 @@ R4 (virtio-gpu), 30 September 2026, on a disposable Hipster guest
 `-display egl-headless` (virglrenderer 0.9.1 on the host's GPU):
 `virtio_gpu` attaches to the device (`virgl true, edid true`, two
 capability sets, virgl and virgl2, the modern interface), and
-`tools/test/run-r4-test.sh` passes: `drm_r4_test` checks 63 things, among
+`usr/src/test/drm-tests/run-r4-test.sh` passes: `drm_r4_test` checks 63 things, among
 them a minimal virgl command stream (surface, framebuffer, clear) whose
 result reads back from the host renderer with `TRANSFER_FROM_HOST`, fence
 descriptors across the three `EXECBUFFER` layouts, binary and timeline
@@ -385,7 +385,7 @@ G6 (one device numbering across drivers, Linux's ioctl argument sizes),
 1 October 2026, on a disposable Hipster guest with illumos `7e802e88a3`
 (osnet 23295) in QEMU 6.2 with `-device virtio-gpu-gl-pci`, and gfx-drm's
 libdrm 2.4.134 (gfx-drm pull request 8, `1e68727`) installed in the
-guest: `tools/test/run-g6-test.sh` passed with 354 checks and none
+guest: `usr/src/test/drm-tests/run-g6-test.sh` passed with 354 checks and none
 failed. With `virtio_gpu` attached first and then two `rdrmnull`
 devices, the devices were `card0`/`renderD128`, `card1`/`renderD129`
 and `card2`/`renderD130` (node minors 0, 1, 2 and 128, 129, 130);
@@ -418,7 +418,7 @@ loaded (R5a's guest runs covered both, on `misc/drm_core`).
 G8 (a re-import no longer detaches a buffer; see *Driver hooks per file
 and object (G8)*), 3 October 2026, on a fresh guest of `golden-20260930`
 (illumos `7e802e88a3`, libdrm 2.4.134) with `-device virtio-gpu-gl-pci`:
-at commit `c2ea15b`, `tools/test/run-g8-test.sh` passed with
+at commit `c2ea15b`, `usr/src/test/drm-tests/run-g8-test.sh` passed with
 `drm_g8_test` at 143 checks and none failed: on `cdrmnull`, `rdrmnull`
 and `virtio_gpu`, a file that imports its own buffer twice gets its own
 handle and the `gem` kstat's handles, attachments, objects, memory and
@@ -438,7 +438,7 @@ resource". `run-r5a-test.sh` (R0 to R4, G6, R5a, three reattach orders,
 R1 with two `cdrmnull` devices) passed with 167 checks, among them
 `drm_r1_test`'s second handle by `GEM_OPEN`. After a `pkg update` to
 osnet 23298 (illumos `2cafbda106`) and G3's Mesa 25.3.6, G3's two-process
-reproducer `tools/test/dmabuf_import_test.c` passed in all three modes
+reproducer `usr/src/test/drm-tests/dmabuf_import_test.c` passed in all three modes
 (import twice, once, draw first) and failed with the base's archives
 exactly as G3 saw it (the importer's drawing into the twice-imported
 buffer lost). Xorg's DRI3 path itself (`dri3_probe` of G4) could not be
@@ -448,13 +448,13 @@ glamor, which Mesa removed in 25.2. Logs:
 
 ## What is in the repository
 
-`crates/drm-uapi` is the DRM userland interface as Rust types: the
+`usr/src/uts/common/io/drm/drm-uapi` is the DRM userland interface as Rust types: the
 `#[repr(C)]` argument structures and constants of `drm.h`, `drm_mode.h` and
 `virtgpu_drm.h` from libdrm 2.4.109, generated with bindgen, and the
 `DRM_IOCTL_*` numbers in the illumos `_IOWR` encoding. It has no
 dependencies and can serve userland programs as well as the kernel.
 
-`crates/drm-core` (named `crates/drm` until R5a) is the core, a `no_std`
+`usr/src/uts/common/io/drm/drm-core` (named `crates/drm` until R5a) is the core, a `no_std`
 library on top of the `ddi` crate. Since R5a only `misc/drm_core` compiles it
 with its `kernel` feature, which holds the stateful kernel layer; the
 drivers use the facade and take only value helpers from it (display
@@ -485,96 +485,96 @@ sync files, over illumos-ddi's private tier), `syncobj_ioctl` and
 the reference count kept in a C structure, and `print` the rules of the
 facade's logging; all four are tested on the host.
 
-`examples/rdrmnull` is a DRM driver without hardware. It registers one
+`usr/src/uts/common/io/rdrmnull` is a DRM driver without hardware. It registers one
 device with a card and a render node, has dumb buffers in system memory,
 sync objects with timelines, and test-only private ioctls (movable
 objects for the refault experiment, a reference dropped from a timer,
 since R2 fences on a test timeline that a soft interrupt signals after a
 delay and a reservation wait), and is the kernel module the core is
 tested with, as well as the template for a real driver. Since R3 it also
-has a virtual display (`examples/rdrmnull/src/kms.rs`) and two more
+has a virtual display (`usr/src/uts/common/io/rdrmnull/src/kms.rs`) and two more
 test-only ioctls: one reports what its software scanout shows, the other
 keeps a reference to an object across the close of every file, so that
 the tests can check that a refused detach leaves the device working.
 
 `xtask` builds and links kernel modules and checks interfaces (see below).
-`tools/uapi` regenerates `drm-uapi` and holds the C half of the layout
-check. `tools/test` holds the libdrm test programs of R0 to R3 and the
+`usr/src/tools/uapi` regenerates `drm-uapi` and holds the C half of the layout
+check. `usr/src/test/drm-tests` holds the libdrm test programs of R0 to R3 and the
 scripts that link, load, test and unload `rdrmnull` on an illumos machine
 (`run-r1-test.sh` runs the R0, R1 and R2 tests, `run-r3-test.sh` runs the
-R0, R1 and R3 tests and `modetest`). `crates/drm-core/tests/edid` holds the
+R0, R1 and R3 tests and `modetest`). `usr/src/uts/common/io/drm/drm-core/tests/edid` holds the
 EDID test blobs and `gen_edid.py`, which synthesizes them.
 `docs/anon-fd.md` records how file descriptors are made for dma-bufs,
 sync objects and sync files.
-`packaging/devlink.tab` is the `/dev/dri` link rule for packages.
+`usr/src/data/drm/devlink.tab` is the `/dev/dri` link rule for packages.
 
-`modules/drm_core` is the kernel module `misc/drm_core` (crate `drm-module`): the core
+`usr/src/uts/common/io/drm/drm_core` is the kernel module `misc/drm_core` (crate `drm-module`): the core
 monomorphised once, behind the C facade, plus the table of DRM device
 numbers every driver shares (`misc/drm_minor` until R5a; see *Device
-numbers across drivers*). `include/drm` holds the facade's C headers (MIT;
-Linux's names), `include/drm/drm_facade.mapfile` the facade's symbols for
-a driver's `-z defs` link and `modules/drm_core/drm_core.mapfile` the module's
-symbol scope. `crates/drm-facade-sys` is the facade as Rust declarations
-(bindgen), `crates/drm-facade` the safe layer the Rust drivers use, and
-`drivers/cdrmnull` the C test driver (since R5b with a GPU-like fence
+numbers across drivers*). `usr/src/uts/common/drm` holds the facade's C headers (MIT;
+Linux's names), `usr/src/uts/common/drm/drm_facade.mapfile` the facade's symbols for
+a driver's `-z defs` link and `usr/src/uts/common/io/drm/drm_core/drm_core.mapfile` the module's
+symbol scope. `usr/src/uts/common/io/drm/drm-facade-sys` is the facade as Rust declarations
+(bindgen), `usr/src/uts/common/io/drm/drm-facade` the safe layer the Rust drivers use, and
+`usr/src/uts/common/io/cdrmnull` the C test driver (since R5b with a GPU-like fence
 timeline, managed resources and the fence-ops, handle-walk and printing
-self-tests that `tools/test/drm_r5b_test.c` and `run-r5b-test.sh`
-drive). `tools/facade` regenerates the
+self-tests that `usr/src/test/drm-tests/drm_r5b_test.c` and `run-r5b-test.sh`
+drive). `usr/src/tools/facade` regenerates the
 bindings, both mapfiles and the layout tables, and holds the C half of the
-layout check; `modules/drm_core/ctf` the CTF shadow of the facade structures.
-`packaging/drm-core.p5m` packages the module, `packaging/cdrmnull.p5m` the C
-driver. `tools/drmadm` holds `drmadm(8)`, which selects the legacy or this
+layout check; `usr/src/uts/common/io/drm/drm_core/ctf` the CTF shadow of the facade structures.
+`usr/src/pkg/manifests/drm-core.p5m` packages the module, `usr/src/pkg/manifests/cdrmnull.p5m` the C
+driver. `usr/src/cmd/drmadm` holds `drmadm(8)`, which selects the legacy or this
 stack for boot and keeps the new stack's device nodes at their
-`minor_perm` permissions (`packaging/drmadm.p5m`, with the service
-`packaging/drm-perms.xml`), and `tools/test/run-g7-test.sh`
+`minor_perm` permissions (`usr/src/pkg/manifests/drmadm.p5m`, with the service
+`usr/src/data/drm/drm-perms.xml`), and `usr/src/test/drm-tests/run-g7-test.sh`
 tests both stacks on one machine, `run-g10-test.sh` the node permissions
 after a cold boot; `docs/x230.md` is the operator note for
 the ThinkPad X230.
-`tools/test/run-g6-test.sh` attaches two `rdrmnull` devices and
+`usr/src/test/drm-tests/run-g6-test.sh` attaches two `rdrmnull` devices and
 `virtio_gpu` together and runs everything on each, `drm_g6_test.c`
 checks the argument size rule, and `drm-test-lib.sh` holds the shell
 functions the run scripts share.
 
-`drivers/virtio-gpu` is the virtio-gpu driver of R4 (see *R4* under
+`usr/src/uts/common/io/virtio_gpu` is the virtio-gpu driver of R4 (see *R4* under
 *Decisions*): `gpu` (requests, completions, fences, contexts), `object`
 (GEM objects with host resources), `ioctl` (the `DRM_IOCTL_VIRTGPU_*`
 ioctls), `kms` (the display), `proto` (the device protocol) and host
 tests of the pure logic (`cargo test -p virtio_gpu --no-default-features`).
-`tools/test/drm_r4_test.c` and `run-r4-test.sh` test it on a guest,
-`packaging/virtio-gpu.p5m` packages it with opt-in alias data in
-`packaging/virtio-gpu.aliases`. The generic Xorg template is
-`packaging/20-modesetting.conf`, owned by drmadm.
-`tools/uapi/include/virtgpu_drm.h` is the Linux v6.12 uAPI
-header the bindings come from, `crates/drm-uapi/src/virtgpu_compat.rs`
-the older layouts, and `tools/uapi/virtgpu_compat_layout.c` their gcc
+`usr/src/test/drm-tests/drm_r4_test.c` and `run-r4-test.sh` test it on a guest,
+`usr/src/pkg/manifests/virtio-gpu.p5m` packages it with opt-in alias data in
+`usr/src/uts/common/io/virtio_gpu/virtio-gpu.aliases`. The generic Xorg template is
+`usr/src/data/drm/20-modesetting.conf`, owned by drmadm.
+`usr/src/tools/uapi/include/virtgpu_drm.h` is the Linux v6.12 uAPI
+header the bindings come from, `usr/src/uts/common/io/drm/drm-uapi/src/virtgpu_compat.rs`
+the older layouts, and `usr/src/tools/uapi/virtgpu_compat_layout.c` their gcc
 check.
 
-`carried/` holds the glue and tests for the Linux helpers that C drivers
+`usr/src/uts/common/io/drm_helpers/` holds the glue and tests for the Linux helpers that C drivers
 call and the Rust core does not provide (R5e). Their Linux files are in
 `usr/src/contrib/linux`, with the other vendored sources and their `SOURCES`
-provenance. `carried/prepare-sources.sh` stages the four helper files under
+provenance. `usr/src/uts/common/io/drm_helpers/prepare-sources.sh` stages the four helper files under
 the output directory, preserving their isolated header search path.
-`carried/build.sh` builds `misc/drm_helpers` (`carried/drm_helpers/`) and
-the test driver `drm_helpers_test` (`carried/test/`, run by
-`tools/test/run-r5e-test.sh`); `carried/host-test.sh` runs the self-tests
-as a userland program. `packaging/drm-helpers.p5m` packages the module.
+`usr/src/uts/common/io/drm_helpers/build.sh` builds `misc/drm_helpers` (`usr/src/uts/common/io/drm_helpers/drm_helpers/`) and
+the test driver `drm_helpers_test` (`usr/src/uts/common/io/drm_helpers/test/`, run by
+`usr/src/test/drm-tests/run-r5e-test.sh`); `usr/src/uts/common/io/drm_helpers/host-test.sh` runs the self-tests
+as a userland program. `usr/src/pkg/manifests/drm-helpers.p5m` packages the module.
 
-`linuxkpi/` is the illumos Linux compatibility layer of R5c, the kernel
+`usr/src/uts/common/io/linuxkpi/` is the illumos Linux compatibility layer of R5c, the kernel
 module `misc/linuxkpi` (see *R5c* under *Decisions*): one MIT header per
 Linux header the i915 build and the carried helpers include
-(`linuxkpi/include/{linux,asm,acpi,drm,lkpi,trace,uapi,xen}`, with the
+(`usr/src/uts/common/io/linuxkpi/include/{linux,asm,acpi,drm,lkpi,trace,uapi,xen}`, with the
 force-included prologue `lkpi/prologue.h`), the implementation
-(`linuxkpi/src/`), the symbols it uses beyond the DDI with the reason for
-each (`linuxkpi/private.d/`), the kernel flags of everything built on it
-(`linuxkpi/kflags.sh`), `linuxkpi/build.sh`, the kernel self-test driver
-`linuxkpi_selftest` (`linuxkpi/selftest/`, run by
-`tools/test/run-r5c-test.sh`) and host tests (`linuxkpi/tests/host/`).
-`drivers/i915/` builds `i915n`, Linux v7.2's i915 (with display on Ivy
+(`usr/src/uts/common/io/linuxkpi/src/`), the symbols it uses beyond the DDI with the reason for
+each (`usr/src/uts/common/io/linuxkpi/private.d/`), the kernel flags of everything built on it
+(`usr/src/uts/common/io/linuxkpi/kflags.sh`), `usr/src/uts/common/io/linuxkpi/build.sh`, the kernel self-test driver
+`linuxkpi_selftest` (`usr/src/uts/common/io/linuxkpi/selftest/`, run by
+`usr/src/test/drm-tests/run-r5c-test.sh`) and host tests (`usr/src/uts/common/io/linuxkpi/tests/host/`).
+`usr/src/uts/intel/io/i915n/` builds `i915n`, Linux v7.2's i915 (with display on Ivy
 Bridge since facade 2.0, see *i915n with display* below), on
 it: the pin (`PIN`), the configuration (`config/`), the translation units
 (`tus.txt`, and `display-tus.txt` for the display), `build.sh`, the licence checks
 (`check-licences.py`, `gen-license.sh`) and the illumos glue
-(`illumos/`). `packaging/linuxkpi.p5m` and `packaging/i915n.p5m` package
+(`illumos/`). `usr/src/pkg/manifests/linuxkpi.p5m` and `usr/src/pkg/manifests/i915n.p5m` package
 them. The Linux sources, including the port changes and MIT header stand-ins,
 are in `usr/src/contrib/linux`; the build uses them by default. `LINUX` may
 name another tree with the same layout. Make a port change by editing the
@@ -585,13 +585,13 @@ the input selection, stand-ins, licence checks and pin-update procedure.
 
 ### misc/drm_kms
 
-`carried/drm_kms/` builds `misc/drm_kms`, Linux v7.2's DRM mode-setting
+`usr/src/uts/common/io/drm_kms/` builds `misc/drm_kms`, Linux v7.2's DRM mode-setting
 code for the Linux display drivers of this stack (i915n's display; design:
 `notes/i915n-kms-design.md` of the workspace, decision K2). The Rust core
 keeps the ioctl entry, permissions, master, files and their event queues,
 GEM and PRIME; the module keeps the mode objects, properties, blobs,
 framebuffers, atomic state, vblank and the mode-setting ioctl handlers,
-reached through the facade 2.0 hooks (`include/drm/drm_lkms.h`).
+reached through the facade 2.0 hooks (`usr/src/uts/common/drm/drm_lkms.h`).
 
 - **What it carries** (`tus.txt`, 36 Linux TUs): the KMS core of `drm.ko`
   (atomic and its uAPI, blend, colour management and colorops,
@@ -613,10 +613,10 @@ reached through the facade 2.0 hooks (`include/drm/drm_lkms.h`).
   not imported. `verify-vendored.sh -n` checks provenance coverage and
   licences over the entire tree. The build checks every Linux file the
   compiler read
-  (`drivers/i915/check-licences.py`). GPL Linux headers the code includes
-  are MIT reimplementations under `linuxkpi/include`. The package's
+  (`usr/src/uts/intel/io/i915n/check-licences.py`). GPL Linux headers the code includes
+  are MIT reimplementations under `usr/src/uts/common/io/linuxkpi/include`. The package's
   licence file lists the carried files' notices
-  (`MODULE=drm_kms drivers/i915/gen-license.sh`).
+  (`MODULE=drm_kms usr/src/uts/intel/io/i915n/gen-license.sh`).
 - **illumos sources** (`illumos/`, MIT): the module linkage (facade and
   LinuxKPI checks at `_init`), Linux's event functions over the core's
   event queue (`drm_kms_event.c`), the hook table `drm_kms_illumos_funcs`
@@ -626,21 +626,21 @@ reached through the facade 2.0 hooks (`include/drm/drm_lkms.h`).
   is not carried: bridges, leases, sysfs, writeback, panels, panel
   orientation quirks, the HDCP helper, plus GEM handle references and the
   implicit-fence plane helper over the facade (`drm_kms_stubs.c`).
-- **Build:** `carried/drm_kms/build.sh all` with `LINUX` (the prepared
+- **Build:** `usr/src/uts/common/io/drm_kms/build.sh all` with `LINUX` (the prepared
   tree), `DDI_MAPFILE` and `LKPI_MAPFILE`, compiles with i915n's flags and
-  configuration (`linuxkpi/kflags.sh`, `drivers/i915/config.h`) and links
+  configuration (`usr/src/uts/common/io/linuxkpi/kflags.sh`, `usr/src/uts/intel/io/i915n/config.h`) and links
   `ld -ztype=kmod -N misc/drm_core -N misc/linuxkpi -N misc/drm_helpers
   -z defs -B reduce` against the DDI, facade, LinuxKPI, drm_helpers and
   `private.mapfile` (genunix's `memcmp`, `memmove`, `strlcat`). The module
   exports what its sources `EXPORT_SYMBOL` (`drm_kms.mapfile`, which
   drivers link against with `-N misc/drm_kms`); the build regenerates the
   list and fails if it differs from the committed file or from the
-  module's global symbols. `packaging/drm-kms.p5m` packages it
+  module's global symbols. `usr/src/pkg/manifests/drm-kms.p5m` packages it
   (`driver/graphics/drm-kms`).
 
 ### i915n with display
 
-The display build of `i915n` (`drivers/i915/build.sh`, `I915_DISPLAY=1`,
+The display build of `i915n` (`usr/src/uts/intel/io/i915n/build.sh`, `I915_DISPLAY=1`,
 the default) carries i915's display code for Ivy Bridge (display version
 7; the ThinkPad X230's HD 4000) and uses Linux's mode-setting code in
 `misc/drm_kms` through the facade 2.0 hooks. Design: section 3 of
@@ -756,7 +756,7 @@ are always ready, register a head of the device that is never woken.
 `-N fs/specfs` (`cargo xtask link` takes it from the private crate's kmod
 metadata; the test scripts and CI name it).
 
-**xtask is vendored.** `xtask/src/main.rs` and `xtask/src/kernel_check.rs`
+**xtask is vendored.** `usr/src/tools/xtask/src/main.rs` and `usr/src/tools/xtask/src/kernel_check.rs`
 are copied from illumos-ddi at `eb18ab93b7`, with a header comment that
 lists the changes: `deps` and `kernel-check` read the full `cargo metadata`
 graph, because the `-sys` crates come from the git dependency rather than
@@ -766,24 +766,24 @@ was preferred to running illumos-ddi's xtask from the git checkout because
 that xtask only looks at its own workspace. When the pinned illumos-ddi
 revision moves, compare the two copies.
 
-**uAPI generation.** `tools/uapi/generate.sh` downloads libdrm 2.4.109 (the
+**uAPI generation.** `usr/src/tools/uapi/generate.sh` downloads libdrm 2.4.109 (the
 release gfx-drm builds, checked against the same SHA-256), applies gfx-drm's
-illumos patch to `include/drm/drm.h` (`tools/uapi/patches`, copied from
+illumos patch to `include/drm/drm.h` (`usr/src/tools/uapi/patches`, copied from
 gfx-drm `d109414c4f`; it makes `drm_handle_t` 64 bits wide on illumos), and
 runs bindgen for `x86_64-pc-solaris2.11` against the illumos-gate system
 headers. bindgen cannot expand `DRM_IOWR(nr, type)`, so
-`tools/uapi/gen_uapi.py` generates the ioctl numbers from the same headers,
+`usr/src/tools/uapi/gen_uapi.py` generates the ioctl numbers from the same headers,
 together with the two halves of the layout check. The generated files are
 committed. The patched header is the ABI of the installed libdrm, because
 gfx-drm compiles libdrm against it.
 
-**Layout proof.** `tools/uapi/drm_layout.c` prints the size of every
+**Layout proof.** `usr/src/tools/uapi/drm_layout.c` prints the size of every
 structure and union, the offset of every named member and the value of
 every `DRM_IOCTL_*` macro; built with gcc on illumos it gives
-`tools/uapi/drm_layout.oibldofgate.out`. `cargo xtask uapi-check <file>`
+`usr/src/tools/uapi/drm_layout.oibldofgate.out`. `cargo xtask uapi-check <file>`
 computes the same facts from the Rust definitions and compares them line
 by line: 103 sizes, 448 offsets and 115 ioctl numbers, no differences.
-`crates/drm-uapi/src/abi.rs` (generated by `tools/uapi/gen_abi.py` from
+`usr/src/uts/common/io/drm/drm-uapi/src/abi.rs` (generated by `usr/src/tools/uapi/gen_abi.py` from
 the gcc output) turns the values for the structures the core and the
 planned drivers need into compile-time assertions, on top of the
 assertions bindgen emits for every structure.
@@ -809,7 +809,7 @@ plain type would make devfsadm's `misc_link` module add `/dev/fbs/card0`,
 nodes. `ddi_display:drm` is what the gfx-drm C driver uses, and
 OpenIndiana's `driver/graphics/drm` package delivers the devfsadm module
 `SUNW_drm_link`, which creates `/dev/dri/card0` and `/dev/dri/renderD128`
-from the minor names. Where that module is missing, `packaging/devlink.tab`
+from the minor names. Where that module is missing, `usr/src/data/drm/devlink.tab`
 has the equivalent `/etc/devlink.tab` rule. On the test machine the module
 was present, so no `devlink.tab` change was needed.
 
@@ -966,8 +966,8 @@ binding against `ddi_root_node(9F)` from the pseudo node panicked the test
 machine, so neither is used. Both can be repeated on purpose with the DMA
 drill, a test aid: `Driver::gem_dma` chooses the binding at attach time,
 and `rdrmnull` reads it from the `dma-mode` property
-(`tools/test/rdrmnull-dma-self.conf` binds against its own node under the
-root nexus, `tools/test/rdrmnull-dma-root-node.conf` reproduces the panic;
+(`usr/src/test/drm-tests/rdrmnull-dma-self.conf` binds against its own node under the
+root nexus, `usr/src/test/drm-tests/rdrmnull-dma-root-node.conf` reproduces the panic;
 `RDRMNULL_CONF=<file> ./run-r1-test.sh`, only in a disposable VM with a
 dump device).
 
@@ -995,9 +995,9 @@ the device (`DDI_DMA_NORESOURCES`, `DDI_DMA_TOOBIG`, `DDI_DMA_NOMAPPING`),
 illumos-ddi's own-node guard refuses, and `EIO` for framework faults a
 fresh handle cannot produce. Before 28 September 2026 `DDI_DMA_NOMAPPING`
 reached userland as `EFAULT`, which in a create ioctl reads as a bad user
-pointer. `tools/test/rdrmnull-dma-self-tiny.conf` lowers the largest DMA
+pointer. `usr/src/test/drm-tests/rdrmnull-dma-self-tiny.conf` lowers the largest DMA
 transfer of the `self` drill to one page, and
-`tools/test/drm_dma_errno_test.c` checks that a one-page dumb buffer binds
+`usr/src/test/drm-tests/drm_dma_errno_test.c` checks that a one-page dumb buffer binds
 and a four-page one fails with `ENOMEM` and leaves nothing behind in the
 `gem` kstat; it did on 28 September 2026 (illumos `cda5b9a49f`).
 
@@ -1216,17 +1216,17 @@ retry never runs.
 **Concurrency.** All mutable device state of R0 is one `DeviceState` behind one
 `ddi::Mutex`. Each entry point performs its permission check and its state
 change in one critical section; copies from and to user memory happen
-outside it. `crates/drm-core/src/device.rs` gives the full argument. The state
+outside it. `usr/src/uts/common/io/drm/drm-core/src/device.rs` gives the full argument. The state
 machine is tested on the host from eight threads with an invariant check
-after every step, and the kernel side by `tools/test/drm_r0_test.c`, whose
+after every step, and the kernel side by `usr/src/test/drm-tests/drm_r0_test.c`, whose
 eight unprivileged threads open, authenticate and close files while the
 root master drops and retakes master in another process. The GEM state of
 R1 has its own locks (name table, then a file's handle table, then an
 object's mapping list; the offset, file and pending tables as leaves) and
-never drops a reference with one held; `crates/drm-core/src/gem.rs` and
-`crates/drm-core/src/objects.rs` give the argument, the host tests drive the
+never drops a reference with one held; `usr/src/uts/common/io/drm/drm-core/src/gem.rs` and
+`usr/src/uts/common/io/drm/drm-core/src/objects.rs` give the argument, the host tests drive the
 handle and name rules and the reference counting from eight threads, and
-`tools/test/drm_r1_test.c` runs eight threads of GEM ioctls and mappings
+`usr/src/test/drm-tests/drm_r1_test.c` runs eight threads of GEM ioctls and mappings
 against the kernel. R2's state has its own locks, taken inside, never
 around, the GEM and device locks: a file's sync object table and the
 anonymous-file table (leaves), sync objects (whose chain points are built
@@ -1238,12 +1238,12 @@ a concurrent open that reuses the id cannot find them (the R0 stress test
 caught that race when R2 made `close(9E)` longer). The host tests drive
 signalling against callback registration and removal, sync object waits
 against submissions, and wound/wait locking from eight threads;
-`tools/test/drm_r2_test.c` runs eight threads of sync object, fence, sync
+`usr/src/test/drm-tests/drm_r2_test.c` runs eight threads of sync object, fence, sync
 file and PRIME round trips against the kernel.
 Mode setting has two more locks, the mode-setting lock and the event
 lock, described below.
 
-**Mode setting (R3): structure.** KMS lives in `crates/drm-core/src/kms/`:
+**Mode setting (R3): structure.** KMS lives in `usr/src/uts/common/io/drm/drm-core/src/kms/`:
 `modes` (the mode type, its uAPI conversion and validation, the VESA DMT
 and CTA-861 tables, CVT, the mode list order), `edid` (base block and
 CTA-861 extensions to a mode list), `formats` (fourcc codes, legacy
@@ -1348,7 +1348,7 @@ device keeps its mode-setting state and its vblank source and works on.
 Only when every check has passed does the driver stop its sources
 (`before_teardown`) and the core release the KMS and GEM state. The refusal of `ATOMIC` to Xorg by process name stays open.
 
-**R5a: module layout.** `misc/drm_core` (`modules/drm_core`) is the only module
+**R5a: module layout.** `misc/drm_core` (`usr/src/uts/common/io/drm/drm_core`) is the only module
 that compiles `drm-core` with its `kernel` feature. It instantiates the
 core's generic device once, over a facade driver (`CDriver`) that forwards
 every hook of the core's `Driver` trait to a driver's C table
@@ -1451,10 +1451,10 @@ instantiated in each driver and only call C functions. A driver compiles
 test scripts and CI check that no driver module defines a symbol of the
 core's stateful modules. The link of `misc/drm_core` reduces every symbol but
 `_init`, `_fini`, `_info`, the 98 facade functions and `drm_debug` to
-local scope (`ld -B reduce -M modules/drm_core/drm_core.mapfile`; 102 global
+local scope (`ld -B reduce -M usr/src/uts/common/io/drm/drm_core/drm_core.mapfile`; 102 global
 symbols), and CI and the test scripts compare the module's global
-symbols with the mapfile. `tools/facade/gen_facade.py` generates
-`drm_core.mapfile` and the drivers' `include/drm/drm_facade.mapfile` from the
+symbols with the mapfile. `usr/src/tools/facade/gen_facade.py` generates
+`drm_core.mapfile` and the drivers' `usr/src/uts/common/drm/drm_facade.mapfile` from the
 headers, so neither can miss a function. Alternatives: exporting the
 core's Rust interface would export mangled names of one compiler build,
 and generic code cannot be shared across modules at all; trait objects
@@ -1466,7 +1466,7 @@ between devices of different drivers fail with `ENOTSUP` in R2.
 **R5a: facade version.** `drm_facade_version(struct drm_facade_version
 *out)` reports the facade's major and minor version and the sizes of
 its 28 public structures, in the order of the `DRM_FACADE_STRUCTS` list
-of `include/drm/drm_facade_version.h` (append only). The major version
+of `usr/src/uts/common/drm/drm_facade_version.h` (append only). The major version
 changes whenever a structure's size, a field's offset or meaning or a
 function's meaning changes, or a function is removed; the minor version
 changes when functions or callbacks are added without changing a size.
@@ -1501,15 +1501,15 @@ the core calls, plus `illumos_*` limits and hooks), together with the
 field holds is documented in the header; fields such as
 `dma_fence.flags` are copies the core refreshes, not the state itself.
 `xtask facade-check` compares the sizes and offsets of `drm-facade-sys`
-with what gcc computes on illumos (`tools/facade/facade_layout.c`,
+with what gcc computes on illumos (`usr/src/tools/facade/facade_layout.c`,
 38 sizes and 233 offsets; the members of anonymous unions are checked
 through their parents, not one by one), and `kernel-check` compares them
-with the loaded module's CTF. `tools/facade/check-generated.sh` (CI)
+with the loaded module's CTF. `usr/src/tools/facade/check-generated.sh` (CI)
 checks that the bindings, both mapfiles, the layout program and xtask's
 table are what the generators make of the headers.
 
 **R5a: CTF.** `ctfconvert` does not read Rust's DWARF, so `misc/drm_core`
-carries the CTF of a C shadow: `modules/drm_core/ctf/drm_facade_ctf.c`
+carries the CTF of a C shadow: `usr/src/uts/common/io/drm/drm_core/ctf/drm_facade_ctf.c`
 includes every facade header and names every facade structure, and
 `build-ctf.sh` compiles it with DWARF, converts it with the gate's
 `ctfconvert -l drm`, drops the DWARF and leaves a 57 KB object that is
@@ -1537,7 +1537,7 @@ with `-EDEADLK` where Linux would deadlock), and a `dma_resv_usage`
 outside Linux's four is refused. `drm_dev_unregister()` returns
 `-EBUSY` when the core refuses (a file or an object is still in use)
 instead of nothing. GEM memory and user mappings use illumos backings
-and the devmap framework (`drm_illumos_*` in `include/drm/drm_illumos.h`),
+and the devmap framework (`drm_illumos_*` in `usr/src/uts/common/drm/drm_illumos.h`),
 and a reference dropped from a `timeout(9F)` handler goes through
 `drm_illumos_gem_object_put_deferred()`, because the core cannot tell
 that context from thread context; `dma_fence_init()`,
@@ -1581,7 +1581,7 @@ held runs none. Drivers that count their open and close calls, as
 Linux's amdgpu, radeon and nouveau do, see the same balance. The `gem`
 kstat counts the file and object pairs whose open hook ran (`attached`)
 and the open hook's calls (`opens`). The host tests in
-`crates/drm-core/src/objects.rs` drive the table from eight threads with
+`usr/src/uts/common/io/drm/drm-core/src/objects.rs` drive the table from eight threads with
 hooks that assert they alternate; they fail with the old behaviour and
 without the hook lock.
 
@@ -1652,7 +1652,7 @@ in an interrupt spinning on a callback it interrupted.
 handlers), and `drm_illumos_fence_barrier()` waits for every parked
 release, which a driver calls before its ops tables go (`cdrmnull`'s
 `_fini` and release). The logic is tested on the host with a mock
-driver and threads (`crates/drm-core/src/cfence/tests.rs`: 14 tests).
+driver and threads (`usr/src/uts/common/io/drm/drm-core/src/cfence/tests.rs`: 14 tests).
 
 **R5b: GEM reference counts and handle walks.** A facade object's
 `refcount` is its only reference count (`GemObject::ext_count`): every
@@ -1783,7 +1783,7 @@ i915 imports, `drm_clflush_virt_range` and (since R5c) `drm_clflush_sg`,
 nothing else (`drm_mm_print()` and `drm_cache`'s other functions stay
 local); `build.sh` fails otherwise.
 Dependents link with `-N misc/drm_helpers -M
-carried/drm_helpers/drm_helpers.mapfile`. The module depended on nothing
+usr/src/uts/common/io/drm_helpers/drm_helpers/drm_helpers.mapfile`. The module depended on nothing
 but genunix and kept the processor facts `drm_cache` reads from CPUID;
 since R5c it links against `misc/linuxkpi`, which fills them
 (`boot_cpu_data`) when it loads, and which depends on `misc/drm_core`, so
@@ -1814,7 +1814,7 @@ the `-z defs` link would fail if it did not. The configuration of the
 carried code is passed like Linux's, on the command line
 (`-DCONFIG_X86 -DCONFIG_X86_64`). Linux's KUnit tests for `drm_mm`
 (`drm_mm_test.c`) are GPL-2.0-only, so they were not copied: their six
-cases are re-expressed (MIT) in `carried/drm_mm/tests/drm_mm_selftest.c`
+cases are re-expressed (MIT) in `usr/src/uts/common/io/drm_helpers/drm_mm/tests/drm_mm_selftest.c`
 and extended to what i915 relies on (reservations, the four insertion
 modes and `DRM_MM_INSERT_ONCE`, ranges, alignments that are not powers of
 two, colour adjustment with guard gaps as i915's GGTT uses it, interval
@@ -1828,16 +1828,16 @@ colours, parent pointers, leftmost caches and augmented maxima.
 **R5e: compatibility headers.** The carried code needs Linux's lists,
 red-black and interval trees, bit operations, `min`/`max`, `WARN`, errno
 x86 barriers, `clflushopt()`, feature tests and `boot_cpu_data`
-(`linuxkpi/include/asm/`, filled from CPUID by `linuxkpi/lib/x86_cpu.c`),
+(`usr/src/uts/common/io/linuxkpi/include/asm/`, filled from CPUID by `usr/src/uts/common/io/linuxkpi/lib/x86_cpu.c`),
 and a few headers that only have to exist (`slab.h`, `seq_file.h`,
 `stacktrace.h`, `mm_types.h`, `export.h`, `spinlock.h`, `scatterlist.h`). They are in
-`linuxkpi/include/` and `linuxkpi/lib/`, written for R5e
+`usr/src/uts/common/io/linuxkpi/include/` and `usr/src/uts/common/io/linuxkpi/lib/`, written for R5e
 before R5c's compatibility layer existed, MIT reimplementations (Linux's
 are GPL; decision D7), each marked "to be reconciled with R5c": R5c builds
 the full layer at the same paths, so the merge replaced these files, and
 `misc/drm_helpers` now links `misc/linuxkpi`'s trees and processor facts
-(`-N misc/linuxkpi`) instead of its local copy (`linuxkpi/lib/` is gone;
-the host tests build on `linuxkpi/tests/host`). The
+(`-N misc/linuxkpi`) instead of its local copy (`usr/src/uts/common/io/linuxkpi/lib/` is gone;
+the host tests build on `usr/src/uts/common/io/linuxkpi/tests/host`). The
 illumos kernel headers shape them: `struct list_head` and the base types
 come from the facade, `list_move_tail()` is left out (illumos has its own
 with another signature in `sys/list.h`), `__maybe_unused` comes from
@@ -1845,7 +1845,7 @@ with another signature in `sys/list.h`), `__maybe_unused` comes from
 removes the keyword. The red-black tree implements Linux's interface and
 node layout (callers read `rb_left`, `rb_right` and `__rb_parent_color`)
 with the textbook algorithms and Linux's augmentation protocol;
-`carried/test/host/rbtree_test.c` tests it, plain, cached and augmented,
+`usr/src/uts/common/io/drm_helpers/test/host/rbtree_test.c` tests it, plain, cached and augmented,
 against a full verification after every operation, and the interval tree
 against a brute-force scan.
 
@@ -1866,10 +1866,10 @@ memory is unchanged; whether a GPU sees the data is the i915 port's test
 on hardware.
 
 **R5c: the compatibility layer is a module of its own.** `misc/linuxkpi`
-(`linuxkpi/`) is a separate kernel module, linked `-N misc/drm_core -z
-defs` against the DDI, the facade and `linuxkpi/private.d`; Linux drivers
+(`usr/src/uts/common/io/linuxkpi/`) is a separate kernel module, linked `-N misc/drm_core -z
+defs` against the DDI, the facade and `usr/src/uts/common/io/linuxkpi/private.d`; Linux drivers
 (`i915n`) and the carried helpers (`misc/drm_helpers`, since R5c) link
-`-N misc/linuxkpi` against the `linuxkpi.mapfile` `linuxkpi/build.sh`
+`-N misc/linuxkpi` against the `linuxkpi.mapfile` `usr/src/uts/common/io/linuxkpi/build.sh`
 writes from the module's globals. It is not compiled into each driver,
 because its state is shared: the task structures behind `current`, the RCU
 and SRCU grace periods, the timer thread, the workqueue and tasklet
@@ -1883,7 +1883,7 @@ everything built on it from loading. Its ABI is versioned
 `_init`).
 
 **R5c: one header per Linux header.** About 250 headers under
-`linuxkpi/include`, all MIT, written for illumos from the Linux
+`usr/src/uts/common/io/linuxkpi/include`, all MIT, written for illumos from the Linux
 interfaces' documented semantics (FreeBSD's LinuxKPI, BSD-2-Clause, was a
 structural reference for a few; no Linux text is copied). The prologue
 (`lkpi/prologue.h`, force-included before everything) includes the illumos
@@ -1941,7 +1941,7 @@ core unregisters, waiting a few seconds for leftover fences, or keeps the
 device and makes detach fail). The minor version is 1; drivers built for
 1.0 keep working.
 
-**R5c: i915n.** Linux v7.2's i915 (`drivers/i915/PIN`), headless: 154 of
+**R5c: i915n.** Linux v7.2's i915 (`usr/src/uts/intel/io/i915n/PIN`), headless: 154 of
 the 163 headless translation units of the R5c configuration (all MIT)
 and three illumos ones. Left out: the display (145 units; the 108 display
 functions the rest calls are generated stubs that answer "no display",
@@ -1949,7 +1949,7 @@ functions the rest calls are generated stubs that answer "no display",
 integrated GPUs place nothing with TTM; `ttm_device_init` is not called,
 `intel_region_ttm_device_init` refuses discrete GPUs), the tracepoint
 units, the PMU (no perf) and the gen2-5 GTT. The ten patches
-(`drivers/i915/patches`, each guarded by `__illumos__` and explained in
+(`usr/src/uts/intel/io/i915n/patches`, each guarded by `__illumos__` and explained in
 its header) make the core own the device file, drop the panic screen,
 route handle lookups and user mappings through the core (one write-back
 offset per object; WC/UC only where the CPU cache is coherent, which
@@ -1964,12 +1964,12 @@ MIT no-op headers (event names only) and `intel_ips.h` by an MIT one;
 copyright lines (`gen-license.sh`). The module links `-ztype=kmod -N
 misc/drm_core -N misc/linuxkpi -N misc/drm_helpers -z defs` with no
 unresolved symbol; the three kernel symbols beyond the mapfiles of its
-dependencies are in `drivers/i915/private.mapfile`. Its package ships the
+dependencies are in `usr/src/uts/intel/io/i915n/private.mapfile`. Its package ships the
 driver action without aliases; `drmadm select new` gives it the Intel
 GPU aliases. See `notes/i915n-bringup-runbook.md` in the workspace for the
 first attach on hardware.
 
-**R5c: tests.** `linuxkpi/tests/host` runs the layer's pure-logic files
+**R5c: tests.** `usr/src/uts/common/io/linuxkpi/tests/host` runs the layer's pure-logic files
 (trees, xarray, IDR/IDA, bitmaps, lists, refcount, printf, strings,
 kobjects, the Linux-only error numbers, and with host threads the
 stand-alone wound/wait mutexes) as a userland program (`host-test.sh`,
@@ -1984,7 +1984,7 @@ reservation locks (`st_ww.c`) and the kthread workers (`st_kthread.c`).
 These three are built (CI, the serial builds) but have not yet run in a
 guest: no `run-r5c-test.sh` run since they were added. The self-test also registers a DRM device the way i915 does (a GEM
 object made before `drm_dev_register()` and freed in the driver's release).
-`tools/test/run-r5c-test.sh` checks that no module defines a kernel
+`usr/src/test/drm-tests/run-r5c-test.sh` checks that no module defines a kernel
 symbol, loads the layer, runs the self-test, holds a node of its DRM device
 open across a refused detach and checks the release at the detach that
 follows, loads `misc/drm_helpers` and `i915n` (without a device, twice),
@@ -2021,7 +2021,7 @@ would have no KMS state; that refusal does not count as the call), or
 Until mode setting runs, the mode-setting ioctls fail with `EOPNOTSUPP`
 and `GET_CAP` and `SET_CLIENT_CAP` answer as for a device without
 `DRIVER_MODESET` (and `DRIVER_ATOMIC`): mode-setting capabilities
-`EOPNOTSUPP`, not default limits (`crates/drm-core/src/lkms/`). Afterwards
+`EOPNOTSUPP`, not default limits (`usr/src/uts/common/io/drm/drm-core/src/lkms/`). Afterwards
 every command of the core's mode-setting table from a file the KMS code
 opened goes, after the core's permission check, to the `ioctl` hook with
 the kernel copy of its argument (Linux's size rule, a 256-byte zeroed
@@ -2117,7 +2117,7 @@ order per fence context, the R2 `Fence` that the ioctl put into the
 objects' reservations, a sync file or sync objects. A completion drops the
 GEM references its request held through the interrupt-safe path, because
 destroying an object waits for `RESOURCE_UNREF`, which must never be
-awaited on the completing thread. `drivers/virtio-gpu/src/gpu.rs`
+awaited on the completing thread. `usr/src/uts/common/io/virtio_gpu/src/gpu.rs`
 documents the lock order.
 
 **R4: objects.** Every GEM object is R1 system memory bound for DMA
@@ -2140,7 +2140,7 @@ memory is leaked with a warning.
 **R4: uAPI.** The ioctls are Linux 6.12's with its checks and errnos.
 `virtgpu_drm.h` of libdrm 2.4.109 lacks `RESOURCE_CREATE_BLOB`,
 `CONTEXT_INIT`, the later parameters and the sync object arrays, so the
-bindings come from Linux v6.12's header (MIT, `tools/uapi/include`).
+bindings come from Linux v6.12's header (MIT, `usr/src/tools/uapi/include`).
 Because the illumos ioctl encoding carries the argument size, each older
 size of a grown structure is its own command number, and the driver
 accepts all of them, zero-extended as Linux does: `EXECBUFFER` in 32
@@ -2183,10 +2183,10 @@ Second, OpenIndiana's libdrm 2.4.109 finds DRM devices only among device
 nodes named `display` (VGA-class PCI functions), and the virtio-gpu
 function (class 0x0380) is `pci1af4,1100`, so the loader cannot identify
 it and EGL finds no device. The fix belongs in libdrm (match minors of
-node type `ddi_display:drm`); until then `tools/test/drm_devshim.c`, loaded
+node type `ddi_display:drm`); until then `usr/src/test/drm-tests/drm_devshim.c`, loaded
 with `LD_PRELOAD_64`, answers `drmGetDevice2` for the test guest's device.
-`tools/test/virgl_egl_test.c` checks rendering through EGL on GBM, and
-`tools/test/virgl_kms_gears.c` renders to the screen with page flips.
+`usr/src/test/drm-tests/virgl_egl_test.c` checks rendering through EGL on GBM, and
+`usr/src/test/drm-tests/virgl_kms_gears.c` renders to the screen with page flips.
 Under Xorg, the modesetting driver works, but OpenIndiana's Xorg is
 built without glamor, so it offers neither DRI2 nor DRI3 and `glxinfo`
 reports softpipe; GLX with virgl needs an Xorg built with glamor.
@@ -2242,10 +2242,10 @@ checks and the framework's busy and release steps taking the same
 released it sees every store the other core made before its check, on any
 architecture.
 
-**drmadm(8) selects the stack for boot.** `tools/drmadm/drmadm`, a shell
+**drmadm(8) selects the stack for boot.** `usr/src/cmd/drmadm/drmadm`, a shell
 script in the package `driver/graphics/drmadm` (required by
 `driver/graphics/drm-core`, so it stays when the new stack is removed),
-with its manual page `tools/drmadm/drmadm.8`:
+with its manual page `usr/src/cmd/drmadm/drmadm.8`:
 
 ```sh
 drmadm status               # selection, packages, loaded modules, Intel/virtio aliases, excludes
@@ -2318,7 +2318,7 @@ refuses to install a driver action whose alias another driver action in
 the image declares, and the operation fails (`pkg5`'s `driver.py`).
 Both `i915n` and `virtio_gpu` deliver driver actions without aliases.
 `driver/graphics/virtio-gpu` owns `/usr/share/drmadm/virtio-gpu.aliases`
-(source `packaging/virtio-gpu.aliases`): one PCI alias per line, with blank
+(source `usr/src/uts/common/io/virtio_gpu/virtio-gpu.aliases`): one PCI alias per line, with blank
 lines and `#` comments allowed. `select new` binds this data only when the
 package and driver are installed; `select legacy` removes the bindings.
 The fragment records these as `* drmadm-virtio-alias:` before any alias
@@ -2408,9 +2408,9 @@ their `_init` calls.
 
 ## Packaging
 
-`packaging/*.p5m` are the IPS manifests (each says how to publish it):
+`usr/src/pkg/manifests/*.p5m` are the IPS manifests (each says how to publish it):
 `drm-core` (`misc/drm_core`), `drmadm` (`drmadm(8)` and the service
-`svc:/system/graphics/drm-perms`, `packaging/drm-perms.xml`), `virtio-gpu`
+`svc:/system/graphics/drm-perms`, `usr/src/data/drm/drm-perms.xml`), `virtio-gpu`
 and the test driver `cdrmnull`. Every driver package requires `drm-core`,
 which requires `drmadm`.
 
@@ -2419,10 +2419,10 @@ of this repository:
 
 1. its `driver` action gives all minor nodes `perms="* 0666 root sys"`,
    card and render nodes alike;
-2. its driver is in `NEW_MODULES` of `tools/drmadm/drmadm` (as
+2. its driver is in `NEW_MODULES` of `usr/src/cmd/drmadm/drmadm` (as
    `drv/<name>`), so that `drmadm perms` looks after its nodes;
 3. after a cold boot of a machine with the package installed,
-   `tools/test/run-g10-test.sh coldboot` passes: every `/dev/dri` node of
+   `usr/src/test/drm-tests/run-g10-test.sh coldboot` passes: every `/dev/dri` node of
    the driver is `0666 root sys` and an unprivileged process opens it.
 
 Why `0666` for both kinds of node: this is the R0 security model. A
@@ -2580,45 +2580,45 @@ cargo test -p drm-core -p drm-uapi -p drm-facade   # host target
 ```
 
 The kernel modules need the pinned nightly with `rust-src`, because `core`
-and `alloc` are rebuilt without SSE for `targets/x86_64-illumos-kmod.json`.
+and `alloc` are rebuilt without SSE for `usr/src/tools/targets/x86_64-illumos-kmod.json`.
 Compiling works on any host; linking needs the illumos linker:
 
 ```sh
 cargo xtask build drm-module         # target/x86_64-illumos-kmod/release/drm_module.a
 cargo xtask build rdrmnull           # target/x86_64-illumos-kmod/release/rdrmnull.a
 # on illumos (or: cargo xtask link drm-module; cargo xtask link rdrmnull)
-modules/drm_core/ctf/build-ctf.sh    # drm_facade_ctf.o, needs the gate's ctfconvert
-ld -ztype=kmod -N fs/specfs -B reduce -M modules/drm_core/drm_core.mapfile \
+usr/src/uts/common/io/drm/drm_core/ctf/build-ctf.sh    # drm_facade_ctf.o, needs the gate's ctfconvert
+ld -ztype=kmod -N fs/specfs -B reduce -M usr/src/uts/common/io/drm/drm_core/drm_core.mapfile \
     -z allextract drm_module.a -z defaultextract drm_facade_ctf.o -o drm_core
 ld -ztype=kmod -N fs/specfs -N misc/drm_core -z allextract rdrmnull.a -o rdrmnull
-cargo xtask symbols drm_core modules/drm_core/drm_core.mapfile   # its globals are the mapfile's
+cargo xtask symbols drm_core usr/src/uts/common/io/drm/drm_core/drm_core.mapfile   # its globals are the mapfile's
 ```
 
 A C driver includes `<drm/drm_facade.h>` (the repository's `include`
 directory before the system headers, which provide `sys/*.h` and libdrm's
 `drm/drm.h`), calls `drm_facade_check()` in `_init(9E)` and is linked
 with `-N misc/drm_core`; with `-z defs`, the gate's `ddi.mapfile` and
-`include/drm/drm_facade.mapfile` declare what it may call.
-`drivers/cdrmnull/build.sh` does this with the gate's kernel compiler
+`usr/src/uts/common/drm/drm_facade.mapfile` declare what it may call.
+`usr/src/uts/common/io/cdrmnull/build.sh` does this with the gate's kernel compiler
 flags:
 
 ```sh
-DDI_MAPFILE=<gate>/usr/src/uts/common/mapfiles/ddi.mapfile drivers/cdrmnull/build.sh
+DDI_MAPFILE=<gate>/usr/src/uts/common/mapfiles/ddi.mapfile usr/src/uts/common/io/cdrmnull/build.sh
 # ld -ztype=kmod -N misc/drm_core -z defs -M ddi.mapfile \
-#     -M include/drm/drm_facade.mapfile -M drivers/cdrmnull/private.mapfile ...
+#     -M usr/src/uts/common/drm/drm_facade.mapfile -M usr/src/uts/common/io/cdrmnull/private.mapfile ...
 ```
 
 `misc/drm_core` must be installed (`/kernel/misc/amd64/drm_core`, or the package
-`driver/graphics/drm-core` of `packaging/drm-core.p5m`) before any driver
+`driver/graphics/drm-core` of `usr/src/pkg/manifests/drm-core.p5m`) before any driver
 loads; the test scripts link it from `drm_module.a` and `drm_core.mapfile`
 (and `drm_facade_ctf.o` if present) when it is not installed, and remove
 it again. It is installed beside OpenIndiana's gfx-drm but never loaded
 beside it (see *R5a: the module's name, and never beside gfx-drm*).
 
-`tools/test/run-r1-test.sh` does the rest on a disposable illumos VM, as
+`usr/src/test/drm-tests/run-r1-test.sh` does the rest on a disposable illumos VM, as
 root, in a directory with `rdrmnull.a`, `rdrmnull.conf`,
-`tools/test/drm_r0_test.c`, `tools/test/drm_r1_test.c`,
-`tools/test/drm_r2_test.c`, `tools/test/drm-test-lib.sh`, `drm_module.a`
+`usr/src/test/drm-tests/drm_r0_test.c`, `usr/src/test/drm-tests/drm_r1_test.c`,
+`usr/src/test/drm-tests/drm_r2_test.c`, `usr/src/test/drm-tests/drm-test-lib.sh`, `drm_module.a`
 and `drm_core.mapfile` and the patched headers as `drm/`: it records
 the driver files in `/etc` and the `/devices` tree, links the module,
 checks that the running kernel exports every symbol the module imports,
@@ -2628,7 +2628,7 @@ probes), installs the module under `/usr/kernel/drv`, runs
 records the `gem` and `sync` kstats and the device's vmem arenas, checks
 that the module refuses to unload while a file is open and unloads once
 it is closed, removes everything again with `rem_drv -C`, and fails
-unless `/etc` and `/devices` are as before. `tools/test/run-r0-test.sh`
+unless `/etc` and `/devices` are as before. `usr/src/test/drm-tests/run-r0-test.sh`
 runs the R0 test alone. The scripts find the device's nodes through the
 `/dev/dri` links (a device is `card<N>` for whatever `N` it got) and hand
 them to the tests in `DRM_CARD`, `DRM_RENDER`, `DRM_CARD1` and
@@ -2642,41 +2642,41 @@ cargo xtask build virtio_gpu
 ld -ztype=kmod -N misc/virtio -N fs/specfs -N misc/drm_core -z allextract virtio_gpu.a -o virtio_gpu   # on illumos
 ```
 
-`tools/test/run-r4-test.sh` links, installs (`add_drv -i
+`usr/src/test/drm-tests/run-r4-test.sh` links, installs (`add_drv -i
 '"pci1af4,1050"'`), tests and removes it on a guest with a virtio-gpu
-device. `tools/test/run-g6-test.sh` runs `virtio_gpu` and two `rdrmnull`
+device. `usr/src/test/drm-tests/run-g6-test.sh` runs `virtio_gpu` and two `rdrmnull`
 devices together (see its header for the files it needs), and
-`tools/test/run-r5a-test.sh` runs `cdrmnull`, `rdrmnull` and
+`usr/src/test/drm-tests/run-r5a-test.sh` runs `cdrmnull`, `rdrmnull` and
 `virtio_gpu` together on `misc/drm_core` (see its header).
 
 The carried helpers (R5e) build on illumos with the same kernel flags:
 
 ```sh
-DDI_MAPFILE=<gate>/usr/src/uts/common/mapfiles/ddi.mapfile carried/build.sh
+DDI_MAPFILE=<gate>/usr/src/uts/common/mapfiles/ddi.mapfile usr/src/uts/common/io/drm_helpers/build.sh
 # OUT (./target/carried): drm_helpers, drm_helpers_test
-carried/host-test.sh                 # the self-tests as a userland program
+usr/src/uts/common/io/drm_helpers/host-test.sh                 # the self-tests as a userland program
 sh usr/src/contrib/linux/verify-vendored.sh -n  # provenance coverage and licences
 ```
 
-`tools/test/run-r5e-test.sh` installs, tests and removes both modules on a
+`usr/src/test/drm-tests/run-r5e-test.sh` installs, tests and removes both modules on a
 disposable guest (see its header). Since R5c the helpers build on the
-compatibility layer, so `carried/build.sh` needs `LKPI_MAPFILE` (below).
+compatibility layer, so `usr/src/uts/common/io/drm_helpers/build.sh` needs `LKPI_MAPFILE` (below).
 
 The compatibility layer and i915n (R5c) build on illumos with gcc (bash,
 GNU grep and python3), using the vendored Linux sources:
 
 ```sh
 export DDI_MAPFILE=<gate>/usr/src/uts/common/mapfiles/ddi.mapfile JOBS=2
-OUT=target/linuxkpi linuxkpi/build.sh all      # misc/linuxkpi, linuxkpi_selftest, linuxkpi.mapfile
-LKPI_MAPFILE=target/linuxkpi/linuxkpi.mapfile OUT=target/carried carried/build.sh
+OUT=target/linuxkpi usr/src/uts/common/io/linuxkpi/build.sh all      # misc/linuxkpi, linuxkpi_selftest, linuxkpi.mapfile
+LKPI_MAPFILE=target/linuxkpi/linuxkpi.mapfile OUT=target/carried usr/src/uts/common/io/drm_helpers/build.sh
 LKPI_MAPFILE=target/linuxkpi/linuxkpi.mapfile \
-    OUT=target/i915 drivers/i915/build.sh all  # i915n, linked -z defs
-drivers/i915/gen-license.sh "" target/i915/LICENSE.i915n \
+    OUT=target/i915 usr/src/uts/intel/io/i915n/build.sh all  # i915n, linked -z defs
+usr/src/uts/intel/io/i915n/gen-license.sh "" target/i915/LICENSE.i915n \
     target/i915/linux-inputs.txt               # the package's licence file
-linuxkpi/tests/host/host-test.sh               # the layer's host tests
+usr/src/uts/common/io/linuxkpi/tests/host/host-test.sh               # the layer's host tests
 ```
 
-`tools/test/run-r5c-test.sh` loads, tests and removes the layer, its
+`usr/src/test/drm-tests/run-r5c-test.sh` loads, tests and removes the layer, its
 self-test, `misc/drm_helpers` and `i915n` on a disposable guest with
 QEMU's `-device pci-testdev` (see its header).
 
@@ -2684,18 +2684,18 @@ QEMU's `-device pci-testdev` (see its header).
 
 ```sh
 # uAPI layouts and ioctl numbers against gcc on illumos
-ILLUMOS_GATE=~/illumos-gate tools/uapi/generate.sh     # regenerate (bindgen)
-gcc -m64 -I<include/drm> -o drm_layout tools/uapi/drm_layout.c && ./drm_layout > out   # on illumos
+ILLUMOS_GATE=~/illumos-gate usr/src/tools/uapi/generate.sh     # regenerate (bindgen)
+gcc -m64 -I<include/drm> -o drm_layout usr/src/tools/uapi/drm_layout.c && ./drm_layout > out   # on illumos
 # the older virtio-gpu layouts, from libdrm 2.4.109's and Mesa 21.3's own headers
-gcc -m64 -DV1 -I<libdrm 2.4.109 include/drm> -o c1 tools/uapi/virtgpu_compat_layout.c && ./c1 >> out
-gcc -m64 -DV2 -I<mesa include/drm-uapi> -I<include/drm> -o c2 tools/uapi/virtgpu_compat_layout.c && ./c2 >> out
+gcc -m64 -DV1 -I<libdrm 2.4.109 include/drm> -o c1 usr/src/tools/uapi/virtgpu_compat_layout.c && ./c1 >> out
+gcc -m64 -DV2 -I<mesa include/drm-uapi> -I<include/drm> -o c2 usr/src/tools/uapi/virtgpu_compat_layout.c && ./c2 >> out
 cargo xtask uapi-check out
 
 # the facade's layouts against gcc on illumos
-gcc -m64 -D_KERNEL -std=gnu99 -I include -S -o - tools/facade/facade_layout.c |
+gcc -m64 -D_KERNEL -std=gnu99 -I usr/src/uts/common -S -o - usr/src/tools/facade/facade_layout.c |
     sed -n 's/^.*@@ //p' | tr -d '"' > out     # on illumos
-cargo xtask facade-check out            # committed: tools/facade/facade_layout.illumos.out
-ILLUMOS_GATE=~/illumos-gate tools/facade/generate.sh   # regenerate bindings, mapfiles, tables
+cargo xtask facade-check out            # committed: usr/src/tools/facade/facade_layout.illumos.out
+ILLUMOS_GATE=~/illumos-gate usr/src/tools/facade/generate.sh   # regenerate bindings, mapfiles, tables
 
 # DDI layouts and symbols of the pinned ddi-sys and the private crates,
 # and drm-facade-sys's layouts (through misc/drm_core's CTF) and functions,
@@ -2718,20 +2718,20 @@ core's stateful modules), and builds `cdrmnull` with `-z defs` against
 the gate's `ddi.mapfile`. Neither loads a module, which needs root on a
 kernel that may panic (an R1 trial did panic the test machine, see
 *System memory and DMA*). The same job builds `misc/drm_helpers` and
-`drm_helpers_test` with `carried/build.sh` (vendored sources, `-z defs`,
+`drm_helpers_test` with `usr/src/uts/common/io/drm_helpers/build.sh` (vendored sources, `-z defs`,
 the module's globals against its scope mapfile) and
-runs `carried/host-test.sh` with gcc.
+runs `usr/src/uts/common/io/drm_helpers/host-test.sh` with gcc.
 
 ## Licence
 
-MPL-2.0, see `LICENSE`. The generated uAPI bindings in `crates/drm-uapi`
-and the patch in `tools/uapi/patches` are derived from MIT-licensed
-headers and keep that licence; the notice is in `crates/drm-uapi/src/lib.rs`
+MPL-2.0, see `LICENSE`. The generated uAPI bindings in `usr/src/uts/common/io/drm/drm-uapi`
+and the patch in `usr/src/tools/uapi/patches` are derived from MIT-licensed
+headers and keep that licence; the notice is in `usr/src/uts/common/io/drm/drm-uapi/src/lib.rs`
 and in the patch. The Linux files in `usr/src/contrib/linux/` keep their
 MIT, dual-MIT or HPND/X11 notices; `SOURCES` records the pristine upstream
 digests and licence classes. Six MIT stand-ins replace excluded GPL-only
 headers. `verify-vendored.sh -n` checks every vendored source with the
 existing licence gate and requires provenance for each upstream file.
-The helpers' notices are also in `carried/drm_mm/LICENSE` and
-`carried/drm_cache/LICENSE`; `linuxkpi/` and the helpers' tests are MIT,
+The helpers' notices are also in `usr/src/uts/common/io/drm_helpers/drm_mm/LICENSE` and
+`usr/src/uts/common/io/drm_helpers/drm_cache/LICENSE`; `usr/src/uts/common/io/linuxkpi/` and the helpers' tests are MIT,
 like the facade headers.

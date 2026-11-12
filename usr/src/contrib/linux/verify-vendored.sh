@@ -199,10 +199,10 @@ END_LISTS
 # rules in shell. /dev/fd/0 supplies the inventory without a temporary file.
 # It checks the first 6000 characters and first 60 lines for SPDX MIT
 # alternatives (rejecting AND/WITH), or an MIT/HPND permission notice.
-if [ ! -f "$repo/drivers/i915/check-licences.py" ]; then
+if [ ! -f "$repo/usr/src/uts/intel/io/i915n/check-licences.py" ]; then
     fail 'existing check-licences.py not found'
 elif ! printf '%s\n' "$files" |
-    python3 "$repo/drivers/i915/check-licences.py" "$here" /dev/fd/0; then
+    python3 "$repo/usr/src/uts/intel/io/i915n/check-licences.py" "$here" /dev/fd/0; then
     fail 'vendored licence check'
 fi
 echo "SOURCES: $sources entries checked; pristine digests verified: $pristine_ok"
