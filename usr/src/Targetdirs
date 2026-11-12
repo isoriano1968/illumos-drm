@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: MPL-2.0
+# Copyright 2026 The illumos-drm authors
+PROTO_DIRS = kernel/misc/amd64 kernel/drv/amd64 usr/kernel/drv/amd64 kernel/firmware/i915 usr/sbin usr/share/man/man8 usr/share/drmadm lib/svc/manifest/system
+
+directories:
+	@set -e; for d in $(PROTO_DIRS); do mkdir -p $(ROOT)/$$d; done

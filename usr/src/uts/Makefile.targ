@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: MPL-2.0
+# Copyright 2026 The illumos-drm authors
+
+build-all: $(OUT)/$(MODULE)
+build-check-gates: $(OBJECTS) $(CONFIG)
+	@sh $(BUILD_TOOLS)/gates.sh $(MODULE) before $(OUT) $(OBJECTS)
+	@sh $(BUILD_TOOLS)/gates.sh $(MODULE) after $(OUT)
+build-install: build-all
+	@mkdir -p $(ROOT)/$(INSTALL_DIR)
+	@cp $(OUT)/$(MODULE) $(ROOT)/$(INSTALL_DIR)/$(MODULE)
+	@chmod 0755 $(ROOT)/$(INSTALL_DIR)/$(MODULE)
+
+LINK_OBJECTS = $(OBJECTS)
+$(OUT)/$(MODULE): $(OBJECTS) $(CONFIG) $(MAPFILES) $(DDI_MAPFILE) $(UTSBASE)/common/drm/drm_facade.mapfile $(UTSBASE)/common/io/drm_helpers/drm_helpers/drm_helpers.mapfile $(BUILD_TOOLS)/gates.sh $(SHARED_GATES)
+	@LKPI_MAPFILE=$(LKPI_MAPFILE) sh $(BUILD_TOOLS)/gates.sh $(MODULE) before $(OUT) $(OBJECTS)
+	@$(CHECK_FLAGS)
+	$(LD) $(LDFLAGS) -o $@ $(LINK_OBJECTS)
+	@sh $(BUILD_TOOLS)/gates.sh $(MODULE) after $(OUT)
+clean:
+	$(RM) $(OBJECTS) $(OBJECTS:.o=.d) $(OUT)/$(MODULE) $(STATE_FILES)
+clobber: clean
+	$(RM) -r $(OUT)

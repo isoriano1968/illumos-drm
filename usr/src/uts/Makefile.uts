@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: MPL-2.0
+# Copyright 2026 The illumos-drm authors
+include $(CODEMGR_WS)/usr/src/Makefile.master
+
+CONFIG = $(OUT)/$(MODULE).flags.mk
+LKPI_MAPFILE = $(INTEL)/linuxkpi/obj64/linuxkpi.mapfile
+FLAGS_FRAGMENT = $(FLAGS_DIR)/flags.sh
+FLAGS_INCLUDE_COMMAND = if test -f $(CONFIG); then echo $(CONFIG); else echo /dev/null; fi
+include $(FLAGS_INCLUDE_COMMAND:sh)
+.KEEP_STATE:
+STATE_FILE = .make.state.$(MODULE).$(VARIANT)$(BUILD_STATE)
+STATE_FILES = .make.state.$(MODULE).$(VARIANT) .make.state.$(MODULE).$(VARIANT).flags .make.state.$(MODULE).$(VARIANT).build
+.KEEP_STATE_FILE: $(STATE_FILE)
+
+$(CONFIG): $(BUILD_TOOLS)/gen-flags.sh $(FLAGS_FRAGMENT) $(UTSBASE)/common/io/linuxkpi/kflags.sh
+	@if test '$(BUILD_STATE)' = .build; then \
+	    sh $(BUILD_TOOLS)/check-flags.sh --current '$(CONFIG)' $(BUILD_TOOLS)/gen-flags.sh $(FLAGS_FRAGMENT) $(UTSBASE)/common/io/linuxkpi/kflags.sh; \
+	else CC=$(CC) I915_DISPLAY=$(DISPLAY) sh $(BUILD_TOOLS)/gen-flags.sh $(MODULE) $(OUT); fi
+
+# Only the child reads the include after flags has made it current.
+all install check-gates:
+	@$(MAKE) BUILD_STATE=.flags VARIANT=$(VARIANT) DISPLAY=$(DISPLAY) flags
+	@$(MAKE) BUILD_STATE=.build VARIANT=$(VARIANT) DISPLAY=$(DISPLAY) build-$@
+
+flags: $(CONFIG)
+setup:
+	@sh $(BUILD_TOOLS)/setup.sh
+	@CC=$(CC) I915_DISPLAY=$(DISPLAY) sh $(BUILD_TOOLS)/gen-flags.sh $(MODULE) $(OUT)
+
+COMPILE.c = $(CC) $(CFLAGS) $(CPPFLAGS)
+COMPILE.tu = $(COMPILE.c) $(BASENAME_CPPFLAG)\"$(@F:%.o=%)\" $(DEPFLAGS) $(@:%.o=%.d)
+COMPILE = $(COMPILE.c)
+
+# A direct artifact/internal target must not use values parsed before regeneration.
+CHECK_FLAGS = sh $(BUILD_TOOLS)/check-flags.sh '$(CONFIG)' '$(FLAGS_TOKEN)' $(BUILD_TOOLS)/gen-flags.sh $(FLAGS_FRAGMENT) $(UTSBASE)/common/io/linuxkpi/kflags.sh

@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: MPL-2.0
+# Copyright 2026 The illumos-drm authors
+/obj64/
+/display64/
+/headless64/
+/.make.state*
