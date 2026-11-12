@@ -1,0 +1,18 @@
+From: illumos-drm <illumos-drm@code.aopc.cloud>
+Subject: [PATCH 01] drm_suballoc.h: include <linux/wait.h> for wait_queue_head_t
+
+struct drm_suballoc_manager has a wait_queue_head_t; Linux gets
+<linux/wait.h> through <linux/dma-fence.h>, the LinuxKPI layer does not.
+
+diff --git a/include/drm/drm_suballoc.h b/include/drm/drm_suballoc.h
+index 29befdda3..0598282c2 100644
+--- a/include/drm/drm_suballoc.h
++++ b/include/drm/drm_suballoc.h
+@@ -9,6 +9,7 @@
+ #include <drm/drm_mm.h>
+ 
+ #include <linux/dma-fence.h>
++#include <linux/wait.h>
+ #include <linux/types.h>
+ 
+ #define DRM_SUBALLOC_MAX_QUEUES 32

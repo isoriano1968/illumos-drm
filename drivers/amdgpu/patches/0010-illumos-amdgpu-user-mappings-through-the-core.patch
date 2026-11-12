@@ -1,0 +1,119 @@
+From: illumos-drm <illumos-drm@code.aopc.cloud>
+Subject: [PATCH 10] amdgpu: user mappings of buffer objects through the DRM core on illumos
+
+Linux maps objects for user space with amdgpu_gem_fault() and
+ttm_bo_vm_fault(), which are not built on illumos. The DRM core maps an
+object's umem cookie instead; illumos/amdgpu_illumos_mmap.c gives each
+mapped object a kernel window over its TTM pages, and maps objects in
+CPU-visible VRAM through BAR 0 (see there).
+
+- amdgpu_object.h: the object's window and current view (struct
+  amdgpu_bo) and the prototypes of the illumos functions;
+- amdgpu_object.c: amdgpu_bo_destroy() frees the window;
+- amdgpu_gem.c: illumos_umem, illumos_mapped, illumos_access and
+  illumos_movable in the GEM functions;
+- amdgpu_ttm.c: GTT pages stay cached (and snooped) even for
+  AMDGPU_GEM_CREATE_CPU_GTT_USWC, because the core maps them write-back.
+
+License: MIT files; applied to the pinned Linux tree.
+
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_object.h
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_object.h
+@@ -100,6 +100,10 @@
+ 	bool				userq_va_mapped;
+ };
+ 
++#ifdef __illumos__
++struct lkpi_umem_window;
++#endif
++
+ struct amdgpu_bo {
+ 	/* Protected by tbo.reserved */
+ 	u32				preferred_domains;
+@@ -108,6 +112,22 @@
+ 	struct ttm_placement		placement;
+ 	struct ttm_buffer_object	tbo;
+ 	struct ttm_bo_kmap_obj		kmap;
++#ifdef __illumos__
++	/*
++	 * User mappings (illumos/amdgpu_illumos_mmap.c): the kernel window
++	 * over the TT pages, created at the first mmap(2) and loaded under
++	 * the reservation; and what every user mapping piece shows now:
++	 * the window (false) or BAR 0 at illumos_bar_off (true, VRAM).
++	 * Changed with the reservation and the DRM core's mapping lock
++	 * held. illumos_remap_pending: a piece may show something else
++	 * (an mmap(2) while the view was VRAM, a failed remap); set and
++	 * cleared with the mapping lock held.
++	 */
++	struct lkpi_umem_window		*illumos_window;
++	bool				illumos_view_vram;
++	bool				illumos_remap_pending;
++	u64				illumos_bar_off;
++#endif
+ 	u64				flags;
+ 	/* per VM structure for page tables and with virtual addresses */
+ 	struct amdgpu_vm_bo_base	*vm_bo;
+@@ -355,4 +375,15 @@
+ bool amdgpu_bo_support_uswc(u64 bo_flags);
+ 
+ 
++#ifdef __illumos__
++/* User mappings of buffer objects (illumos/amdgpu_illumos_mmap.c). */
++ddi_umem_cookie_t amdgpu_illumos_gem_umem(struct drm_gem_object *gobj);
++int amdgpu_illumos_gem_mapped(struct drm_gem_object *gobj,
++			      struct drm_illumos_mapping *map);
++int amdgpu_illumos_gem_access(struct drm_gem_object *gobj,
++			      struct drm_illumos_mapping *map,
++			      struct drm_illumos_fault *fault);
++void amdgpu_illumos_bo_fini(struct amdgpu_bo *bo);
++#endif
++
+ #endif
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_object.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_object.c
+@@ -67,6 +67,9 @@
+ 		drm_prime_gem_destroy(&bo->tbo.base, bo->tbo.sg);
+ 	drm_gem_object_release(&bo->tbo.base);
+ 	amdgpu_bo_unref(&bo->parent);
++#ifdef __illumos__
++	amdgpu_illumos_bo_fini(bo);
++#endif
+ 	kvfree(bo);
+ }
+ 
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_gem.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_gem.c
+@@ -418,6 +418,15 @@
+ 	.vunmap = drm_gem_ttm_vunmap,
+ 	.mmap = amdgpu_gem_object_mmap,
+ 	.vm_ops = &amdgpu_gem_vm_ops,
++#else
++	/*
++	 * User mappings through the DRM core: a kernel window over the
++	 * object's pages, or BAR 0 for VRAM (illumos/amdgpu_illumos_mmap.c).
++	 */
++	.illumos_umem = amdgpu_illumos_gem_umem,
++	.illumos_mapped = amdgpu_illumos_gem_mapped,
++	.illumos_access = amdgpu_illumos_gem_access,
++	.illumos_movable = true,
+ #endif
+ };
+ 
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_ttm.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_ttm.c
+@@ -1199,7 +1199,15 @@
+ 	else
+ 		gtt->pool_id = abo->xcp_id;
+ 
++#ifdef __illumos__
++	/*
++	 * The DRM core maps objects write-back for user space, so GTT pages
++	 * stay cached and the GPU snoops them (AMDGPU_PTE_SNOOPED).
++	 */
++	if (false)
++#else
+ 	if (abo->flags & AMDGPU_GEM_CREATE_CPU_GTT_USWC)
++#endif
+ 		caching = ttm_write_combined;
+ 	else
+ 		caching = ttm_cached;

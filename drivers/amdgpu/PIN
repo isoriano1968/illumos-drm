@@ -1,0 +1,5 @@
+# The Linux tree amdgpu is built from: the same pin as i915n
+# (drivers/i915/PIN), so misc/drm_kms and the carried helpers match.
+LINUX_REPO=https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git
+LINUX_TAG=v7.2
+LINUX_REV=8d3ae59288f1e7d58d76558a6ee96d533bc5019f

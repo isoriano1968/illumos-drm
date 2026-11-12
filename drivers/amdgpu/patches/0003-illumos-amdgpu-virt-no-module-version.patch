@@ -1,0 +1,23 @@
+From: illumos-drm <illumos-drm@code.aopc.cloud>
+Subject: [PATCH 03] amdgpu_virt.c: no module version on illumos
+
+The SR-IOV VF reports the driver version from THIS_MODULE->version
+when built as a module. LinuxKPI's THIS_MODULE is NULL (illumos modules
+have no struct module), so illumos reports the existing fallback,
+"N/A".
+
+License: a trivial preprocessor guard in an MIT file.
+
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_virt.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_virt.c
+index 9e8f7d2b8..0c752602e 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_virt.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_virt.c
+@@ -677,7 +677,7 @@ static int amdgpu_virt_write_vf2pf_data(struct amdgpu_device *adev)
+ 	vf2pf_info->header.size = sizeof(struct amd_sriov_msg_vf2pf_info);
+ 	vf2pf_info->header.version = AMD_SRIOV_MSG_FW_VRAM_VF2PF_VER;
+ 
+-#ifdef MODULE
++#if defined(MODULE) && !defined(__illumos__)	/* THIS_MODULE is NULL on illumos */
+ 	if (THIS_MODULE->version != NULL)
+ 		strscpy(vf2pf_info->driver_version, THIS_MODULE->version);
+ 	else

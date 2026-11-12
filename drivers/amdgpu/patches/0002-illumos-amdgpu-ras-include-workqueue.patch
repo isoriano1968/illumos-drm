@@ -1,0 +1,19 @@
+From: illumos-drm <illumos-drm@code.aopc.cloud>
+Subject: [PATCH 02] amdgpu_ras.h: include <linux/workqueue.h> for recovery_work
+
+struct amdgpu_ras embeds a struct work_struct; amdgpu_mca.c and
+mca_v3_0.c include amdgpu_ras.h first, and Linux reaches the workqueue
+header only through its own include chains.
+
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_ras.h b/drivers/gpu/drm/amd/amdgpu/amdgpu_ras.h
+index a86ab65aa..6d06b6b89 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_ras.h
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_ras.h
+@@ -27,6 +27,7 @@
+ #include <linux/debugfs.h>
+ #include <linux/list.h>
+ #include <linux/kfifo.h>
++#include <linux/workqueue.h>
+ #include <linux/radix-tree.h>
+ #include "ta_ras_if.h"
+ #include "amdgpu_ras_eeprom.h"

@@ -1,0 +1,37 @@
+From: illumos-drm <illumos-drm@code.aopc.cloud>
+Subject: [PATCH 13] amdgpu: PRIME exports to other devices on illumos
+
+Another device maps amdgpu's (private, TTM) objects through the DRM
+core's PRIME maps, which call the exporting driver back to pin an
+object and hand out its pages. amdgpu_pci_probe() gives LinuxKPI those
+callbacks (amdgpu_illumos_prime_init(), illumos/amdgpu_dma_buf_illumos.c)
+as soon as the DRM device exists.
+
+License: a preprocessor-guarded call in an MIT file; applied to the
+pinned Linux tree.
+
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c
+@@ -2374,6 +2374,11 @@
+ 	return false;
+ }
+ 
++#ifdef __illumos__
++/* illumos/amdgpu_dma_buf_illumos.c */
++extern void amdgpu_illumos_prime_init(struct drm_device *ddev);
++#endif
++
+ static int amdgpu_pci_probe(struct pci_dev *pdev,
+ 			    const struct pci_device_id *ent)
+ {
+@@ -2428,6 +2433,10 @@
+ 	adev->dev  = &pdev->dev;
+ 	adev->pdev = pdev;
+ 	ddev = adev_to_drm(adev);
++#ifdef __illumos__
++	/* Other devices map amdgpu's objects through the DRM core's PRIME. */
++	amdgpu_illumos_prime_init(ddev);
++#endif
+ 
+ 	if (!supports_atomic)
+ 		ddev->driver_features &= ~DRIVER_ATOMIC;

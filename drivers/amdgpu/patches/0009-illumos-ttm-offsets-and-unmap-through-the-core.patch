@@ -1,0 +1,70 @@
+From: illumos-drm <illumos-drm@code.aopc.cloud>
+Subject: [PATCH 09] ttm_bo.c: mmap offsets and CPU-mapping teardown through the DRM core on illumos
+
+TTM gives every device and sg object an mmap offset with
+drm_vma_offset_add() on the device's offset manager and tears CPU
+mappings down with drm_vma_node_unmap(). On illumos the DRM core owns
+the one offset of each GEM object (drm_gem_create_mmap_offset(), served
+by its devmap(9E) entry point) and the user mappings; LinuxKPI's
+drm_vma_offset_add() refuses (-ENODEV), so every GEM_CREATE of a user
+object failed.
+
+- ttm_bo_init_reserved(): the core's offset (drm_gem_create_mmap_offset());
+- ttm_bo_release(): no drm_vma_offset_remove() (the core frees it);
+- ttm_bo_unmap_virtual(): calls the driver's
+  ttm_bo_illumos_unmap_virtual(), which unloads the object's user
+  mappings (amdgpu: illumos/amdgpu_illumos_mmap.c).
+
+License: an MIT file; applied to the pinned Linux tree.
+
+--- a/drivers/gpu/drm/ttm/ttm_bo.c
++++ b/drivers/gpu/drm/ttm/ttm_bo.c
+@@ -270,7 +270,10 @@
+ 		if (bdev->funcs->release_notify)
+ 			bdev->funcs->release_notify(bo);
+ 
++#ifndef __illumos__
++		/* On illumos the DRM core owns the offset and frees it. */
+ 		drm_vma_offset_remove(bdev->vma_manager, &bo->base.vma_node);
++#endif
+ 		ttm_mem_io_free(bdev, bo->resource);
+ 
+ 		if (!dma_resv_test_signaled(&bo->base._resv,
+@@ -953,8 +956,16 @@
+ 	 * address space from the device.
+ 	 */
+ 	if (bo->type == ttm_bo_type_device || bo->type == ttm_bo_type_sg) {
++#ifdef __illumos__
++		/*
++		 * The DRM core gives each GEM object its one mmap offset and
++		 * serves it with its devmap(9E) entry point.
++		 */
++		ret = drm_gem_create_mmap_offset(&bo->base);
++#else
+ 		ret = drm_vma_offset_add(bdev->vma_manager, &bo->base.vma_node,
+ 					 PFN_UP(bo->base.size));
++#endif
+ 		if (ret)
+ 			goto err_put;
+ 	}
+@@ -1049,11 +1060,20 @@
+  *
+  * @bo: tear down the virtual mappings for this BO
+  */
++#ifdef __illumos__
++/* The driver's illumos glue: unloads the object's user mappings. */
++extern void ttm_bo_illumos_unmap_virtual(struct ttm_buffer_object *bo);
++#endif
++
+ void ttm_bo_unmap_virtual(struct ttm_buffer_object *bo)
+ {
+ 	struct ttm_device *bdev = bo->bdev;
+ 
++#ifdef __illumos__
++	ttm_bo_illumos_unmap_virtual(bo);
++#else
+ 	drm_vma_node_unmap(&bo->base.vma_node, bdev->dev_mapping);
++#endif
+ 	ttm_mem_io_free(bdev, bo->resource);
+ }
+ EXPORT_SYMBOL(ttm_bo_unmap_virtual);

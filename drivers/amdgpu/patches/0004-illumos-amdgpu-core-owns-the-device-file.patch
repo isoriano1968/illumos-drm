@@ -1,0 +1,170 @@
+From: illumos-drm <illumos-drm@code.aopc.cloud>
+Subject: [PATCH 04] amdgpu: the DRM core owns the device file on illumos
+
+On illumos the DRM core (misc/drm_core) is the device's character
+driver and serves open, close, ioctl, mmap, poll and read itself:
+
+- amdgpu_driver_kms_fops (Linux's struct file_operations), its
+  release, ioctl and flush entries are not built. The core calls the
+  driver table's ioctls and postclose.
+- What Linux's close(2) runs before drm_release() calls postclose,
+  amdgpu_flush() (wait for the file's scheduler entities and VM) and
+  amdgpu_drm_release() (stop eviction fences and user queues), runs at
+  the start of amdgpu_driver_postclose_kms() on illumos, in that order.
+- amdgpu_file_to_fpriv() finds no amdgpu file on illumos (-EINVAL): no
+  Linux file has the driver's file operations (AMDGPU_SCHED's
+  priority override of another process's file by descriptor).
+- The drm_driver tables carry the facade version
+  (DRM_FACADE_DRIVER_VERSION) instead of .fops, .show_fdinfo and the
+  fbdev hook (no fbdev emulation). gem_prime_import stays: the core
+  calls it only for another device's dma-buf (illumos/
+  amdgpu_dma_buf_illumos.c refuses those).
+
+License: the hunks are preprocessor guards and a copy of amdgpu's own
+flush/release calls in MIT files; this patch is applied to the pinned
+Linux tree, not part of illumos-drm's sources.
+
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c
+index 1aed121f4..c1b13a8ed 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c
+@@ -2971,6 +2971,7 @@ static int amdgpu_pmops_runtime_resume(struct device *dev)
+ 	return 0;
+ }
+ 
++#ifndef __illumos__	/* the DRM core owns the device file on illumos */
+ static int amdgpu_drm_release(struct inode *inode, struct file *filp)
+ {
+ 	struct drm_file *file_priv = filp->private_data;
+@@ -3008,6 +3009,7 @@ long amdgpu_drm_ioctl(struct file *filp,
+ 	pm_runtime_put_autosuspend(dev->dev);
+ 	return ret;
+ }
++#endif	/* !__illumos__ */
+ 
+ static const struct dev_pm_ops amdgpu_pm_ops = {
+ 	.prepare = pm_sleep_ptr(amdgpu_pmops_prepare),
+@@ -3024,6 +3026,7 @@ static const struct dev_pm_ops amdgpu_pm_ops = {
+ 	.runtime_idle = amdgpu_pmops_runtime_idle,
+ };
+ 
++#ifndef __illumos__	/* close(2) runs amdgpu_driver_postclose_kms() */
+ static int amdgpu_flush(struct file *f, fl_owner_t id)
+ {
+ 	struct drm_file *file_priv = f->private_data;
+@@ -3053,6 +3056,7 @@ static const struct file_operations amdgpu_driver_kms_fops = {
+ #endif
+ 	.fop_flags = FOP_UNSIGNED_OFFSET,
+ };
++#endif	/* !__illumos__ */
+ 
+ int amdgpu_file_to_fpriv(struct file *filp, struct amdgpu_fpriv **fpriv)
+ {
+@@ -3060,13 +3064,19 @@ int amdgpu_file_to_fpriv(struct file *filp, struct amdgpu_fpriv **fpriv)
+ 
+ 	if (!filp)
+ 		return -EINVAL;
+-
++#ifdef __illumos__
++	/* No Linux file has the driver's file operations on illumos. */
++	(void)file;
++	(void)fpriv;
++	return -EINVAL;
++#else
+ 	if (filp->f_op != &amdgpu_driver_kms_fops)
+ 		return -EINVAL;
+ 
+ 	file = filp->private_data;
+ 	*fpriv = file->driver_priv;
+ 	return 0;
++#endif
+ }
+ 
+ const struct drm_ioctl_desc amdgpu_ioctls_kms[] = {
+@@ -3094,6 +3104,9 @@ const struct drm_ioctl_desc amdgpu_ioctls_kms[] = {
+ };
+ 
+ static const struct drm_driver amdgpu_kms_driver = {
++#ifdef __illumos__
++	DRM_FACADE_DRIVER_VERSION,
++#endif
+ 	.driver_features =
+ 	    DRIVER_ATOMIC |
+ 	    DRIVER_GEM |
+@@ -3105,10 +3118,17 @@ static const struct drm_driver amdgpu_kms_driver = {
+ 	.num_ioctls = ARRAY_SIZE(amdgpu_ioctls_kms),
+ 	.dumb_create = amdgpu_mode_dumb_create,
+ 	.dumb_map_offset = amdgpu_mode_dumb_mmap,
++#ifndef __illumos__
++	/*
++	 * illumos: no fbdev emulation, no Linux file operations and no proc
++	 * fdinfo. PRIME exports are the DRM core's; it calls
++	 * gem_prime_import only for another device's dma-buf.
++	 */
+ 	DRM_FBDEV_TTM_DRIVER_OPS,
+ 	.fops = &amdgpu_driver_kms_fops,
++#endif
+ 	.release = &amdgpu_driver_release_kms,
+-#ifdef CONFIG_PROC_FS
++#if defined(CONFIG_PROC_FS) && !defined(__illumos__)
+ 	.show_fdinfo = amdgpu_show_fdinfo,
+ #endif
+ 
+@@ -3122,6 +3142,9 @@ static const struct drm_driver amdgpu_kms_driver = {
+ };
+ 
+ const struct drm_driver amdgpu_partition_driver = {
++#ifdef __illumos__
++	DRM_FACADE_DRIVER_VERSION,
++#endif
+ 	.driver_features =
+ 	    DRIVER_GEM | DRIVER_RENDER | DRIVER_SYNCOBJ |
+ 	    DRIVER_SYNCOBJ_TIMELINE,
+@@ -3131,8 +3154,10 @@ const struct drm_driver amdgpu_partition_driver = {
+ 	.num_ioctls = ARRAY_SIZE(amdgpu_ioctls_kms),
+ 	.dumb_create = amdgpu_mode_dumb_create,
+ 	.dumb_map_offset = amdgpu_mode_dumb_mmap,
++#ifndef __illumos__
+ 	DRM_FBDEV_TTM_DRIVER_OPS,
+ 	.fops = &amdgpu_driver_kms_fops,
++#endif
+ 	.release = &amdgpu_driver_release_kms,
+ 
+ 	.gem_prime_import = amdgpu_gem_prime_import,
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_kms.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_kms.c
+index 8bb9c198d..2ff3464a1 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_kms.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_kms.c
+@@ -1556,6 +1556,32 @@ void amdgpu_driver_postclose_kms(struct drm_device *dev,
+ 	if (!fpriv)
+ 		return;
+ 
++#ifdef __illumos__
++	/*
++	 * On Linux, close(2) first runs the file's flush (amdgpu_flush():
++	 * wait for the file's scheduler entities and VM to go idle) and
++	 * release (amdgpu_drm_release(): stop eviction fences and user
++	 * queues) before drm_release() calls this. The DRM core owns the
++	 * device file on illumos and calls only postclose, so both run here,
++	 * in Linux's order.
++	 */
++	{
++		long timeout = MAX_WAIT_SCHED_ENTITY_Q_EMPTY;
++		int idx;
++
++		timeout = amdgpu_ctx_mgr_entity_flush(&fpriv->ctx_mgr, timeout);
++		(void)amdgpu_vm_wait_idle(&fpriv->vm, timeout);
++		if (drm_dev_enter(dev, &idx)) {
++			amdgpu_evf_mgr_shutdown(&fpriv->evf_mgr);
++			amdgpu_userq_mgr_cancel_resume(&fpriv->userq_mgr);
++			amdgpu_evf_mgr_flush_suspend(&fpriv->evf_mgr);
++			amdgpu_userq_mgr_fini(&fpriv->userq_mgr);
++			amdgpu_evf_mgr_fini(&fpriv->evf_mgr);
++			drm_dev_exit(idx);
++		}
++	}
++#endif
++
+ 	pm_runtime_get_sync(dev->dev);
+ 
+ 	if (amdgpu_device_ip_get_ip_block(adev, AMD_IP_BLOCK_TYPE_UVD) != NULL)

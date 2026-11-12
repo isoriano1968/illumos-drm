@@ -1,0 +1,42 @@
+From: illumos-drm <illumos-drm@code.aopc.cloud>
+Subject: [PATCH 14] amdgpu: mode setting through misc/drm_kms
+
+On illumos the DRM core (misc/drm_core) owns the ioctl entry, files and
+events, and forwards the mode-setting ioctls of a Linux-KMS device to
+Linux's KMS code, which misc/drm_kms carries (facade 2.0, drm_lkms.h).
+amdgpu_kms_driver points its illumos_lkms at misc/drm_kms' hook table
+(drm_kms_illumos_funcs), as i915n's display build does (i915n patch
+0012). amdgpu's own mode-setting code (amdgpu_display.c, dce_v6_0.c on
+Southern Islands; no DC in this build) already runs at probe; without
+the hook the core reported no mode-setting capabilities and refused the
+mode-setting ioctls. The illumos console is not taken over here: a GPU
+that drives the console needs that first (not yet done).
+
+The partition driver (amdgpu_partition_driver, for XCP partitions on
+newer chips) has no DRIVER_MODESET and stays without the hook.
+
+License: a preprocessor-guarded declaration and initialiser in an MIT
+file; applied to the pinned Linux tree.
+
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c
+@@ -3112,9 +3112,19 @@
+ 	DRM_IOCTL_DEF_DRV(AMDGPU_GEM_LIST_HANDLES, amdgpu_gem_list_handles_ioctl, DRM_AUTH|DRM_RENDER_ALLOW),
+ };
+ 
++#ifdef __illumos__
++/*
++ * misc/drm_kms: Linux's KMS code behind the DRM core (facade 2.0,
++ * drm_lkms.h). The core forwards the mode-setting ioctls of this device
++ * to it once the LinuxKPI layer's drm_dev_register() starts mode setting.
++ */
++extern const struct drm_illumos_lkms_funcs drm_kms_illumos_funcs;
++#endif
++
+ static const struct drm_driver amdgpu_kms_driver = {
+ #ifdef __illumos__
+ 	DRM_FACADE_DRIVER_VERSION,
++	.illumos_lkms = &drm_kms_illumos_funcs,
+ 	/*
+ 	 * No DRM core object size limit (256 MiB by default):
+ 	 * amdgpu_bo_validate_size() limits an object to the size of its

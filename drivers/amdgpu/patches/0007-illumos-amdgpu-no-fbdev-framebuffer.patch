@@ -1,0 +1,28 @@
+From: illumos-drm <illumos-drm@code.aopc.cloud>
+Subject: [PATCH 07] amdgpu_display.c: no fbdev framebuffer on illumos
+
+amdgpu_display_suspend_helper() unpins every framebuffer except fbdev's
+(drm_fb_helper_gem_is_fb(dev->fb_helper, ...)). illumos has no fbdev
+emulation and the facade's struct drm_device no fb_helper, so no
+framebuffer is fbdev's.
+
+License: a preprocessor guard in an MIT file; applied to the pinned Linux
+tree.
+
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_display.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_display.c
+index f5cd68542..d4e009787 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_display.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_display.c
+@@ -1774,7 +1774,12 @@ int amdgpu_display_suspend_helper(struct amdgpu_device *adev)
+ 		if (!fb || !fb->obj[0])
+ 			continue;
+ 
++#ifdef __illumos__
++		/* No fbdev emulation on illumos: no framebuffer is fbdev's. */
++		if (true) {
++#else
+ 		if (!drm_fb_helper_gem_is_fb(dev->fb_helper, fb->obj[0])) {
++#endif
+ 			struct amdgpu_bo *robj = gem_to_amdgpu_bo(fb->obj[0]);
+ 
+ 			r = amdgpu_bo_reserve(robj, true);

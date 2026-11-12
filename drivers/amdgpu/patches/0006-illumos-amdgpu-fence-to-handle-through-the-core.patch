@@ -1,0 +1,44 @@
+From: illumos-drm <illumos-drm@code.aopc.cloud>
+Subject: [PATCH 06] amdgpu: AMDGPU_FENCE_TO_HANDLE through the DRM core
+
+Sync objects and sync files are the DRM core's on illumos. A sync file
+descriptor is made and installed in one step with
+drm_sync_file_install() (Linux: get_unused_fd_flags(), sync_file_create(),
+fd_install(); i915n patch 0004 does the same).
+AMDGPU_FENCE_TO_HANDLE_GET_SYNCOBJ and _GET_SYNCOBJ_FD stay Linux's: the
+facade's drm_syncobj_get_handle() and drm_syncobj_get_fd() give a sync
+object the driver made to the file or the calling process.
+
+License: a preprocessor-guarded illumos variant of one case of a switch
+in an MIT file; applied to the pinned Linux tree.
+
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_cs.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_cs.c
+@@ -1620,6 +1620,19 @@
+ 		return r;
+ 
+ 	case AMDGPU_FENCE_TO_HANDLE_GET_SYNC_FILE_FD:
++#ifdef __illumos__
++		/*
++		 * Sync files are the DRM core's on illumos: made and installed
++		 * in one step.
++		 */
++		r = drm_sync_file_install(fence, true, &fd);
++		dma_fence_put(fence);
++		(void)sync_file;
++		if (r)
++			return r;
++		info->out.handle = fd;
++		return 0;
++#else
+ 		fd = get_unused_fd_flags(O_CLOEXEC);
+ 		if (fd < 0) {
+ 			dma_fence_put(fence);
+@@ -1636,6 +1649,7 @@
+ 		fd_install(fd, sync_file->file);
+ 		info->out.handle = fd;
+ 		return 0;
++#endif
+ 
+ 	default:
+ 		dma_fence_put(fence);

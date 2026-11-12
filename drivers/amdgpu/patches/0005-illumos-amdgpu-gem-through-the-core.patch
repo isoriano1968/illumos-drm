@@ -1,0 +1,196 @@
+From: illumos-drm <illumos-drm@code.aopc.cloud>
+Subject: [PATCH 05] amdgpu: GEM handles and mappings through the DRM core
+
+- amdgpu_gem_object_funcs: the facade's object callbacks have no
+  .export, .vmap, .vunmap, .mmap or .vm_ops: PRIME export and user
+  mappings are the core's. amdgpu_gem_fault(), amdgpu_gem_vm_ops and
+  amdgpu_gem_object_mmap() (Linux VM faults through ttm_bo_vm.c, which
+  is not built) are not built. User mappings of TTM objects need the
+  facade's illumos_umem/illumos_access callbacks (not written yet:
+  until then the core refuses to map amdgpu objects).
+- AMDGPU_GEM_LIST_HANDLES walks the file's handles with
+  drm_illumos_gem_for_each_handle() instead of drm_file.object_idr under
+  table_lock (the core's handle lock is held during each walk).
+- amdgpu_gem_force_release() only warns about remaining clients: the
+  core releases the files' handles itself when the device detaches.
+
+License: preprocessor guards and an illumos variant of two loops in an
+MIT file; applied to the pinned Linux tree.
+
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_gem.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_gem.c
+index f754a4a3a..168c81e43 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_gem.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_gem.c
+@@ -116,6 +116,7 @@ amdgpu_gem_update_timeline_node(struct drm_file *filp,
+ 	return 0;
+ }
+ 
++#ifndef __illumos__	/* CPU faults: the DRM core's mappings on illumos */
+ static vm_fault_t amdgpu_gem_fault(struct vm_fault *vmf)
+ {
+ 	struct ttm_buffer_object *bo = vmf->vma->vm_private_data;
+@@ -155,6 +156,7 @@ static const struct vm_operations_struct amdgpu_gem_vm_ops = {
+ 	.close = ttm_bo_vm_close,
+ 	.access = ttm_bo_vm_access
+ };
++#endif	/* !__illumos__ */
+ 
+ static void amdgpu_gem_object_free(struct drm_gem_object *gobj)
+ {
+@@ -204,6 +206,16 @@ void amdgpu_gem_force_release(struct amdgpu_device *adev)
+ 	struct drm_device *ddev = adev_to_drm(adev);
+ 	struct drm_file *file;
+ 
++#ifdef __illumos__
++	/*
++	 * Handles are the DRM core's on illumos: it releases the files'
++	 * handles itself when the device detaches, so only the warnings.
++	 */
++	mutex_lock(&ddev->filelist_mutex);
++	list_for_each_entry(file, &ddev->filelist, lhead)
++		WARN_ONCE(1, "Still active user space clients!\n");
++	mutex_unlock(&ddev->filelist_mutex);
++#else
+ 	mutex_lock(&ddev->filelist_mutex);
+ 
+ 	list_for_each_entry(file, &ddev->filelist, lhead) {
+@@ -221,6 +233,7 @@ void amdgpu_gem_force_release(struct amdgpu_device *adev)
+ 	}
+ 
+ 	mutex_unlock(&ddev->filelist_mutex);
++#endif
+ }
+ 
+ /*
+@@ -365,6 +378,7 @@ static void amdgpu_gem_object_close(struct drm_gem_object *obj,
+ 	drm_exec_fini(&exec);
+ }
+ 
++#ifndef __illumos__
+ static int amdgpu_gem_object_mmap(struct drm_gem_object *obj, struct vm_area_struct *vma)
+ {
+ 	struct amdgpu_bo *bo = gem_to_amdgpu_bo(obj);
+@@ -385,16 +399,26 @@ static int amdgpu_gem_object_mmap(struct drm_gem_object *obj, struct vm_area_str
+ 
+ 	return drm_gem_ttm_mmap(obj, vma);
+ }
++#endif	/* !__illumos__ */
+ 
++/*
++ * illumos: the DRM core exports dma-bufs and maps objects for user space
++ * itself; the facade's object callbacks have no export, vmap, vunmap,
++ * mmap or vm_ops. User mappings of TTM objects go through the facade's
++ * illumos_umem/illumos_access callbacks (not written yet: until then
++ * the core refuses to map amdgpu objects).
++ */
+ const struct drm_gem_object_funcs amdgpu_gem_object_funcs = {
+ 	.free = amdgpu_gem_object_free,
+ 	.open = amdgpu_gem_object_open,
+ 	.close = amdgpu_gem_object_close,
++#ifndef __illumos__
+ 	.export = amdgpu_gem_prime_export,
+ 	.vmap = drm_gem_ttm_vmap,
+ 	.vunmap = drm_gem_ttm_vunmap,
+ 	.mmap = amdgpu_gem_object_mmap,
+ 	.vm_ops = &amdgpu_gem_vm_ops,
++#endif
+ };
+ 
+ static bool amdgpu_gem_are_domains_valid(u32 domains)
+@@ -1191,6 +1215,51 @@ int amdgpu_gem_op_ioctl(struct drm_device *dev, void *data,
+  * Returns:
+  * 0 for success, -errno for errors.
+  */
++#ifdef __illumos__
++/*
++ * The file's handles are the DRM core's on illumos: the two walks over
++ * drm_file.object_idr under table_lock are drm_illumos_gem_for_each_handle()
++ * walks (the core's handle lock is held during each, as table_lock was).
++ */
++struct amdgpu_illumos_handles {
++	struct drm_amdgpu_gem_list_handles_entry *entries;
++	int num;
++	int index;
++};
++
++static int amdgpu_illumos_count_handle(uint32_t handle,
++				       struct drm_gem_object *gobj, void *arg)
++{
++	((struct amdgpu_illumos_handles *)arg)->num++;
++	return 0;
++}
++
++static int amdgpu_illumos_list_handle(uint32_t handle,
++				      struct drm_gem_object *gobj, void *arg)
++{
++	struct amdgpu_illumos_handles *h = arg;
++	struct amdgpu_bo *bo = gem_to_amdgpu_bo(gobj);
++	struct drm_amdgpu_gem_list_handles_entry *bo_entry;
++
++	if (h->index >= h->num)
++		return -EAGAIN;
++
++	bo_entry = &h->entries[h->index];
++
++	bo_entry->size = amdgpu_bo_size(bo);
++	bo_entry->alloc_flags = bo->flags & AMDGPU_GEM_CREATE_SETTABLE_MASK;
++	bo_entry->preferred_domains = bo->preferred_domains;
++	bo_entry->gem_handle = handle;
++	bo_entry->alignment = bo->tbo.page_alignment;
++
++	if (bo->tbo.base.import_attach)
++		bo_entry->flags |= AMDGPU_GEM_LIST_HANDLES_FLAG_IS_IMPORT;
++
++	h->index += 1;
++	return 0;
++}
++#endif
++
+ int amdgpu_gem_list_handles_ioctl(struct drm_device *dev, void *data,
+ 				  struct drm_file *filp)
+ {
+@@ -1200,11 +1269,22 @@ int amdgpu_gem_list_handles_ioctl(struct drm_device *dev, void *data,
+ 	int id, ret = 0;
+ 	int bo_index = 0;
+ 	int num_bos = 0;
++#ifdef __illumos__
++	struct amdgpu_illumos_handles h = { 0 };
+ 
++	ret = drm_illumos_gem_for_each_handle(filp,
++	    amdgpu_illumos_count_handle, &h);
++	if (ret)
++		return ret;
++	num_bos = h.num;
++	(void)gobj;
++	(void)id;
++#else
+ 	spin_lock(&filp->table_lock);
+ 	idr_for_each_entry(&filp->object_idr, gobj, id)
+ 		num_bos += 1;
+ 	spin_unlock(&filp->table_lock);
++#endif
+ 
+ 	if (args->num_entries < num_bos) {
+ 		args->num_entries = num_bos;
+@@ -1220,6 +1300,13 @@ int amdgpu_gem_list_handles_ioctl(struct drm_device *dev, void *data,
+ 	if (!bo_entries)
+ 		return -ENOMEM;
+ 
++#ifdef __illumos__
++	h.entries = bo_entries;
++	h.num = num_bos;
++	ret = drm_illumos_gem_for_each_handle(filp,
++	    amdgpu_illumos_list_handle, &h);
++	bo_index = h.index;
++#else
+ 	spin_lock(&filp->table_lock);
+ 	idr_for_each_entry(&filp->object_idr, gobj, id) {
+ 		struct amdgpu_bo *bo = gem_to_amdgpu_bo(gobj);
+@@ -1244,6 +1331,7 @@ int amdgpu_gem_list_handles_ioctl(struct drm_device *dev, void *data,
+ 		bo_index += 1;
+ 	}
+ 	spin_unlock(&filp->table_lock);
++#endif
+ 
+ 	args->num_entries = bo_index;
+ 

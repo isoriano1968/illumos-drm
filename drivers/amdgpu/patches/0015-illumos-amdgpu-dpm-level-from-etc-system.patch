@@ -1,0 +1,70 @@
+From: illumos-drm <illumos-drm@code.aopc.cloud>
+Subject: [PATCH 15] amdgpu: the dpm performance level from /etc/system
+
+Linux users force the power-management performance level by writing
+"low", "high" or "auto" to the sysfs file power_dpm_force_performance_level
+(amdgpu_set_power_dpm_force_performance_level()); illumos has no sysfs.
+The illumos build gets a module variable, amdgpu_illumos_dpm_level
+(0 auto = nothing forced, the default; 1 low; 2 high), set in
+/etc/system like amdgpu's own parameters, and amdgpu_pci_probe() applies
+it once, as the sysfs write does (amdgpu_dpm_force_performance_level()
+under stable_pstate_ctx_lock), and logs the result.
+
+Found on the Mac Pro 2013's compute GPU (Tahiti, legacy si_dpm,
+2026-11-12): the driver switches to its balanced state at boot (four
+levels, 300/150 to 725/1270 MHz) with the level "auto", but the SMC
+stayed at level 0 under a full shader load; this is how to force the
+top level, and to tell a stuck SMC from a wrong sensor.
+
+License: a few lines in an MIT file; applied to the pinned Linux tree.
+
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c
+@@ -161,6 +161,15 @@
+ int amdgpu_msi = -1;
+ char amdgpu_lockup_timeout[AMDGPU_MAX_TIMEOUT_PARAM_LENGTH];
+ int amdgpu_dpm = -1;
++#ifdef __illumos__
++/*
++ * illumos: the forced dpm performance level at probe, in place of Linux's
++ * sysfs power_dpm_force_performance_level (no sysfs here): 0 auto (the
++ * driver's default, nothing is forced), 1 low, 2 high. /etc/system:
++ * set amdgpu:amdgpu_illumos_dpm_level = 2
++ */
++int amdgpu_illumos_dpm_level = 0;
++#endif
+ int amdgpu_fw_load_type = -1;
+ int amdgpu_aspm = -1;
+ int amdgpu_runtime_pm = -1;
+@@ -2489,6 +2498,31 @@
+ 		drm_client_setup(adev_to_drm(adev), format);
+ 	}
+ 
++#ifdef __illumos__
++	/*
++	 * What writing power_dpm_force_performance_level does on Linux
++	 * (amdgpu_set_power_dpm_force_performance_level()), for the level
++	 * chosen in /etc/system; legacy and SMU dpm alike. Without dpm (or
++	 * with level 0) nothing changes.
++	 */
++	if (adev->pm.dpm_enabled && amdgpu_illumos_dpm_level != 0) {
++		enum amd_dpm_forced_level level =
++		    amdgpu_illumos_dpm_level == 1 ? AMD_DPM_FORCED_LEVEL_LOW :
++		    amdgpu_illumos_dpm_level == 2 ? AMD_DPM_FORCED_LEVEL_HIGH :
++		    AMD_DPM_FORCED_LEVEL_AUTO;
++		int r;
++
++		mutex_lock(&adev->pm.stable_pstate_ctx_lock);
++		r = amdgpu_dpm_force_performance_level(adev, level);
++		adev->pm.stable_pstate_ctx = NULL;
++		mutex_unlock(&adev->pm.stable_pstate_ctx_lock);
++		drm_info(adev_to_drm(adev),
++		    "illumos: dpm performance level %s (%d)\n",
++		    level == AMD_DPM_FORCED_LEVEL_LOW ? "low" :
++		    level == AMD_DPM_FORCED_LEVEL_HIGH ? "high" : "auto", r);
++	}
++#endif
++
+ 	ret = amdgpu_debugfs_init(adev);
+ 	if (ret)
+ 		DRM_ERROR("Creating debugfs files failed (%d).\n", ret);

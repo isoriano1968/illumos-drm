@@ -1,0 +1,36 @@
+#
+# SPDX-License-Identifier: MIT
+# Copyright 2026 The illumos-drm authors
+#
+# The kernel symbols amdgpu uses that neither the gate's ddi.mapfile nor
+# the mapfiles of its dependencies (drm_facade.mapfile, linuxkpi.mapfile,
+# drm_helpers.mapfile, drm_kms.mapfile) declare, for its link with
+# -z defs (drivers/amdgpu/build.sh). Declarations only (EXTERN): genunix
+# provides them. Each is reached through a LinuxKPI or facade inline or
+# macro expanded in amdgpu's own code, as for i915n
+# (drivers/i915/private.mapfile).
+#
+$mapfile_version 2
+
+SYMBOL_SCOPE {
+	global:
+		# PAGESHIFT of <sys/param.h>, a variable in the kernel: the
+		# facade's inline drm_vma_node_offset_addr() shifts by it.
+		_pageshift		{ FLAGS = EXTERN };
+		# memcmp() of <sys/systm.h> (genunix): <linux/string.h>
+		# leaves memcmp() to the kernel's.
+		memcmp			{ FLAGS = EXTERN };
+		# ncpus (<sys/cpuvar.h>): num_online_cpus() (<linux/cpumask.h>).
+		ncpus			{ FLAGS = EXTERN };
+		# documented 9F (rwlock(9F)): down_read_trylock() and
+		# down_write_trylock() of <linux/rwsem.h>.
+		rw_tryenter		{ FLAGS = EXTERN };
+		# documented 9F (devmap_devmem_remap(9F),
+		# devmap_umem_remap(9F)): illumos/amdgpu_illumos_mmap.c points
+		# user mapping pieces at BAR 0 (VRAM) or at the TT window.
+		devmap_devmem_remap	{ FLAGS = EXTERN };
+		devmap_umem_remap	{ FLAGS = EXTERN };
+		# documented 9F (servicing_interrupt(9F)): in_interrupt()
+		# and in_task() of <linux/preempt.h>.
+		servicing_interrupt	{ FLAGS = EXTERN };
+};

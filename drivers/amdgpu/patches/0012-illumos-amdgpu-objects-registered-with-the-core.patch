@@ -1,0 +1,95 @@
+From: illumos-drm <illumos-drm@code.aopc.cloud>
+Subject: [PATCH 12] amdgpu, ttm: objects registered with the DRM core
+
+On illumos drm_gem_private_object_init() registers the object with the
+DRM core and returns an error (Linux returns void): the core refuses an
+object without callbacks (funcs, which amdgpu_bo_create() set only
+after the call) and one larger than the driver's
+illumos_max_object_size (256 MiB by default). amdgpu ignored the
+result, so every buffer object would have gone on without core state.
+
+- amdgpu_object.c: amdgpu_bo_create() sets the callbacks first, and
+  frees a refused object and returns the error;
+- amdgpu_drv.c: both driver tables lift the core's object size limit
+  (U64_MAX): amdgpu_bo_validate_size() limits an object to the size of
+  its domains, as on Linux (3 GB of VRAM per FirePro D500). The core's
+  memory budget (illumos_max_memory, 1 GiB by default) charges private
+  objects nothing, so it keeps its default;
+- ttm_bo.c: the error path of ttm_bo_init_reserved() drops the core's
+  reference (drm_gem_object_put()) instead of calling ttm_bo_put():
+  freeing the buffer object behind the core's back would leave the
+  core with a freed object. The driver's free callback puts the buffer
+  object.
+
+License: MIT files; applied to the pinned Linux tree.
+
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_drv.c
+@@ -3106,6 +3106,14 @@
+ static const struct drm_driver amdgpu_kms_driver = {
+ #ifdef __illumos__
+ 	DRM_FACADE_DRIVER_VERSION,
++	/*
++	 * No DRM core object size limit (256 MiB by default):
++	 * amdgpu_bo_validate_size() limits an object to the size of its
++	 * domains, as on Linux. amdgpu's objects are private (TTM's), so
++	 * the core's memory budget (illumos_max_memory) charges them
++	 * nothing and keeps its default.
++	 */
++	.illumos_max_object_size = U64_MAX,
+ #endif
+ 	.driver_features =
+ 	    DRIVER_ATOMIC |
+@@ -3144,6 +3152,7 @@
+ const struct drm_driver amdgpu_partition_driver = {
+ #ifdef __illumos__
+ 	DRM_FACADE_DRIVER_VERSION,
++	.illumos_max_object_size = U64_MAX,	/* as amdgpu_kms_driver */
+ #endif
+ 	.driver_features =
+ 	    DRIVER_GEM | DRIVER_RENDER | DRIVER_SYNCOBJ |
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_object.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_object.c
+@@ -669,8 +669,23 @@
+ 	bo = kvzalloc(bp->bo_ptr_size, GFP_KERNEL);
+ 	if (bo == NULL)
+ 		return -ENOMEM;
++#ifdef __illumos__
++	/*
++	 * The DRM core registers the object here: it needs the callbacks
++	 * first, and it can refuse the object (the facade's
++	 * drm_gem_private_object_init() returns an error). A refused
++	 * object is not the core's: free it as it is.
++	 */
++	bo->tbo.base.funcs = &amdgpu_gem_object_funcs;
++	r = drm_gem_private_object_init(adev_to_drm(adev), &bo->tbo.base, size);
++	if (unlikely(r != 0)) {
++		kvfree(bo);
++		return r;
++	}
++#else
+ 	drm_gem_private_object_init(adev_to_drm(adev), &bo->tbo.base, size);
+ 	bo->tbo.base.funcs = &amdgpu_gem_object_funcs;
++#endif
+ 	bo->vm_bo = NULL;
+ 	bo->preferred_domains = bp->preferred_domain ? bp->preferred_domain :
+ 		bp->domain;
+--- a/drivers/gpu/drm/ttm/ttm_bo.c
++++ b/drivers/gpu/drm/ttm/ttm_bo.c
+@@ -989,7 +989,16 @@
+ 		dma_resv_unlock(bo->base.resv);
+ 
+ err_put:
++#ifdef __illumos__
++	/*
++	 * The DRM core holds the GEM object (drm_gem_private_object_init()
++	 * registered it): dropping the core's reference calls the driver's
++	 * free callback, which puts the buffer object as below.
++	 */
++	drm_gem_object_put(&bo->base);
++#else
+ 	ttm_bo_put(bo);
++#endif
+ 	return ret;
+ }
+ EXPORT_SYMBOL(ttm_bo_init_reserved);
