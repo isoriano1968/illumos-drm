@@ -41,6 +41,10 @@
  * DDI_DMA_CONSISTENT and a one-cookie attribute (physically contiguous,
  * page-aligned, below the coherent mask), zeroed; dma_alloc_wc() asks for
  * IOMEM_DATA_UC_WR_COMBINE memory. dma_sync_*() are ddi_dma_sync(9F).
+ *
+ * lkpi_dma_map_pages() (<lkpi/dma_pages.h>, illumos only) binds a whole
+ * page array with one handle through a vmap() of it, for TTM: a handle
+ * per page would cost more than half the memory it maps.
  */
 
 #include <linux/dma-mapping.h>
@@ -48,6 +52,8 @@
 #include <linux/vmalloc.h>
 #include <linux/slab.h>
 #include <linux/bug.h>
+#include <lkpi/dma_pages.h>
+#include <sys/list.h>
 #include "lkpi_internal.h"
 #include "lkpi_mem.h"
 
@@ -80,7 +86,17 @@ struct lkpi_dma_coherent {
 	ddi_acc_handle_t	dc_acc;
 };
 
+/* A lkpi_dma_map_pages(): one binding of a vmap() of the pages. */
+struct lkpi_dma_pages {
+	list_node_t		dp_node;
+	ddi_dma_handle_t	dp_handle;
+	caddr_t			dp_va;
+	size_t			dp_size;
+	unsigned long		dp_count;
+};
+
 static kmutex_t lkpi_dma_lock;
+static list_t lkpi_dma_pagesl;
 static avl_tree_t lkpi_dma_sgs;
 static avl_tree_t lkpi_dma_ones;
 static avl_tree_t lkpi_dma_coherents;
@@ -179,10 +195,14 @@ lkpi_dma_reachable(const ddi_dma_attr_t *attr, caddr_t kva, size_t len)
 	return (true);
 }
 
-/* Binds [kva, kva + len) without sleeping and without a copy buffer. */
+/*
+ * Binds [kva, kva + len) without a copy buffer; `wait` is DDI_DMA_SLEEP
+ * or DDI_DMA_DONTWAIT.
+ */
 static int
-lkpi_dma_bind(dev_info_t *dip, const ddi_dma_attr_t *attr, caddr_t kva,
-    size_t len, uint_t flags, ddi_dma_handle_t *hp, uint_t *ccountp)
+lkpi_dma_bind_wait(dev_info_t *dip, const ddi_dma_attr_t *attr, caddr_t kva,
+    size_t len, uint_t flags, int (*wait)(caddr_t), ddi_dma_handle_t *hp,
+    uint_t *ccountp)
 {
 	ddi_dma_handle_t h;
 	ddi_dma_cookie_t c;
@@ -193,16 +213,24 @@ lkpi_dma_bind(dev_info_t *dip, const ddi_dma_attr_t *attr, caddr_t kva,
 		    (void *)kva, (unsigned long long)attr->dma_attr_addr_hi);
 		return (-EIO);
 	}
-	if (ddi_dma_alloc_handle(dip, attr, DDI_DMA_DONTWAIT, NULL, &h) !=
-	    DDI_SUCCESS)
+	if (ddi_dma_alloc_handle(dip, attr, wait, NULL, &h) != DDI_SUCCESS)
 		return (-ENOMEM);
-	if (ddi_dma_addr_bind_handle(h, NULL, kva, len, flags,
-	    DDI_DMA_DONTWAIT, NULL, &c, ccountp) != DDI_DMA_MAPPED) {
+	if (ddi_dma_addr_bind_handle(h, NULL, kva, len, flags, wait, NULL, &c,
+	    ccountp) != DDI_DMA_MAPPED) {
 		ddi_dma_free_handle(&h);
 		return (-ENOMEM);
 	}
 	*hp = h;
 	return (0);
+}
+
+/* Binds [kva, kva + len) without sleeping and without a copy buffer. */
+static int
+lkpi_dma_bind(dev_info_t *dip, const ddi_dma_attr_t *attr, caddr_t kva,
+    size_t len, uint_t flags, ddi_dma_handle_t *hp, uint_t *ccountp)
+{
+	return (lkpi_dma_bind_wait(dip, attr, kva, len, flags,
+	    DDI_DMA_DONTWAIT, hp, ccountp));
 }
 
 static void
@@ -606,6 +634,99 @@ dma_sync_single_for_device(struct device *dev, dma_addr_t addr, size_t size,
 	lkpi_dma_sync_one(addr, size, false);
 }
 
+/* --- page arrays (<lkpi/dma_pages.h>) ---------------------------------- */
+
+static void
+lkpi_dma_pages_free(struct lkpi_dma_pages *dp)
+{
+	lkpi_dma_unbind(&dp->dp_handle);
+	vunmap(dp->dp_va);
+	kmem_free(dp, sizeof (*dp));
+}
+
+int
+lkpi_dma_map_pages(struct device *dev, struct page **pages,
+    unsigned long count, dma_addr_t *addrs, struct lkpi_dma_pages **out)
+{
+	const ddi_dma_cookie_t *c;
+	struct lkpi_dma_pages *dp;
+	ddi_dma_attr_t *attr;
+	dev_info_t *dip;
+	uint64_t caddr, cleft;
+	unsigned long i;
+	uint_t cc;
+	int err;
+
+	*out = NULL;
+	if (pages == NULL || addrs == NULL || count == 0 || count > UINT_MAX ||
+	    (dip = lkpi_dma_dev(dev, &attr)) == NULL)
+		return (-EINVAL);
+	dp = kmem_zalloc(sizeof (*dp), KM_SLEEP);
+	dp->dp_count = count;
+	dp->dp_size = LKPI_PTOB((size_t)count);
+	if ((dp->dp_va = vmap(pages, (unsigned int)count, VM_MAP,
+	    PAGE_KERNEL)) == NULL) {
+		kmem_free(dp, sizeof (*dp));
+		return (-ENOMEM);
+	}
+	if ((err = lkpi_dma_bind_wait(dip, attr, dp->dp_va, dp->dp_size,
+	    DDI_DMA_RDWR | DDI_DMA_STREAMING, DDI_DMA_SLEEP, &dp->dp_handle,
+	    &cc)) != 0) {
+		vunmap(dp->dp_va);
+		kmem_free(dp, sizeof (*dp));
+		return (err);
+	}
+
+	/* Each page lies in one cookie: pages are aligned, cookies too. */
+	c = ddi_dma_cookie_iter(dp->dp_handle, NULL);
+	caddr = c->dmac_laddress;
+	cleft = c->dmac_size;
+	for (i = 0; i < count; i++) {
+		while (cleft == 0 && c != NULL) {
+			if ((c = ddi_dma_cookie_iter(dp->dp_handle, c)) !=
+			    NULL) {
+				caddr = c->dmac_laddress;
+				cleft = c->dmac_size;
+			}
+		}
+		if (c == NULL || cleft < PAGE_SIZE ||
+		    (caddr & (PAGE_SIZE - 1)) != 0) {
+			WARN_ONCE(1, "lkpi_dma_map_pages: page %lu does not "
+			    "lie in one DMA cookie", i);
+			lkpi_dma_pages_free(dp);
+			return (-ENOMEM);
+		}
+		addrs[i] = caddr;
+		caddr += PAGE_SIZE;
+		cleft -= PAGE_SIZE;
+	}
+
+	mutex_enter(&lkpi_dma_lock);
+	list_insert_tail(&lkpi_dma_pagesl, dp);
+	mutex_exit(&lkpi_dma_lock);
+	*out = dp;
+	return (0);
+}
+
+void *
+lkpi_dma_pages_kva(const struct lkpi_dma_pages *dp)
+{
+	return (dp != NULL ? dp->dp_va : NULL);
+}
+
+void
+lkpi_dma_unmap_pages(struct lkpi_dma_pages *dp)
+{
+	if (dp == NULL)
+		return;
+	if (!lkpi_dma_ready)
+		return;		/* released by lkpi_dma_fini() */
+	mutex_enter(&lkpi_dma_lock);
+	list_remove(&lkpi_dma_pagesl, dp);
+	mutex_exit(&lkpi_dma_lock);
+	lkpi_dma_pages_free(dp);
+}
+
 /* --- coherent memory --------------------------------------------------- */
 
 static void
@@ -764,6 +885,8 @@ void
 lkpi_dma_init(void)
 {
 	(mutex_init)(&lkpi_dma_lock, NULL, MUTEX_DRIVER, NULL);
+	list_create(&lkpi_dma_pagesl, sizeof (struct lkpi_dma_pages),
+	    offsetof(struct lkpi_dma_pages, dp_node));
 	avl_create(&lkpi_dma_sgs, lkpi_dma_sg_cmp, sizeof (struct lkpi_dma_sg),
 	    offsetof(struct lkpi_dma_sg, ds_node));
 	avl_create(&lkpi_dma_ones, lkpi_dma_one_cmp,
@@ -779,11 +902,17 @@ void
 lkpi_dma_fini(void)
 {
 	struct lkpi_dma_coherent *dc;
+	struct lkpi_dma_pages *dp;
 	struct lkpi_dma_one *one;
 	struct lkpi_dma_sg *ds;
 	unsigned long n = 0;
 
 	lkpi_dma_ready = false;
+	while ((dp = list_remove_head(&lkpi_dma_pagesl)) != NULL) {
+		lkpi_dma_pages_free(dp);
+		n++;
+	}
+	list_destroy(&lkpi_dma_pagesl);
 	while ((ds = avl_first(&lkpi_dma_sgs)) != NULL) {
 		avl_remove(&lkpi_dma_sgs, ds);
 		lkpi_dma_sg_free(ds);

@@ -27,6 +27,7 @@
 #include <linux/pgtable.h>
 #include <linux/shrinker.h>
 #include <linux/uaccess.h>
+#include <asm/cpu_device_id.h>	/* boot_cpu_data, which Linux's mm.h reaches */
 
 static inline int
 get_order(unsigned long size)
@@ -101,6 +102,9 @@ get_order(unsigned long size)
 #define	VM_MIXEDMAP	0x10000000
 
 extern unsigned long physmem_lkpi(void);
+extern bool page_is_ram(unsigned long pfn);
+#define	untagged_addr(addr)	(addr)	/* x86-64 without LAM: no tags */
+#define	VM_ACCESS_FLAGS		(VM_READ | VM_WRITE | VM_EXEC)
 extern u64 lkpi_page_to_phys(struct lx_page *page);
 extern struct lx_page *lkpi_nth_page(struct lx_page *page, unsigned long n);
 extern struct lx_page *lkpi_virt_to_page(const void *kva);
@@ -205,5 +209,51 @@ extern long get_user_pages_fast(unsigned long start, int nr_pages,
 #define	want_init_on_free()	false
 
 #include <linux/page_ref.h>
+
+/*
+ * si_meminfo(): the memory totals TTM sizes its page pools and swap
+ * limit from. totalram is physmem; freeram is the same estimate as
+ * si_mem_available() (illumos does not report free memory to drivers).
+ */
+#include <sys/sysinfo.h>	/* illumos's own struct sysinfo, before the rename */
+#define	sysinfo	lkpi_sysinfo
+struct sysinfo {
+	unsigned long totalram;
+	unsigned long freeram;
+	unsigned long sharedram;
+	unsigned long bufferram;
+	unsigned long totalhigh;
+	unsigned long freehigh;
+	unsigned int mem_unit;
+};
+
+static inline void
+si_meminfo(struct sysinfo *si)
+{
+	si->totalram = totalram_pages();
+	si->freeram = (unsigned long)si_mem_available();
+	si->sharedram = si->bufferram = si->totalhigh = si->freehigh = 0;
+	si->mem_unit = PAGE_SIZE;
+}
+
+/*
+ * Page fault retries (FAULT_FLAG_ALLOW_RETRY with mmap_lock dropping):
+ * the layer's faults never drop a lock and retry, so TTM always waits in
+ * place.
+ */
+#define	fault_flag_allow_retry_first(flags)	((void)(flags), false)
+
+/*
+ * Page statistics (memcg / node vmstat counters such as TTM's
+ * NR_GPU_ACTIVE and NR_GPU_RECLAIM): not kept.
+ */
+enum lkpi_node_stat_item { NR_GPU_ACTIVE, NR_GPU_RECLAIM, NR_SHMEM_LKPI };
+#define	mod_lruvec_page_state(page, idx, val)	((void)(page), (void)(val))
+#define	FAULT_FLAG_RETRY_NOWAIT	0x0
+
+#include <linux/vmalloc.h>	/* is_vmalloc_addr(), which Linux's mm.h declares */
+
+/* One memory node (<linux/mmzone.h>). */
+#define	page_to_nid(page)	((void)(page), 0)
 
 #endif

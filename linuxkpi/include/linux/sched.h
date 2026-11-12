@@ -63,6 +63,7 @@ struct mm_struct;
 struct task_struct {
 	kthread_t *thread;
 	pid_t pid;
+	pid_t tgid;		/* the process: the same as pid on illumos */
 	int prio;
 	unsigned int flags;
 	volatile long __state;
@@ -74,6 +75,25 @@ struct task_struct {
 	void *kthread_data;
 	unsigned int lkpi_rcu_nest;	/* rcu_read_lock() depth */
 	unsigned int lkpi_rcu_idx;	/* the outermost section's phase */
+	/*
+	 * Linux's thread group leader. Each illumos thread has its own task
+	 * and is its own leader: callers that only compare leaders (the GPU
+	 * scheduler's last-user check) then see each thread as a separate
+	 * user, which costs them an optimisation, not correctness.
+	 */
+	struct task_struct *group_leader;
+	/* Linux's exit status of a dying task; tasks here never exit early. */
+	int exit_code;
+	/*
+	 * Linux's usage count (get_task_struct(), put_task_struct()). The
+	 * owner holds the first reference: the thread's tsd slot, dropped
+	 * when the thread exits, or the kthread record, dropped by
+	 * kthread_stop(). The last put calls lkpi_release, which frees the
+	 * task (or the kthread record). The interrupt placeholder's first
+	 * reference is never dropped (no lkpi_release).
+	 */
+	volatile uint32_t lkpi_refs;
+	void (*lkpi_release)(struct task_struct *);
 };
 
 extern struct task_struct *lkpi_current(void);
@@ -164,8 +184,15 @@ extern pid_t pid_nr(struct lx_pid *pid);
 #define	sched_set_fifo(t)	((void)(t))
 #define	sched_set_fifo_low(t)	((void)(t))
 #define	sched_set_normal(t, n)	((void)(t))
-#define	get_task_struct(t)	(t)
-#define	put_task_struct(t)	((void)(t))
+/* Task references (src/lkpi_sched.c): a held task outlives its thread. */
+static inline struct task_struct *
+get_task_struct(struct task_struct *t)
+{
+	(void) __atomic_add_fetch(&t->lkpi_refs, 1, __ATOMIC_RELAXED);
+	return (t);
+}
+extern void lkpi_task_put(struct task_struct *t);
+#define	put_task_struct(t)	lkpi_task_put(t)
 #define	task_cpu(t)		0
 #define	is_global_init(t)	0
 #define	same_thread_group(a, b)	((a) == (b))

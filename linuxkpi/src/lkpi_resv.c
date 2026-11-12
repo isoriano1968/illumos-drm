@@ -535,20 +535,50 @@ dma_resv_describe(struct dma_resv *obj, struct seq_file *seq)
 }
 
 /*
- * Replacing or copying fence lists needs the core's list itself; no i915
- * path uses them. Not supported: they warn and change nothing
- * (replace) or fail (copy).
+ * Linux's dma_resv_replace_fences(): the core's list (facade 2.1). Linux
+ * cannot fail here (it changes entries in place); the core can only for
+ * memory or a lock not held, which is a caller's bug: warn.
  */
 void
 dma_resv_replace_fences(struct dma_resv *obj, uint64_t context,
     struct dma_fence *fence, enum dma_resv_usage usage)
 {
-	WARN_ONCE(1, "dma_resv_replace_fences is not supported");
+	int ret;
+
+	ret = drm_illumos_resv_replace_fences(obj, context, fence, usage);
+	WARN_ONCE(ret != 0, "dma_resv_replace_fences: %d", ret);
 }
 
+/*
+ * Linux's dma_resv_copy_fences(): `dst` (locked by the caller) gets the
+ * unsignalled fences of `src` (not necessarily locked), each with its
+ * usage. Linux replaces dst's list; the core cannot drop fences from a
+ * list, so fences dst already holds stay (a superset: waits on dst only
+ * wait longer). TTM's caller (ttm_bo_individualize_resv(), at a BO's
+ * release) copies into the BO's own reservation, which holds none.
+ */
 int
 dma_resv_copy_fences(struct dma_resv *dst, struct dma_resv *src)
 {
-	WARN_ONCE(1, "dma_resv_copy_fences is not supported");
-	return (-ENOTSUPP);
+	struct dma_fence **fences;
+	unsigned int count, i;
+	u8 *usages;
+	int ret;
+
+	dma_resv_assert_held(dst);
+	ret = resv_snapshot(src, DMA_RESV_USAGE_BOOKKEEP, false, &fences,
+	    &usages, &count);
+	if (ret != 0)
+		return (ret);
+	if (count > 0)
+		ret = dma_resv_reserve_fences(dst, count);
+	for (i = 0; i < count; i++) {
+		if (ret == 0)
+			dma_resv_add_fence(dst, fences[i],
+			    (enum dma_resv_usage)usages[i]);
+		dma_fence_put(fences[i]);
+	}
+	kfree(fences);
+	kfree(usages);
+	return (ret);
 }

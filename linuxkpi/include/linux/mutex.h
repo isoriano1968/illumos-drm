@@ -52,20 +52,30 @@ lkpi_mutex_is_locked(struct mutex *m)
 	return (true);
 }
 
+/*
+ * The lock argument as Linux's functions take it: a struct mutex *, or a
+ * void * converted implicitly (amdgpu's RAS core keeps one).
+ */
+static inline struct mutex *
+lkpi_mtx(struct mutex *lock)
+{
+	return (lock);
+}
+
 #define	mutex_init(lk)			lkpi_mutex_init(lk)
 #define	__mutex_init(lk, n, k)		lkpi_mutex_init(lk)
 #define	mutex_init_with_key(lk, k)	lkpi_mutex_init(lk)
 #define	mutex_destroy(lk)		lkpi_mutex_destroy(lk)
-#define	mutex_lock(lk)			mutex_enter(&(lk)->m)
-#define	mutex_lock_nested(lk, s)		mutex_enter(&(lk)->m)
-#define	mutex_lock_nest_lock(lk, n)	mutex_enter(&(lk)->m)
-#define	mutex_lock_io(lk)		mutex_enter(&(lk)->m)
-#define	mutex_lock_interruptible(lk)	({ mutex_enter(&(lk)->m); 0; })
+#define	mutex_lock(lk)			mutex_enter(&lkpi_mtx(lk)->m)
+#define	mutex_lock_nested(lk, s)		mutex_enter(&lkpi_mtx(lk)->m)
+#define	mutex_lock_nest_lock(lk, n)	mutex_enter(&lkpi_mtx(lk)->m)
+#define	mutex_lock_io(lk)		mutex_enter(&lkpi_mtx(lk)->m)
+#define	mutex_lock_interruptible(lk)	({ mutex_enter(&lkpi_mtx(lk)->m); 0; })
 #define	mutex_lock_interruptible_nested(lk, s)	mutex_lock_interruptible(lk)
-#define	mutex_lock_killable(lk)		({ mutex_enter(&(lk)->m); 0; })
+#define	mutex_lock_killable(lk)		({ mutex_enter(&lkpi_mtx(lk)->m); 0; })
 #define	mutex_lock_killable_nested(lk, s)	mutex_lock_killable(lk)
-#define	mutex_trylock(lk)		(mutex_tryenter(&(lk)->m) != 0)
-#define	mutex_unlock(lk)			mutex_exit(&(lk)->m)
+#define	mutex_trylock(lk)		(mutex_tryenter(&lkpi_mtx(lk)->m) != 0)
+#define	mutex_unlock(lk)			mutex_exit(&lkpi_mtx(lk)->m)
 #define	mutex_is_locked(lk)		lkpi_mutex_is_locked(lk)
 #define	mutex_lock_interruptible_io(lk)	mutex_lock_interruptible(lk)
 

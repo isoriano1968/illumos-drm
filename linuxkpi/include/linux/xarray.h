@@ -7,13 +7,20 @@
  * Each present index is a node holding its entry; lookups are O(log n),
  * allocation of a free index walks the tree in order. The array's lock is
  * a layer spinlock; xa_*() take it, __xa_*() expect the caller to hold it.
- * Readers under RCU are not lock-free here: xa_load() takes the lock.
+ * Readers under RCU are not lock-free here: xa_load() and the searches
+ * take the lock, unless the calling thread holds it already (Linux lets
+ * them run with xa_lock held).
  * Entries must be pointers aligned to 4 bytes or xa_mk_value() values, as
  * on Linux; storing NULL erases, except in an allocating array
  * (XA_FLAGS_ALLOC*), where it reserves the index as on Linux (xa_load()
  * returns NULL, the allocators skip it, xa_erase()/xa_release() free it).
- * Marks are not supported (XA_MARK_* searches find nothing, xa_set_mark()
- * does nothing).
+ * Marks XA_MARK_0..2 are kept per entry (a bit set in its node): they
+ * survive a store over the entry and go with its erasure, as on Linux;
+ * marked searches walk the tree in order. XA_FREE_MARK is Linux's "free
+ * index" mark of an allocating array: an xa_state search for it
+ * (xas_find_marked()) finds the first free index. The xa_state is the
+ * subset amdgpu uses: an array and an index (XA_STATE(), xas_find_marked(),
+ * xas_retry()), each step a locked lookup.
  */
 #ifndef _LINUX_XARRAY_H
 #define	_LINUX_XARRAY_H
@@ -167,12 +174,30 @@ xa_empty(const struct xarray *xa)
 #define	xa_alloc_cyclic_irq(xa, id, e, l, n, g)	xa_alloc_cyclic(xa, id, e, l, n, g)
 #define	xa_alloc_bh(xa, id, e, l, g)	xa_alloc(xa, id, e, l, g)
 #define	xa_release(xa, i)		lkpi_xa_release((xa), (i))
-#define	xa_set_mark(xa, i, m)		((void)(xa), (void)(i))
-#define	xa_clear_mark(xa, i, m)		((void)(xa), (void)(i))
-#define	__xa_set_mark(xa, i, m)		((void)(xa), (void)(i))
-#define	__xa_clear_mark(xa, i, m)	((void)(xa), (void)(i))
-#define	xa_get_mark(xa, i, m)		false
-#define	xa_marked(xa, m)		false
+extern void xa_set_mark(struct xarray *xa, unsigned long index,
+    xa_mark_t mark);
+extern void xa_clear_mark(struct xarray *xa, unsigned long index,
+    xa_mark_t mark);
+extern void __xa_set_mark(struct xarray *xa, unsigned long index,
+    xa_mark_t mark);
+extern void __xa_clear_mark(struct xarray *xa, unsigned long index,
+    xa_mark_t mark);
+extern bool xa_get_mark(struct xarray *xa, unsigned long index,
+    xa_mark_t mark);
+extern bool xa_marked(struct xarray *xa, xa_mark_t mark);
+extern unsigned int xa_extract(struct xarray *xa, void **dst,
+    unsigned long start, unsigned long max, unsigned int n,
+    xa_mark_t filter);
+
+struct xa_state {
+	struct xarray *xa;
+	unsigned long xa_index;
+};
+#define	XA_STATE(name, array, index) \
+	struct xa_state name = { .xa = (array), .xa_index = (index) }
+#define	xas_retry(xas, entry)	((void)(xas), (void)(entry), false)
+extern void *xas_find_marked(struct xa_state *xas, unsigned long max,
+    xa_mark_t mark);
 
 #define	xa_for_each_range(xa, index, entry, start, last) \
 	for ((index) = (start), \
@@ -184,6 +209,9 @@ xa_empty(const struct xarray *xa)
 #define	xa_for_each(xa, index, entry) \
 	xa_for_each_start(xa, index, entry, 0)
 #define	xa_for_each_marked(xa, index, entry, filter) \
-	for ((index) = 0, (entry) = NULL; (entry) != NULL; )
+	for ((index) = 0, \
+	    (entry) = xa_find((xa), &(index), ULONG_MAX, (filter)); \
+	    (entry) != NULL; \
+	    (entry) = xa_find_after((xa), &(index), ULONG_MAX, (filter)))
 
 #endif

@@ -93,8 +93,9 @@ extern void dma_sync_single_for_device(struct device *dev, dma_addr_t addr,
 #define	dma_sync_sgtable_for_device(d, t, r) \
 	dma_sync_sg_for_device(d, (t)->sgl, (t)->orig_nents, r)
 #define	dma_get_max_seg_size(d)		((unsigned int)PAGE_SIZE)
-#define	dma_set_max_seg_size(d, s)	0
-#define	dma_set_seg_boundary(d, m)	0
+/* void, as Linux's since 6.11 */
+static inline void dma_set_max_seg_size(struct device *d, unsigned int s) {}
+static inline void dma_set_seg_boundary(struct device *d, unsigned long m) {}
 #define	dma_addressing_limited(d)	false
 #define	dma_need_sync(d, a)		false
 #define	dma_is_dma_mapped(d)		true

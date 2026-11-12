@@ -73,4 +73,13 @@ extern void free_pages_exact(void *virt, size_t size);
 #define	dev_to_node(dev)		NUMA_NO_NODE
 #endif
 
+/*
+ * split_page(): make the pages of an order-n allocation individually
+ * freeable (TTM's pool hands out the pages of large allocations one by
+ * one). alloc_pages() makes no page of an order above 0 (src/lkpi_page.c),
+ * so there is never anything to split: order 0 does nothing, a higher
+ * order is a caller bug (warned once).
+ */
+extern void split_page(struct lx_page *page, unsigned int order);
+
 #endif

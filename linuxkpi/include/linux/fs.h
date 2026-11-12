@@ -32,8 +32,17 @@ struct poll_table_struct;
 struct seq_file;
 struct kiocb;
 struct iov_iter;
-struct dentry;
+struct inode;
+/*
+ * A directory entry: only its inode (debugfs entries; the layer creates
+ * none, see <linux/debugfs.h>).
+ */
+struct dentry {
+	struct inode *d_inode;
+};
+#define	d_inode(d)	((d)->d_inode)
 struct super_block;
+typedef void *fl_owner_t;
 struct vfsmount;
 struct writeback_control;
 struct lkpi_shmem;

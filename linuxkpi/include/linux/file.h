@@ -16,4 +16,25 @@
 #define	fd_install(fd, f)		((void)(fd), (void)(f))
 #define	fget(fd)			((struct lx_file *)NULL)
 #define	O_CLOEXEC_LKPI			0x800000
+
+/*
+ * A looked-up descriptor (CLASS(fd, f)(fd)): always empty, as fget(), so
+ * a driver taking another process's DRM file by descriptor reports a bad
+ * descriptor.
+ */
+#include <linux/cleanup.h>
+struct fd {
+	struct lx_file *file;
+};
+#define	fd_file(f)	((f).file)
+#define	fd_empty(f)	((f).file == NULL)
+static inline struct fd
+fdget(unsigned int fd)
+{
+	struct fd f = { .file = fget(fd) };
+
+	return (f);
+}
+#define	fdput(f)	((void)(f))
+DEFINE_CLASS(fd, struct fd, fdput(_T), fdget(fd), int fd)
 #endif

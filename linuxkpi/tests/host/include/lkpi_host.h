@@ -33,6 +33,8 @@
 #include <errno.h>
 #include <pthread.h>
 #include <time.h>
+/* <time.h> above has the C library's struct tm; the layer's own (<linux/time.h>) is renamed. */
+#define	tm	lkpi_layer_tm
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/param.h>

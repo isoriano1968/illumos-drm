@@ -60,6 +60,73 @@
 typedef unsigned int pci_channel_state_t;
 typedef unsigned short pci_dev_flags_t;
 
+/* A config read of a device that is gone returns all ones. */
+#define	PCI_ERROR_RESPONSE	(~0ULL)
+#define	PCI_POSSIBLE_ERROR(v)	((v) == ((typeof(v))PCI_ERROR_RESPONSE))
+
+/*
+ * PCI Express link widths and speeds, numbered as Linux numbers them
+ * (the widths are the Link Capabilities register's encoding).
+ */
+enum pcie_link_width {
+	PCIE_LNK_WIDTH_RESRV	= 0x00,
+	PCIE_LNK_X1		= 0x01,
+	PCIE_LNK_X2		= 0x02,
+	PCIE_LNK_X4		= 0x04,
+	PCIE_LNK_X8		= 0x08,
+	PCIE_LNK_X12		= 0x0c,
+	PCIE_LNK_X16		= 0x10,
+	PCIE_LNK_X32		= 0x20,
+	PCIE_LNK_WIDTH_UNKNOWN	= 0xff
+};
+
+enum pci_bus_speed {
+	PCI_SPEED_33MHz		= 0x00,
+	PCI_SPEED_66MHz		= 0x01,
+	PCIE_SPEED_2_5GT	= 0x14,
+	PCIE_SPEED_5_0GT	= 0x15,
+	PCIE_SPEED_8_0GT	= 0x16,
+	PCIE_SPEED_16_0GT	= 0x17,
+	PCIE_SPEED_32_0GT	= 0x18,
+	PCIE_SPEED_64_0GT	= 0x19,
+	PCI_SPEED_UNKNOWN	= 0xff
+};
+
+/*
+ * PCI error recovery (AER). illumos reports PCIe errors through FMA, not
+ * to the driver: the layer never calls a driver's pci_error_handlers, so
+ * the table is kept for the driver's own reset code only.
+ */
+typedef unsigned int pci_ers_result_t;
+enum pci_ers_result {
+	PCI_ERS_RESULT_NONE		= 1,
+	PCI_ERS_RESULT_CAN_RECOVER	= 2,
+	PCI_ERS_RESULT_NEED_RESET	= 3,
+	PCI_ERS_RESULT_DISCONNECT	= 4,
+	PCI_ERS_RESULT_RECOVERED	= 5,
+	PCI_ERS_RESULT_NO_AER_DRIVER	= 6
+};
+enum {
+	pci_channel_io_normal		= 1,
+	pci_channel_io_frozen		= 2,
+	pci_channel_io_perm_failure	= 3
+};
+
+struct pci_dev;
+struct pci_error_handlers {
+	pci_ers_result_t (*error_detected)(struct pci_dev *dev,
+	    pci_channel_state_t error);
+	pci_ers_result_t (*mmio_enabled)(struct pci_dev *dev);
+	pci_ers_result_t (*slot_reset)(struct pci_dev *dev);
+	void (*reset_prepare)(struct pci_dev *dev);
+	void (*reset_done)(struct pci_dev *dev);
+	void (*resume)(struct pci_dev *dev);
+	void (*cor_error_detected)(struct pci_dev *dev);
+};
+
+/* Saved config space: not supported (pci_store_saved_state() is NULL). */
+struct pci_saved_state;
+
 struct pci_bus {
 	struct pci_bus *parent;
 	struct pci_dev *self;
@@ -95,6 +162,14 @@ struct pci_dev {
 	struct pci_driver *driver;
 	u64 dma_mask;
 	pci_dev_flags_t dev_flags;
+	/*
+	 * A copy of the expansion ROM that the platform firmware left in
+	 * memory (Linux: EFI's PCI I/O protocol ROM images): not known,
+	 * always 0 (drivers then read the ROM BAR or the ACPI tables).
+	 */
+	phys_addr_t rom;
+	size_t romlen;
+	u32 saved_config_space[16];	/* never filled: see pci_save_state() */
 	/* illumos */
 	ddi_acc_handle_t lkpi_cfg;
 	int lkpi_regnum[PCI_NUM_RESOURCES + 1];
@@ -111,6 +186,7 @@ struct pci_driver {
 	int (*suspend)(struct pci_dev *dev, pm_message_t state);
 	int (*resume)(struct pci_dev *dev);
 	const struct pci_error_handlers *err_handler;
+	const struct attribute_group **dev_groups;	/* sysfs: unused */
 	struct device_driver driver;
 };
 
@@ -211,8 +287,62 @@ extern resource_size_t pcibios_align_resource(void *data,
     const struct resource *res, resource_size_t size, resource_size_t align);
 #define	PCIBIOS_MIN_MEM		0x10000000UL
 #define	PCIBIOS_MIN_IO		0x1000UL
-extern int pci_resize_resource(struct pci_dev *dev, int i, int size);
-extern int pci_rebar_get_possible_sizes(struct pci_dev *pdev, int bar);
+extern int pci_resize_resource(struct pci_dev *dev, int i, int size,
+    int exclude_bars);
+extern u64 pci_rebar_get_possible_sizes(struct pci_dev *pdev, int bar);
+extern int pci_rebar_get_max_size(struct pci_dev *pdev, int bar);
+
+/*
+ * PCI Express, from the device's own capability registers: the port type,
+ * the link's speed and width capabilities and its ASPM control, and
+ * waiting for outstanding transactions. The upstream path is not known
+ * (pci_upstream_bridge() is NULL), so pcie_bandwidth_available() reports
+ * the device's own link, AtomicOps to the root port are refused
+ * (-EINVAL), and a function reset is not offered (-ENOTTY).
+ */
+extern int pci_pcie_type(const struct pci_dev *dev);
+extern enum pci_bus_speed pcie_get_speed_cap(struct pci_dev *dev);
+extern enum pcie_link_width pcie_get_width_cap(struct pci_dev *dev);
+extern u32 pcie_bandwidth_available(struct pci_dev *dev,
+    struct pci_dev **limiting_dev, enum pci_bus_speed *speed,
+    enum pcie_link_width *width);
+extern bool pcie_aspm_enabled(struct pci_dev *dev);
+extern int pci_wait_for_pending_transaction(struct pci_dev *dev);
+extern int pci_reset_function(struct pci_dev *dev);
+extern int pci_enable_atomic_ops_to_root(struct pci_dev *dev, u32 cap_mask);
+extern struct pci_saved_state *pci_store_saved_state(struct pci_dev *dev);
+extern int pci_load_saved_state(struct pci_dev *dev,
+    struct pci_saved_state *state);
+extern int pci_load_and_free_saved_state(struct pci_dev *dev,
+    struct pci_saved_state **state);
+#define	pci_pr3_present(p)		((void)(p), false)
+#define	pcie_capability_set_word(d, pos, set) \
+	pcie_capability_clear_and_set_word((d), (pos), 0, (set))
+#define	pcie_capability_clear_word(d, pos, clear) \
+	pcie_capability_clear_and_set_word((d), (pos), (clear), 0)
+
+/*
+ * Device Control's Max_Read_Request_Size and Max_Payload_Size (bytes),
+ * read and (read request only) written directly; the device being
+ * present (its vendor ID reads back). The layer leaves MSI programming
+ * to the illumos interrupt framework and never resets a device, so
+ * there is no MSI state to restore; no device is armed for wake-up.
+ */
+extern int pcie_get_readrq(struct pci_dev *dev);
+extern int pcie_set_readrq(struct pci_dev *dev, int rq);
+extern int pcie_get_mps(struct pci_dev *dev);
+extern bool pci_device_is_present(struct pci_dev *dev);
+#define	pci_restore_msi_state(p)	((void)(p))
+static inline int pci_wake_from_d3(struct pci_dev *p, bool e) { return -EINVAL; }
+
+/*
+ * The layer knows no host-bridge windows: every bus has none, so a
+ * driver that looks for a 64-bit window before resizing a BAR (amdgpu)
+ * finds none and keeps the BAR the firmware sized.
+ */
+#define	pci_bus_for_each_resource(bus, res, ...) \
+	for ((void)(bus), (res) = NULL __VA_OPT__(, (__VA_ARGS__) = 0); \
+	    (res) != NULL; )
 
 #define	pcim_enable_device(p)		pci_enable_device(p)
 #define	pcim_iomap(p, bar, len)		pci_iomap(p, bar, len)
@@ -228,8 +358,6 @@ extern int pci_rebar_get_possible_sizes(struct pci_dev *pdev, int bar);
 #define	pci_num_vf(p)			0
 #define	pci_sriov_get_totalvfs(p)	0
 #define	pci_vfs_assigned(p)		0
-#define	pcie_get_speed_cap(p)		0
-#define	pcie_get_width_cap(p)		0
 
 /*
  * The illumos side of a Linux PCI driver: the driver's attach(9E) and

@@ -78,6 +78,17 @@ const struct sysfs_ops kobj_sysfs_ops = {
 	.store = kobj_attr_store
 };
 
+/* The reference count and lists; name, parent, ktype and kset are kept. */
+static void
+lkpi_kobject_init_internal(struct kobject *kobj)
+{
+	kref_init(&kobj->kref);
+	INIT_LIST_HEAD(&kobj->lkpi_children);
+	INIT_LIST_HEAD(&kobj->lkpi_sibling);
+	INIT_LIST_HEAD(&kobj->entry);
+	kobj->state_initialized = 1;
+}
+
 void
 kobject_init(struct kobject *kobj, const struct kobj_type *ktype)
 {
@@ -88,29 +99,67 @@ kobject_init(struct kobject *kobj, const struct kobj_type *ktype)
 	kobj->name = NULL;
 	kobj->parent = NULL;
 	kobj->ktype = ktype;
-	kref_init(&kobj->kref);
-	INIT_LIST_HEAD(&kobj->lkpi_children);
-	INIT_LIST_HEAD(&kobj->lkpi_sibling);
-	kobj->state_initialized = 1;
+	kobj->sd = NULL;
+	lkpi_kobject_init_internal(kobj);
 }
 
 static int
-kobject_vadd(struct kobject *kobj, struct kobject *parent, const char *fmt,
-    va_list ap)
+kobject_vset_name(struct kobject *kobj, const char *fmt, va_list ap)
 {
-	char *name;
+	char *name = kvasprintf(GFP_KERNEL, fmt, ap);
 
-	if (kobj == NULL || !kobj->state_initialized) {
-		WARN(1, "kobject_add: kobject %p not initialised", kobj);
-		return (-EINVAL);
-	}
-	if (fmt != NULL) {
-		name = kvasprintf(GFP_KERNEL, fmt, ap);
-		if (name == NULL)
-			return (-ENOMEM);
-		kfree(kobj->name);
-		kobj->name = name;
-	}
+	if (name == NULL)
+		return (-ENOMEM);
+	kfree(kobj->name);
+	kobj->name = name;
+	return (0);
+}
+
+int
+kobject_set_name(struct kobject *kobj, const char *fmt, ...)
+{
+	va_list ap;
+	int err;
+
+	va_start(ap, fmt);
+	err = kobject_vset_name(kobj, fmt, ap);
+	va_end(ap);
+	return (err);
+}
+
+/* Joins the kobject's kset (taking a reference on it), or does nothing. */
+static void
+lkpi_kset_join(struct kobject *kobj)
+{
+	struct kset *ks = kobj->kset;
+
+	if (ks == NULL)
+		return;
+	(void) kobject_get(&ks->kobj);
+	spin_lock(&ks->list_lock);
+	list_add_tail(&kobj->entry, &ks->list);
+	spin_unlock(&ks->list_lock);
+}
+
+static void
+lkpi_kset_leave(struct kobject *kobj)
+{
+	struct kset *ks = kobj->kset;
+
+	if (ks == NULL)
+		return;
+	spin_lock(&ks->list_lock);
+	list_del_init(&kobj->entry);
+	spin_unlock(&ks->list_lock);
+	kobject_put(&ks->kobj);
+}
+
+/* Adds a named kobject under parent (or its kset's kobject). */
+static int
+lkpi_kobject_add_internal(struct kobject *kobj, struct kobject *parent)
+{
+	if (parent == NULL && kobj->kset != NULL)
+		parent = &kobj->kset->kobj;
 	if (parent != NULL && !parent->state_initialized) {
 		WARN(1, "kobject_add: %s: parent %p not initialised", kobj->name,
 		    parent);
@@ -128,7 +177,55 @@ kobject_vadd(struct kobject *kobj, struct kobject *parent, const char *fmt,
 	}
 	WRITE_ONCE(kobj->parent, parent);
 	mutex_exit(&lkpi_kobject_lock);
+	lkpi_kset_join(kobj);
 	return (0);
+}
+
+static int
+kobject_vadd(struct kobject *kobj, struct kobject *parent, const char *fmt,
+    va_list ap)
+{
+	int err;
+
+	if (kobj == NULL || !kobj->state_initialized) {
+		WARN(1, "kobject_add: kobject %p not initialised", kobj);
+		return (-EINVAL);
+	}
+	if (fmt != NULL && (err = kobject_vset_name(kobj, fmt, ap)) != 0)
+		return (err);
+	return (lkpi_kobject_add_internal(kobj, parent));
+}
+
+/*
+ * The kset's kobject keeps the name, parent, ktype and kset set before;
+ * its own list starts empty.
+ */
+int
+kset_register(struct kset *kset)
+{
+	struct kobject *parent;
+	int err;
+
+	if (kset == NULL)
+		return (-EINVAL);
+	INIT_LIST_HEAD(&kset->list);
+	spin_lock_init(&kset->list_lock);
+	parent = kset->kobj.parent;
+	kset->kobj.parent = NULL;
+	lkpi_kobject_init_internal(&kset->kobj);
+	err = lkpi_kobject_add_internal(&kset->kobj, parent);
+	if (err != 0)
+		kset->kobj.parent = parent;
+	return (err);
+}
+
+void
+kset_unregister(struct kset *kset)
+{
+	if (kset == NULL)
+		return;
+	kobject_del(&kset->kobj);
+	kobject_put(&kset->kobj);
 }
 
 int
@@ -206,6 +303,7 @@ kobject_del(struct kobject *kobj)
 
 	if (kobj == NULL || READ_ONCE(kobj->parent) == NULL)
 		return;
+	lkpi_kset_leave(kobj);
 	mutex_enter(&lkpi_kobject_lock);
 	parent = kobj->parent;
 	if (parent != NULL) {

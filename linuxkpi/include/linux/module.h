@@ -36,12 +36,24 @@ struct lx_module;
 extern void lkpi_module_quiesce(struct modlinkage *ml);
 extern void lkpi_module_quiesce_range(const void *text, size_t size);
 
+/*
+ * One illumos module may carry several Linux modules (amdgpu with the GPU
+ * scheduler and the buddy allocator): the build gives each carried one
+ * its own entry point names (-DLKPI_MODULE_INIT=..., -DLKPI_MODULE_EXIT=...),
+ * which the glue calls in Linux's load order.
+ */
+#ifndef	LKPI_MODULE_INIT
+#define	LKPI_MODULE_INIT	lkpi_module_init
+#endif
+#ifndef	LKPI_MODULE_EXIT
+#define	LKPI_MODULE_EXIT	lkpi_module_exit
+#endif
 #define	module_init(fn) \
-	int lkpi_module_init(void); \
-	int lkpi_module_init(void) { return (fn()); }
+	int LKPI_MODULE_INIT(void); \
+	int LKPI_MODULE_INIT(void) { return (fn()); }
 #define	module_exit(fn) \
-	void lkpi_module_exit(void); \
-	void lkpi_module_exit(void) { fn(); }
+	void LKPI_MODULE_EXIT(void); \
+	void LKPI_MODULE_EXIT(void) { fn(); }
 #define	MODULE_LICENSE(x)
 #define	MODULE_AUTHOR(x)
 #define	MODULE_DESCRIPTION(x)

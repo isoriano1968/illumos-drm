@@ -56,8 +56,15 @@ struct sysfs_ops {
 #define	__ATTR(_name, _mode, _show, _store) { \
 	.attr = { .name = __stringify(_name), .mode = (_mode) }, \
 	.show = _show, .store = _store }
-#define	__ATTR_RO(_name)	__ATTR(_name, 0444, _name##_show, NULL)
-#define	__ATTR_WO(_name)	__ATTR(_name, 0200, NULL, _name##_store)
+#define	__ATTR_RO(_name) { \
+	.attr = { .name = __stringify(_name), .mode = 0444 }, \
+	.show = _name##_show }
+#define	__ATTR_RO_MODE(_name, _mode) { \
+	.attr = { .name = __stringify(_name), .mode = (_mode) }, \
+	.show = _name##_show }
+#define	__ATTR_WO(_name) { \
+	.attr = { .name = __stringify(_name), .mode = 0200 }, \
+	.store = _name##_store }
 #define	__ATTR_RW(_name)	__ATTR(_name, 0644, _name##_show, _name##_store)
 #define	__ATTR_RW_MODE(_name, _mode)	__ATTR(_name, _mode, _name##_show, _name##_store)
 #define	__ATTR_NULL		{ .attr = { .name = NULL } }
@@ -85,10 +92,17 @@ extern const char power_group_name[];
 #define	sysfs_unmerge_group(k, g)	((void)(k), (void)(g))
 #define	sysfs_create_bin_file(k, a)	((void)(k), (void)(a), 0)
 #define	sysfs_remove_bin_file(k, a)	((void)(k), (void)(a))
-#define	sysfs_create_link(k, t, n)	((void)(k), (void)(t), 0)
+static inline int sysfs_create_link(struct kobject *k, struct kobject *t,
+    const char *n) { return 0; }
 #define	sysfs_remove_link(k, n)		((void)(k))
 #define	sysfs_notify(k, d, a)		((void)(k))
-#define	sysfs_update_group(k, g)	((void)(k), (void)(g), 0)
+struct attribute;
+struct attribute_group;
+static inline int sysfs_update_group(struct kobject *k,
+    const struct attribute_group *g) { return 0; }
+static inline int sysfs_add_file_to_group(struct kobject *k,
+    const struct attribute *a, const char *g) { return 0; }
+#define	sysfs_remove_file_from_group(k, a, g)	((void)(k), (void)(a), (void)(g))
 extern int sysfs_emit(char *buf, const char *fmt, ...) __printf(2, 3);
 extern int sysfs_emit_at(char *buf, int at, const char *fmt, ...)
     __printf(3, 4);

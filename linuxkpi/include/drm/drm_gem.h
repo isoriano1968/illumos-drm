@@ -75,4 +75,15 @@ drm_gem_object_is_shared_for_memory_stats(struct drm_gem_object *obj)
 
 #include <drm/drm_prime.h>
 
+/*
+ * The objects of count handles in a user array, each with a new
+ * reference, in a new array (*objs_out; free with kvfree() after putting
+ * them): 0, or -EFAULT/-EOVERFLOW (the array), -ENOMEM, -ENOENT (a
+ * handle without object); on an error no reference is held and
+ * *objs_out is NULL. The handles are looked up one by one through the
+ * core (Linux takes them under one table_lock).
+ */
+extern int drm_gem_objects_lookup(struct drm_file *filp,
+    void __user *bo_handles, int count, struct drm_gem_object ***objs_out);
+
 #endif

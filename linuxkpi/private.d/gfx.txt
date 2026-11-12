@@ -1,0 +1,2 @@
+gfxp_umem_cookie_init	# non-DDI kernel interface (misc/gfx_private, <sys/gfx_private.h>; the layer links -N misc/gfx_private): a ddi_umem cookie on a kernel VA range, the user-mapping windows of <lkpi/umem_window.h> (src/lkpi_page.c) that the DRM core maps for TTM objects
+gfxp_umem_cookie_destroy	# non-DDI kernel interface (misc/gfx_private): frees that cookie

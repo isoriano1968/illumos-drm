@@ -11,6 +11,14 @@
  * children (lkpi_children, lkpi_sibling; src/lkpi_kobject.c), so that the
  * layer can detach the children left under a kobject whose memory it
  * frees (lkpi_kobject_orphan_children(), a layer device's kobject).
+ *
+ * A kset is a kobject with a list of member kobjects, as on Linux: a
+ * kobject whose kset is set when it is added joins the kset's list
+ * (entry) and, without a parent of its own, gets the kset's kobject as
+ * parent; it leaves the list when it is deleted. kset_register() adds
+ * the kset's kobject (its preset name, parent and kset), kset_unregister()
+ * deletes and puts it. sd (the sysfs node) is always NULL, so drivers
+ * that create sysfs files only when their device has one skip them.
  */
 #ifndef _LINUX_KOBJECT_H
 #define	_LINUX_KOBJECT_H
@@ -19,8 +27,11 @@
 #include <linux/list.h>
 #include <linux/kref.h>
 #include <linux/sysfs.h>
+#include <linux/spinlock.h>
 
 struct kobject;
+struct kset;
+struct kernfs_node;
 struct kobj_type {
 	void (*release)(struct kobject *kobj);
 	const struct sysfs_ops *sysfs_ops;
@@ -33,6 +44,9 @@ struct kobject {
 	const struct kobj_type *ktype;
 	struct kref kref;
 	unsigned int state_initialized:1;
+	struct list_head entry;		/* on kset->list (kset's list_lock) */
+	struct kset *kset;
+	struct kernfs_node *sd;		/* always NULL: no sysfs */
 	/* illumos: under the layer's kobject lock (src/lkpi_kobject.c). */
 	struct list_head lkpi_children;	/* the kobjects added under this */
 	struct list_head lkpi_sibling;	/* on the parent's lkpi_children */
@@ -57,7 +71,20 @@ enum kobject_action {
 	KOBJ_UNBIND
 };
 
+struct kset_uevent_ops;
+struct kset {
+	struct list_head list;
+	spinlock_t list_lock;
+	struct kobject kobj;
+	const struct kset_uevent_ops *uevent_ops;
+};
+#define	to_kset(k)	container_of((k), struct kset, kobj)
+
 extern const struct sysfs_ops kobj_sysfs_ops;
+extern int kobject_set_name(struct kobject *kobj, const char *fmt, ...)
+    __printf(2, 3);
+extern int kset_register(struct kset *kset);
+extern void kset_unregister(struct kset *kset);
 extern void kobject_init(struct kobject *kobj, const struct kobj_type *ktype);
 extern int kobject_add(struct kobject *kobj, struct kobject *parent,
     const char *fmt, ...);

@@ -9,6 +9,13 @@ ratelimit_state_init(struct ratelimit_state *rs, int interval, int burst)
 	rs->interval = interval;
 	rs->burst = burst;
 }
+static inline void
+ratelimit_state_reset_interval(struct ratelimit_state *rs, int interval)
+{
+	rs->interval = interval;
+	rs->printed = 0;
+	rs->missed = 0;
+}
 #define	ratelimit_set_flags(rs, f)	((void)(rs), (void)(f))
 #define	__ratelimit(rs)			((void)(rs), 1)
 #define	ratelimit_state_exit(rs)	((void)(rs))

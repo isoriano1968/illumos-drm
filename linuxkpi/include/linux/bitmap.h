@@ -96,4 +96,47 @@ bitmap_full(const unsigned long *src, unsigned int nbits)
 #define	bitmap_from_arr64(b, buf, n)	memcpy((b), (buf), BITS_TO_ARR(n))
 #define	bitmap_to_arr64(buf, b, n)	memcpy((buf), (b), BITS_TO_ARR(n))
 
+/*
+ * bitmap_read()/bitmap_write(): a value of nbits (1..BITS_PER_LONG) at
+ * bit offset start, which may straddle two words.
+ */
+static inline unsigned long
+bitmap_read(const unsigned long *map, unsigned long start, unsigned long nbits)
+{
+	size_t index = start / BITS_PER_LONG;
+	unsigned long offset = start % BITS_PER_LONG;
+	unsigned long space = BITS_PER_LONG - offset;
+	unsigned long value_low, value_high;
+
+	if (nbits == 0 || nbits > BITS_PER_LONG)
+		return (0);
+	if (space >= nbits)
+		return ((map[index] >> offset) & BITMAP_LAST_WORD_MASK(nbits));
+	value_low = map[index] & BITMAP_FIRST_WORD_MASK(start);
+	value_high = map[index + 1] & BITMAP_LAST_WORD_MASK(start + nbits);
+	return ((value_low >> offset) | (value_high << space));
+}
+
+static inline void
+bitmap_write(unsigned long *map, unsigned long value, unsigned long start,
+    unsigned long nbits)
+{
+	size_t index;
+	unsigned long offset, mask;
+
+	if (nbits == 0 || nbits > BITS_PER_LONG)
+		return;
+	mask = BITMAP_LAST_WORD_MASK(nbits);
+	value &= mask;
+	index = start / BITS_PER_LONG;
+	offset = start % BITS_PER_LONG;
+	map[index] &= ~(mask << offset);
+	map[index] |= value << offset;
+	if (offset + nbits > BITS_PER_LONG) {
+		unsigned long rest = offset + nbits - BITS_PER_LONG;
+		map[index + 1] &= ~BITMAP_LAST_WORD_MASK(rest);
+		map[index + 1] |= value >> (BITS_PER_LONG - offset);
+	}
+}
+
 #endif

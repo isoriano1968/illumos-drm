@@ -5,10 +5,11 @@
  * Linux's dma-buf: the DRM facade's (<drm/dma_buf.h>, misc/drm_core),
  * which creates and imports dma-bufs for GEM objects itself
  * (drm_gem_prime_export/import), plus the Linux attachment interface.
- * Attaching to and mapping another driver's dma-buf (dma_buf_attach(),
- * dma_buf_map_attachment()) is not supported by the core yet: they fail
- * with -ENODEV (G5 open issue); a driver's own dma_buf_ops are kept but
- * the core does not call them.
+ * Attaching to and mapping another device's dma-buf (dma_buf_attach(),
+ * dma_buf_map_attachment()) uses the core's PRIME maps
+ * (drm_illumos_prime_map()): static attachments, pinned while mapped,
+ * whose sg tables carry DMA addresses only. A driver's own dma_buf_ops
+ * are kept but the core does not call them (its exports are the core's).
  */
 #ifndef _LINUX_DMA_BUF_H
 #define	_LINUX_DMA_BUF_H
@@ -78,5 +79,16 @@ extern int dma_buf_vmap(struct dma_buf *dmabuf, struct iosys_map *map);
 extern void dma_buf_vunmap(struct dma_buf *dmabuf, struct iosys_map *map);
 extern int dma_buf_pin(struct dma_buf_attachment *attach);
 extern void dma_buf_unpin(struct dma_buf_attachment *attach);
+
+/*
+ * Dynamic importers and the exporter's invalidation of their mappings
+ * when the buffer moves. The core's imports are never dynamic, and a
+ * driver never holds its own object's dma-buf (drm_gem_object.dma_buf is
+ * the core's and stays NULL), so dma_buf_invalidate_mappings() is not
+ * reached; exporting an object whose memory moves is the core's (its
+ * movable-object layer).
+ */
+#define	dma_buf_is_dynamic(dmabuf)		((void)(dmabuf), false)
+#define	dma_buf_invalidate_mappings(dmabuf)	((void)(dmabuf))
 
 #endif

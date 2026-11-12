@@ -5,7 +5,7 @@
 #
 # Builds the LinuxKPI layer: compiles linuxkpi/src/*.c with the kernel
 # flags of linuxkpi/kflags.sh and links the kernel module misc/linuxkpi
-#   ld -ztype=kmod -N misc/drm_core -z defs -M ddi.mapfile \
+#   ld -ztype=kmod -N misc/drm_core -N misc/acpica -N misc/gfx_private -z defs -M ddi.mapfile \
 #      -M include/drm/drm_facade.mapfile -M private.mapfile ...
 # where private.mapfile is generated from private.d/*.txt: the kernel
 # symbols the layer uses that ddi.mapfile lacks, one per line with the
@@ -85,7 +85,7 @@ if [ "$mode" = link ] || [ "$mode" = all ]; then
 		    sort -u | sed 's/^/		/; s/$/	{ FLAGS = EXTERN };/'
 		echo '};'
 	} > "$OUT/private.mapfile"
-	"$LD" -ztype=kmod -N misc/drm_core -z defs -M "$DDI_MAPFILE" \
+	"$LD" -ztype=kmod -N misc/drm_core -N misc/acpica -N misc/gfx_private -z defs -M "$DDI_MAPFILE" \
 	    -M "$FACADE_MAPFILE" -M "$OUT/private.mapfile" \
 	    -o "$OUT/linuxkpi" "$OUT"/obj/*.o || exit 1
 	{

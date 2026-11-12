@@ -62,7 +62,9 @@ enum bug_trap_type {
 	BUG_TRAP_TYPE_BUG = 2
 };
 
+#define	TAINT_CPU_OUT_OF_SPEC	2
 #define	TAINT_WARN		9
+#define	TAINT_SOFTLOCKUP	14
 #define	TAINT_USER		6
 #define	TAINT_MACHINE_CHECK	4
 #define	LOCKDEP_STILL_OK	0

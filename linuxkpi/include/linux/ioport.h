@@ -28,6 +28,7 @@ struct resource {
 #define	IORESOURCE_IRQ		0x00000400
 #define	IORESOURCE_PREFETCH	0x00002000
 #define	IORESOURCE_MEM_64	0x00100000
+#define	IORESOURCE_ROM_SHADOW	(1 << 1)	/* PCI ROM: a shadow copy */
 #define	IORESOURCE_UNSET	0x20000000
 #define	IORESOURCE_BUSY		0x80000000
 #define	DEFINE_RES_MEM(_start, _size) \

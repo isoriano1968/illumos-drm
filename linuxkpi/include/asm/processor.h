@@ -10,4 +10,8 @@
 #define	_ASM_PROCESSOR_H
 #include <asm/cpu_device_id.h>
 #include <asm/barrier.h>
+#include <linux/cpumask.h>
+
+/* Cores in the CPU package: every CPU counted as one package's core. */
+#define	topology_num_cores_per_package()	num_online_cpus()
 #endif
