@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: MPL-2.0
+# Copyright 2026 The illumos-drm authors
+
+SRC = $(CODEMGR_WS)/usr/src
+UTSBASE = $(SRC)/uts
+INTEL = $(UTSBASE)/intel
+BUILD_TOOLS = $(SRC)/tools/build
+ROOT:sh= printf '%s' "${ROOT:-$CODEMGR_WS/proto/root_i386}"
+CC:sh= printf '%s' "${CC:-gcc}"
+LD:sh= printf '%s' "${LD:-/usr/bin/ld}"
+CARGO:sh= printf '%s' "${CARGO:-cargo}"
+CTFCONVERT:sh= printf '%s' "${CTFCONVERT:-/opt/onbld/bin/i386/ctfconvert}"
+DMAKE_MAX_JOBS:sh= printf '%s' "${DMAKE_MAX_JOBS:-2}"
+CARGO_FLAGS:sh= printf '%s' "${CARGO_FLAGS:---locked}"
+RUST_TOOLCHAIN:sh= printf '%s' "${RUST_TOOLCHAIN:-nightly-2026-04-16}"
+CARGO_TARGET_DIR:sh= printf '%s' "${CARGO_TARGET_DIR:-$CODEMGR_WS/target}"
+PKGREPO:sh= printf '%s' "${PKGREPO:-$CODEMGR_WS/packages/i386/nightly/repo.redist}"
+RUSTFLAGS:sh= printf '%s' "${RUSTFLAGS-}"
+RUST_SELECT:sh= if test "${RUST_TOOLCHAIN:-nightly-2026-04-16}" != system; then printf '+%s' "${RUST_TOOLCHAIN:-nightly-2026-04-16}"; fi
+# The native reference builds these two crates together (feature unification).
+PACKAGE_COMMAND = if test "$(RUST_TOOLCHAIN)" = system; then printf '%s' '-p drm-module -p virtio_gpu'; else printf '%s' '-p $(CRATE)'; fi
+CARGO_PACKAGES = $(PACKAGE_COMMAND:sh)
+CARGO_BUILD = $(CARGO) $(RUST_SELECT) build $(CARGO_FLAGS) --release -j $(DMAKE_MAX_JOBS)
+CARGO_TARGET = --target usr/src/tools/targets/x86_64-illumos-kmod.json -Zjson-target-spec -Zbuild-std=core,alloc -Zbuild-std-features=compiler-builtins-mem
+CARGO_KMOD = $(CARGO_BUILD) $(CARGO_PACKAGES) $(CARGO_TARGET)
+MODULES = drm_core virtio_gpu linuxkpi linuxkpi_selftest drm_helpers drm_helpers_test drm_kms i915n cdrmnull
+PACKAGES = drm-core drm-helpers drm-kms linuxkpi i915n virtio-gpu drmadm

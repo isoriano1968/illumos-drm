@@ -70,20 +70,7 @@ if ! cmp -s "$OUT/i915n.aliases" "$REPO/usr/src/uts/intel/io/i915n/i915n.aliases
 fi
 # shellcheck disable=SC1091
 . "$REPO/usr/src/uts/common/io/linuxkpi/kflags.sh"
-CFLAGS=$LKPI_CFLAGS
-CPPFLAGS="$LKPI_CPPFLAGS -DI915 -DKBUILD_MODNAME=\"i915\""
-CPPFLAGS="$CPPFLAGS -nostdinc -I$REPO/usr/src/uts/common/io/linuxkpi/include -I$REPO/usr/src/uts/common"
-CPPFLAGS="$CPPFLAGS -I$LINUX/include -I$LINUX/include/uapi"
-CPPFLAGS="$CPPFLAGS -I$I915 -I$OUT/sysinc"
-# Last: the illumos glue's headers the patches include (i915_illumos_vbt.h).
-CPPFLAGS="$CPPFLAGS -I$HERE/illumos"
-CPPFLAGS="$CPPFLAGS -include $HERE/config.h -include $REPO/usr/src/uts/common/io/linuxkpi/include/linux/kconfig.h"
-CPPFLAGS="$CPPFLAGS -include $REPO/usr/src/uts/common/io/linuxkpi/include/lkpi/prologue.h"
-case "$I915_DISPLAY" in
-1) CPPFLAGS="$CPPFLAGS -DI915N_DISPLAY" ;;
-0) ;;
-*) echo "build.sh: I915_DISPLAY must be 0 or 1" >&2; exit 1 ;;
-esac
+. "$HERE/flags.sh"
 # The TU list of this build: TUS, and for the display build DISPLAY_TUS'
 # additions without its "-" removals.
 grep -v '^#' "$TUS" | grep . > "$OUT/tus.txt"
@@ -112,8 +99,8 @@ compile_one() {
 	illumos/*) src=$HERE/$tu ;;
 	*) src=$I915/$tu ;;
 	esac
-	if "$CC" $CFLAGS $CPPFLAGS -DKBUILD_BASENAME=\"$(basename "${tu%.c}")\" \
-	    -MD -MF "${obj%.o}.d" -c "$src" -o "$obj" > "$log" 2>&1; then
+	if "$CC" $CFLAGS $CPPFLAGS "${BASENAME_CPPFLAG}\"$(basename "${tu%.c}")\"" \
+	    $DEPFLAGS "${obj%.o}.d" -c "$src" -o "$obj" > "$log" 2>&1; then
 		echo "OK $tu"
 	else
 		rm -f "$obj"
@@ -121,7 +108,7 @@ compile_one() {
 	fi
 }
 export -f compile_one
-export CC CFLAGS CPPFLAGS OUT I915 HERE
+export CC CFLAGS CPPFLAGS OUT I915 HERE BASENAME_CPPFLAG DEPFLAGS
 
 if [ "$mode" = compile ] || [ "$mode" = all ]; then
 	# Only this TU list's objects are linked: start from an empty obj/
@@ -171,19 +158,9 @@ if [ "$mode" = link ] || [ "$mode" = all ]; then
 	n=$(wc -l < "$OUT/tus.txt")
 	[ "$(echo "$objs" | grep -c .)" -eq "$n" ] ||
 	    { echo "build.sh: obj/ does not hold the $n objects of this build; compile first" >&2; exit 1; }
-	kms=""
-	if [ "$I915_DISPLAY" = 1 ]; then
-		kms="-N misc/drm_kms -N misc/gfx_private -M $KMS_MAPFILE"
-	fi
-	echo "\$ $LD -ztype=kmod -N misc/drm_core -N misc/linuxkpi -N misc/drm_helpers $kms -z defs" \
-	    "-M $DDI_MAPFILE -M $REPO/usr/src/uts/common/drm/drm_facade.mapfile -M $LKPI_MAPFILE" \
-	    "-M $HELPERS_MAPFILE -M $HERE/private.mapfile -o $OUT/i915n <$n objects>" \
-	    | tee "$OUT/link.txt"
+	echo "\$ $LD $LDFLAGS -o $OUT/i915n <$n objects>" | tee "$OUT/link.txt"
 	# shellcheck disable=SC2086
-	if "$LD" -ztype=kmod -N misc/drm_core -N misc/linuxkpi -N misc/drm_helpers \
-	    $kms -z defs -M "$DDI_MAPFILE" -M "$REPO/usr/src/uts/common/drm/drm_facade.mapfile" \
-	    -M "$LKPI_MAPFILE" -M "$HELPERS_MAPFILE" -M "$HERE/private.mapfile" \
-	    -o "$OUT/i915n" $objs >> "$OUT/link.txt" 2>&1; then
+	if "$LD" $LDFLAGS -o "$OUT/i915n" $objs >> "$OUT/link.txt" 2>&1; then
 		echo "link: OK, 0 unresolved" | tee -a "$OUT/link.txt"
 	else
 		grep -c 'symbol referencing errors\|undefined' "$OUT/link.txt" || true

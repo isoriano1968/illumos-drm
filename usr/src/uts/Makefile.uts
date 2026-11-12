@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: MPL-2.0
+# Copyright 2026 The illumos-drm authors
+include $(CODEMGR_WS)/usr/src/Makefile.master
+
+CONFIG = $(OUT)/$(MODULE).flags.mk
+LKPI_MAPFILE = $(INTEL)/linuxkpi/obj64/linuxkpi.mapfile
+FLAGS_DIR_COMMAND = dirname $(REF_SCRIPT)
+FLAGS_DIR = $(FLAGS_DIR_COMMAND:sh)
+FLAGS_FRAGMENT = $(FLAGS_DIR)/flags.sh
+FLAGS_INCLUDE_COMMAND = if test -f $(CONFIG); then echo $(CONFIG); else echo /dev/null; fi
+include $(FLAGS_INCLUDE_COMMAND:sh)
+.KEEP_STATE:
+.KEEP_STATE_FILE: .make.state.$(MODULE).$(VARIANT)
+
+$(CONFIG): $(BUILD_TOOLS)/gen-flags.sh $(FLAGS_FRAGMENT) $(UTSBASE)/common/io/linuxkpi/kflags.sh
+	@CC=$(CC) I915_DISPLAY=$(DISPLAY) sh $(BUILD_TOOLS)/gen-flags.sh $(MODULE) $(OUT)
+
+flags: $(CONFIG)
+setup:
+	@sh $(BUILD_TOOLS)/setup.sh
+	@CC=$(CC) I915_DISPLAY=$(DISPLAY) sh $(BUILD_TOOLS)/gen-flags.sh $(MODULE) $(OUT)
+
+COMPILE.c = $(CC) $(CFLAGS) $(CPPFLAGS)
+COMPILE.tu = $(COMPILE.c) $(BASENAME_CPPFLAG)\"$(@F:%.o=%)\" $(DEPFLAGS) $(@:%.o=%.d)
+COMPILE = $(COMPILE.c)

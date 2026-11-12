@@ -38,12 +38,9 @@ mkdir -p "$OUT"
 
 # The kernel's preprocessor flags (as usr/src/uts/common/io/cdrmnull/build.sh) and
 # DWARF 4 that ctfconvert reads; no optimisation, nothing is executed.
+. "$HERE/flags.sh"
 set -x
-"$CC" -m64 -std=gnu99 -O0 -gdwarf-4 -fno-eliminate-unused-debug-types \
-    -ffreestanding -mcmodel=kernel -mno-red-zone -fno-builtin \
-    -D_KERNEL -D_SYSCALL32 -D_ELF64 -D_DDI_STRICT -Dsun -D__sun -D__SVR4 \
-    -nostdinc -I"$REPO/usr/src/uts/common" -I"$SYSINC" \
-    -c "$HERE/drm_facade_ctf.c" -o "$OUT/drm_facade_ctf.o"
+"$CC" $CFLAGS $CPPFLAGS -c "$HERE/drm_facade_ctf.c" -o "$OUT/drm_facade_ctf.o"
 "$CTFCONVERT" -l drm "$OUT/drm_facade_ctf.o"
 # The DWARF has served its purpose (300 KB of it); keep the CTF.
 for s in $(elfdump -c "$OUT/drm_facade_ctf.o" |

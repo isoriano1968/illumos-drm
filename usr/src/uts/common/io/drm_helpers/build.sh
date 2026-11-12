@@ -75,17 +75,7 @@ REPO_SAVED=$REPO
 # shellcheck disable=SC1091
 . "$REPO/usr/src/uts/common/io/linuxkpi/kflags.sh"
 REPO=$REPO_SAVED
-CFLAGS=$LKPI_CFLAGS
-# The Linux world: the carried headers, then linuxkpi's, then the
-# facade's drm/*.h, then the kernel's system headers, with the layer's
-# prologue. drm_cache.c builds unmodified (the
-# layer's page, scatterlist and iosys-map models exist since R5c).
-CPPFLAGS="$LKPI_CPPFLAGS -DKBUILD_MODNAME=\"drm_helpers\""
-CPPFLAGS="$CPPFLAGS -DCONFIG_X86=1 -DCONFIG_X86_64=1"
-CPPFLAGS="$CPPFLAGS -nostdinc -I$OUT/src/linux/include -I$REPO/usr/src/uts/common/io/linuxkpi/include"
-CPPFLAGS="$CPPFLAGS -I$REPO/usr/src/uts/common -I$HERE/test -I$OUT/sysinc"
-CPPFLAGS="$CPPFLAGS -include $REPO/usr/src/uts/common/io/linuxkpi/include/linux/kconfig.h"
-CPPFLAGS="$CPPFLAGS -include $REPO/usr/src/uts/common/io/linuxkpi/include/lkpi/prologue.h"
+. "$HERE/flags.sh"
 
 cc1() {
 	echo "\$ $CC ... -c $1 -o $2"
@@ -113,39 +103,14 @@ if [ "${CROSS:-0}" = 1 ]; then
 fi
 : "${LKPI_MAPFILE:?set LKPI_MAPFILE to linuxkpi.mapfile from usr/src/uts/common/io/linuxkpi/build.sh}"
 
-SCOPE=$HERE/drm_helpers/drm_helpers_scope.mapfile
-echo "\$ $LD -ztype=kmod -N misc/linuxkpi -z defs -B reduce -M $DDI_MAPFILE" \
-    "-M $LKPI_MAPFILE -M $HERE/drm_helpers/private.mapfile -M $SCOPE" \
-    "-o $OUT/drm_helpers ..."
-"$LD" -ztype=kmod -N misc/linuxkpi -z defs -B reduce -M "$DDI_MAPFILE" \
-    -M "$LKPI_MAPFILE" -M "$HERE/drm_helpers/private.mapfile" -M "$SCOPE" \
-    -o "$OUT/drm_helpers" "$OUT/obj/drm_mm.o" "$OUT/obj/drm_cache.o" \
+echo "\$ $LD $LDFLAGS -o $OUT/drm_helpers ..."
+"$LD" $LDFLAGS -o "$OUT/drm_helpers" "$OUT/obj/drm_mm.o" "$OUT/obj/drm_cache.o" \
     "$OUT/obj/drm_helpers_mod.o"
 
-# The module's global definitions are exactly the scope mapfile's.
-nm "$OUT/drm_helpers" | awk -F'|' '$5 ~ /GLOB/ && $7 !~ /UNDEF/ {
-    gsub(/ /, "", $8); print $8 }' | sort > "$OUT/drm_helpers.globals"
-awk '/global:/ { g = 1; next } /local:/ { g = 0 }
-    g && /;/ { gsub(/[;\t ]/, ""); print }' "$SCOPE" | sort \
-    > "$OUT/drm_helpers.want"
-diff "$OUT/drm_helpers.want" "$OUT/drm_helpers.globals" ||
-    die "misc/drm_helpers' global symbols differ from $SCOPE"
-# And the consumers' mapfile declares the same names, minus the entry points.
-awk '/global:/ { g = 1; next } g && /EXTERN/ { print $1 }' \
-    "$HERE/drm_helpers/drm_helpers.mapfile" | sort > "$OUT/drm_helpers.extern"
-grep -v -e '^_init$' -e '^_fini$' -e '^_info$' "$OUT/drm_helpers.want" |
-    diff - "$OUT/drm_helpers.extern" ||
-    die "drm_helpers.mapfile and drm_helpers_scope.mapfile differ"
-echo "misc/drm_helpers: $(wc -l < "$OUT/drm_helpers.globals" | tr -d ' ')" \
-    "global symbols, as $(basename "$SCOPE")"
+sh "$HERE/gates.sh" "$OUT"
 
-echo "\$ $LD -ztype=kmod -N misc/drm_helpers -N misc/linuxkpi -z defs" \
-    "-M $DDI_MAPFILE -M $LKPI_MAPFILE -M $HERE/drm_helpers/drm_helpers.mapfile" \
-    "-o $OUT/drm_helpers_test ..."
-"$LD" -ztype=kmod -N misc/drm_helpers -N misc/linuxkpi -z defs \
-    -M "$DDI_MAPFILE" -M "$LKPI_MAPFILE" \
-    -M "$HERE/drm_helpers/drm_helpers.mapfile" \
-    -o "$OUT/drm_helpers_test" "$OUT/obj/drm_helpers_test.o" \
+echo "\$ $LD $TEST_LDFLAGS -o $OUT/drm_helpers_test ..."
+"$LD" $TEST_LDFLAGS -o "$OUT/drm_helpers_test" "$OUT/obj/drm_helpers_test.o" \
     "$OUT/obj/selftest_kernel.o" "$OUT/obj/drm_mm_selftest.o" \
     "$OUT/obj/drm_cache_selftest.o"
 

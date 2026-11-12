@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: MPL-2.0
+# Copyright 2026 The illumos-drm authors
+
+LKPI_SOURCES_COMMAND = ls $(UTSBASE)/common/io/linuxkpi/src/*.c
+LKPI_SOURCES = $(LKPI_SOURCES_COMMAND:sh)
+LKPI_OBJECTS = $(LKPI_SOURCES:$(UTSBASE)/common/io/linuxkpi/src/%.c=$(OUT)/obj/%.o)
+SELFTEST_SOURCES_COMMAND = ls $(UTSBASE)/common/io/linuxkpi/selftest/*.c
+SELFTEST_SOURCES = $(SELFTEST_SOURCES_COMMAND:sh)
+SELFTEST_OBJECTS = $(SELFTEST_SOURCES:$(UTSBASE)/common/io/linuxkpi/selftest/%.c=$(OUT)/selftest/%.o)
+KMS_TUS_COMMAND = CODEMGR_WS=$(CODEMGR_WS) sh $(BUILD_TOOLS)/tus.sh kms
+KMS_TUS = $(KMS_TUS_COMMAND:sh)
+KMS_NAMES_COMMAND = CODEMGR_WS=$(CODEMGR_WS) sh $(BUILD_TOOLS)/tus.sh kms | xargs -n1 basename | LC_ALL=C sort
+KMS_NAMES = $(KMS_NAMES_COMMAND:sh)
+KMS_DIRS_COMMAND = CODEMGR_WS=$(CODEMGR_WS) sh $(BUILD_TOOLS)/tus.sh kms | while read t; do case $$t in illumos/*) dirname $(UTSBASE)/common/io/drm_kms/$$t ;; *) dirname $(SRC)/contrib/linux/$$t ;; esac; done | sort -u | paste -sd: -
+KMS_DIRS = $(KMS_DIRS_COMMAND:sh)
+KMS_OBJECTS = $(KMS_NAMES:%.c=$(OUT)/obj/%.o)
+I915_TUS_COMMAND = CODEMGR_WS=$(CODEMGR_WS) I915_DISPLAY=$(DISPLAY) sh $(BUILD_TOOLS)/tus.sh i915 | LC_ALL=C sort
+I915_TUS = $(I915_TUS_COMMAND:sh)
+I915_OBJECTS = $(I915_TUS:%.c=$(OUT)/obj/%.o)

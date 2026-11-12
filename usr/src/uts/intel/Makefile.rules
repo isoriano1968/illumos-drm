@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: MPL-2.0
+# Copyright 2026 The illumos-drm authors
+
+$(OUT)/obj/%.o: $(SOURCE_DIR)/%.c $(CONFIG)
+	@mkdir -p $(@D)
+	$(COMPILE) -c $< -o $@
+
+$(OUT)/selftest/%.o: $(UTSBASE)/common/io/linuxkpi/selftest/%.c $(CONFIG)
+	@mkdir -p $(@D)
+	$(COMPILE.c) -c $< -o $@

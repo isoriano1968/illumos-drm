@@ -36,65 +36,17 @@ jobs:
       - run: export RUSTUP_HOME="$HOME/.rustup" CARGO_HOME="$HOME/.cargo" PATH="$HOME/.cargo/bin:$PATH" SCCACHE_STARTUP_TIMEOUT=60 && sh usr/src/tools/facade/check-generated.sh
 
   kmod-illumos:
-    # Native illumos: install the pinned nightly (the only nightly-only step
-    # is -Zbuild-std), build the modules for the kernel target and link them
-    # with the illumos ld as real kernel modules.
+    # Native illumos, system dmake and pinned nightly Rust.
     runs-on: illumos
     steps:
       - run: >
+          export PATH="/opt/onbld/bin/i386:$PATH" &&
+          { command -v dmake ctfconvert pkgsend pkglint || true; } &&
+          for t in dmake ctfconvert pkgsend pkglint; do
+          command -v "$t" >/dev/null 2>&1 || { echo "required build tool missing: $t" >&2; exit 1; }; done
+      - run: >
           curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
           --default-toolchain nightly-2026-04-16 --component rust-src --no-modify-path
-      # The facade's layouts as this machine's gcc compiles the headers,
-      # against drm-facade-sys.
-      - run: >
-          export PATH="$HOME/.cargo/bin:$PATH" && mkdir -p target &&
-          gcc -m64 -D_KERNEL -std=gnu99 -I usr/src/uts/common -S -o - usr/src/tools/facade/facade_layout.c |
-          sed -n 's/^.*@@ //p' | tr -d '"' > target/facade-gcc.out &&
-          cargo +nightly-2026-04-16 xtask facade-check target/facade-gcc.out
-      # misc/drm_core, the DRM core and the C facade: linked with drm_core.mapfile,
-      # which must leave exactly _init, _fini, _info and the facade's
-      # functions global (-B reduce), with the facade's CTF where the
-      # gate's ctfconvert is installed (developer/build/onbld).
-      - run: >
-          export PATH="$HOME/.cargo/bin:$PATH" && export SCCACHE_STARTUP_TIMEOUT=60 &&
-          cargo +nightly-2026-04-16 build --locked -p drm-module --release
-          --target usr/src/tools/targets/x86_64-illumos-kmod.json
-          -Zjson-target-spec -Zbuild-std=core,alloc -Zbuild-std-features=compiler-builtins-mem
-      - run: >
-          ctf= &&
-          if [ -x /opt/onbld/bin/i386/ctfconvert ]; then
-          OUT=target usr/src/uts/common/io/drm/drm_core/ctf/build-ctf.sh && ctf="-z defaultextract target/drm_facade_ctf.o";
-          else echo "no ctfconvert: misc/drm_core without CTF"; fi &&
-          ld -ztype=kmod -N fs/specfs -B reduce -M usr/src/uts/common/io/drm/drm_core/drm_core.mapfile -z allextract
-          target/x86_64-illumos-kmod/release/drm_module.a $ctf -o target/drm_core &&
-          elfdump -d target/drm_core | grep SUNW_KMOD && nm -u target/drm_core &&
-          nm target/drm_core | awk -F'|' '$5 ~ /GLOB/ && $7 !~ /UNDEF/ {gsub(/ /, "", $8); print $8}' | sort > target/drm_core.globals &&
-          awk '/global:/ {g=1; next} /local:/ {g=0} g && /;/ {gsub(/[;\t ]/, ""); print}' usr/src/uts/common/io/drm/drm_core/drm_core.mapfile | sort > target/drm_core.want &&
-          diff target/drm_core.want target/drm_core.globals && echo "misc/drm_core: $(wc -l < target/drm_core.globals) global symbols, as drm_core.mapfile"
-      # The Rust drivers, linked against misc/drm_core (-N misc/drm_core). Neither may
-      # carry a symbol of drm-core's stateful modules, which only misc/drm_core
-      # builds (feature "kernel"): the core runs once, in misc/drm_core.
-      - run: >
-          export PATH="$HOME/.cargo/bin:$PATH" && export SCCACHE_STARTUP_TIMEOUT=60 &&
-          cargo +nightly-2026-04-16 build --locked -p rdrmnull --release
-          --target usr/src/tools/targets/x86_64-illumos-kmod.json
-          -Zjson-target-spec -Zbuild-std=core,alloc -Zbuild-std-features=compiler-builtins-mem &&
-          cargo +nightly-2026-04-16 build --locked -p virtio_gpu --release
-          --target usr/src/tools/targets/x86_64-illumos-kmod.json
-          -Zjson-target-spec -Zbuild-std=core,alloc -Zbuild-std-features=compiler-builtins-mem
-      - run: >
-          ld -ztype=kmod -N fs/specfs -N misc/drm_core -z allextract
-          target/x86_64-illumos-kmod/release/rdrmnull.a -o target/rdrmnull &&
-          ld -ztype=kmod -N misc/virtio -N fs/specfs -N misc/drm_core -z allextract
-          target/x86_64-illumos-kmod/release/virtio_gpu.a -o target/virtio_gpu &&
-          . usr/src/test/drm-tests/drm-test-lib.sh &&
-          n=$(core_symbols target/x86_64-illumos-kmod/release/drm_module.a | wc -l) &&
-          echo "drm_module.a: $n stateful core symbols (the pattern's control)" && test "$n" -gt 0 &&
-          for m in rdrmnull virtio_gpu; do
-          elfdump -d target/$m | grep SUNW_KMOD && nm -u target/$m &&
-          core_symbols target/$m > target/$m.core &&
-          echo "$m: $(wc -l < target/$m.core) stateful core symbols" && head target/$m.core &&
-          test ! -s target/$m.core || exit 1; done
       # The system headers the C builds use (target/sysinc): /usr/include,
       # with OpenIndiana's libdrm uAPI headers (developer/header-drm) from
       # gfx-drm at the commit OpenIndiana ships (MIT) when the runner image
@@ -105,58 +57,11 @@ jobs:
           for h in drm.h drm_mode.h; do curl -sSf -o target/sysinc/drm/$h
           https://raw.githubusercontent.com/OpenIndiana/gfx-drm/d109414c4f/usr/src/uts/common/drm/$h || exit 1; done; fi &&
           ls -l target/sysinc/drm/drm.h
-      # cdrmnull, the C driver: gcc with the gate's kernel flags, linked
-      # with -N misc/drm_core -z defs against the gate's ddi.mapfile (of the
-      # gate commit ddi-sys is pinned to), the facade's mapfile and its
-      # private.mapfile.
       - run: >
           curl -sSf -o target/ddi.mapfile
-          https://raw.githubusercontent.com/illumos/illumos-gate/cda5b9a49f77a86a151a20cdde0e948a49b37160/usr/src/uts/common/mapfiles/ddi.mapfile &&
-          SYSINC=$PWD/target/sysinc DDI_MAPFILE=target/ddi.mapfile OUT=target/cdrmnull usr/src/uts/common/io/cdrmnull/build.sh &&
-          elfdump -d target/cdrmnull/cdrmnull | grep SUNW_KMOD
-      # misc/linuxkpi, the Linux compatibility layer (usr/src/uts/common/io/linuxkpi/), and its
-      # test driver linuxkpi_selftest: gcc with the gate's kernel flags and
-      # the Linux dialect (usr/src/uts/common/io/linuxkpi/kflags.sh), -z defs against the gate's
-      # ddi.mapfile, the facade's mapfile and the layer's private.d.
+          https://raw.githubusercontent.com/illumos/illumos-gate/cda5b9a49f77a86a151a20cdde0e948a49b37160/usr/src/uts/common/mapfiles/ddi.mapfile
       - run: >
-          SYSINC=$PWD/target/sysinc DDI_MAPFILE=target/ddi.mapfile OUT=target/linuxkpi usr/src/uts/common/io/linuxkpi/build.sh all &&
-          elfdump -d target/linuxkpi/linuxkpi | grep NEEDED &&
-          elfdump -d target/linuxkpi/linuxkpi_selftest | grep NEEDED
-      # misc/drm_helpers, the carried Linux helpers (usr/src/uts/common/io/drm_helpers/), and its test
-      # driver: vendored sources checked for provenance and licences below,
-      # the layer's flags, -z defs against the gate's ddi.mapfile and
-      # linuxkpi.mapfile; the module's global symbols must be exactly
-      # drm_helpers_scope.mapfile's, and the test driver links with
-      # -N misc/drm_helpers against drm_helpers.mapfile only.
-      - run: >
-          SYSINC=$PWD/target/sysinc DDI_MAPFILE=target/ddi.mapfile OUT=target/carried
-          LKPI_MAPFILE=target/linuxkpi/linuxkpi.mapfile usr/src/uts/common/io/drm_helpers/build.sh &&
-          elfdump -d target/carried/drm_helpers | grep NEEDED &&
-          elfdump -d target/carried/drm_helpers_test | grep NEEDED
-      # The i915n link gate: the vendored Linux tree with the illumos
-      # changes, every Linux input licence-checked, all TUs
-      # compiled with the layer's flags (any failure fails the step) and
-      # linked with -z defs against the facade, layer, helpers and DDI.
-      - run: sh usr/src/contrib/linux/verify-vendored.sh -n
-      - run: >
-          SYSINC=$PWD/target/sysinc DDI_MAPFILE=target/ddi.mapfile
-          LKPI_MAPFILE=target/linuxkpi/linuxkpi.mapfile OUT=target/i915 JOBS=4
-          usr/src/uts/intel/io/i915n/build.sh all &&
-          elfdump -d target/i915/i915n | grep NEEDED
-      # misc/drm_kms, Linux's KMS code (usr/src/uts/common/io/drm_kms), from the same
-      # vendored tree: its TUs licence-checked and
-      # compiled (any failure fails the step), the exports equal to the
-      # committed drm_kms.mapfile (which i915n links against), linked with
-      # -z defs against the core, layer, helpers and DDI, and the module's
-      # global symbols exactly the exports.
-      - run: >
-          SYSINC=$PWD/target/sysinc DDI_MAPFILE=target/ddi.mapfile
-          LKPI_MAPFILE=target/linuxkpi/linuxkpi.mapfile OUT=target/drm_kms JOBS=4
-          usr/src/uts/common/io/drm_kms/build.sh all &&
-          elfdump -d target/drm_kms/drm_kms | grep NEEDED
-      # The layer's host tests (trees, xarray/IDR, bitmaps, lists, refcount,
-      # printf, strings) and the carried helpers' as userland programs.
-      - run: CC=gcc usr/src/uts/common/io/linuxkpi/tests/host/host-test.sh
-      - run: CC=gcc usr/src/uts/common/io/drm_helpers/host-test.sh
-      - run: sh usr/src/test/drm-tests/test-drmadm-aliases.sh
-      - run: CC=gcc sh usr/src/test/drm-tests/test-hotplug-deadline.sh
+          export PATH="$HOME/.cargo/bin:/opt/onbld/bin/i386:$PATH" SCCACHE_STARTUP_TIMEOUT=60 &&
+          export SYSINC="$PWD/target/sysinc" DDI_MAPFILE="$PWD/target/ddi.mapfile" &&
+          . ./myenv.sh && /usr/bin/dmake setup && /usr/bin/dmake install &&
+          /usr/bin/dmake check && /usr/bin/dmake lint && /usr/bin/dmake package

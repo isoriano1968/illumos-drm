@@ -2579,6 +2579,40 @@ cargo fmt --all -- --check
 cargo test -p drm-core -p drm-uapi -p drm-facade   # host target
 ```
 
+On illumos, use the system `/usr/bin/dmake`. The Linux sources are already
+vendored. Supply the gate's `ddi.mapfile` and system headers including libdrm:
+
+```sh
+export CC=gcc SYSINC=/usr/include DDI_MAPFILE=/path/to/gate/ddi.mapfile
+. ./myenv.sh
+/usr/bin/dmake setup
+/usr/bin/dmake install
+/usr/bin/dmake check
+/usr/bin/dmake lint
+/usr/bin/dmake package
+```
+
+`install` stages into `proto/root_i386`; `package` publishes the seven existing
+manifests into `packages/i386/nightly/repo.redist`. Neither changes the running
+system. `all` builds without staging. The default job limit is two. Toolchain
+settings are printed at the start of each invocation. For system Rust with
+vendored crates, set `CARGO=/usr/bin/cargo RUSTC=/usr/bin/rustc`,
+`RUST_TOOLCHAIN=system RUSTC_BOOTSTRAP=1 CARGO_FLAGS=--frozen` before sourcing
+`myenv.sh`; otherwise it selects `nightly-2026-04-16` through rustup.
+
+C compiler and linker flags come from sourced module fragments shared with
+the independent build scripts. Setup writes make variable includes; run
+`dmake setup` again after changing the compiler or header configuration.
+Rust link commands have one shared build helper.
+Objects use dmake's `.KEEP_STATE` header tracking. Both i915 display and
+headless variants build; only the display module is staged. `clean` removes
+objects and linked modules; `clobber` also removes generated configuration, the
+proto area, the local package repository and kernel-target cargo outputs.
+
+### Direct script use
+
+The build scripts remain available, including their existing `CROSS=1` modes.
+
 The kernel modules need the pinned nightly with `rust-src`, because `core`
 and `alloc` are rebuilt without SSE for `usr/src/tools/targets/x86_64-illumos-kmod.json`.
 Compiling works on any host; linking needs the illumos linker:
@@ -2705,22 +2739,15 @@ cargo xtask kernel-check --emit | ssh root@host 'mdb -k 2>&1' | cargo xtask kern
 
 ## Continuous integration
 
-`.forgejo/workflows/ci.yml` follows illumos-ddi's Solstice CI setup: one
-job type-checks, lints, checks formatting, builds the documentation, runs
-the host tests against the hosted illumos target and compares the uAPI
-and facade layouts with the committed gcc output; a second job builds
-`drm`, `rdrmnull` and `virtio_gpu` for the kernel target natively on
-illumos and links them with `ld -ztype=kmod` (`misc/drm_core` with
-`-B reduce` and `drm_core.mapfile`, whose global symbols it compares with the
-mapfile, and with the facade's CTF where `ctfconvert` is installed; the
-drivers with `-N misc/drm_core`, checking that neither carries a symbol of the
-core's stateful modules), and builds `cdrmnull` with `-z defs` against
-the gate's `ddi.mapfile`. Neither loads a module, which needs root on a
-kernel that may panic (an R1 trial did panic the test machine, see
-*System memory and DMA*). The same job builds `misc/drm_helpers` and
-`drm_helpers_test` with `usr/src/uts/common/io/drm_helpers/build.sh` (vendored sources, `-z defs`,
-the module's globals against its scope mapfile) and
-runs `usr/src/uts/common/io/drm_helpers/host-test.sh` with gcc.
+`.forgejo/workflows/ci.yml` has two jobs. The hosted Rust job type-checks,
+lints, checks formatting, builds documentation, runs host tests and compares
+uAPI and facade layouts. The native illumos job requires system `dmake`,
+`ctfconvert`, `pkgsend` and `pkglint`, prepares the system headers and gate
+`ddi.mapfile`, then runs `dmake setup`, `install`, `check`, `lint` and `package`.
+It builds both i915 variants and the C and Rust test modules, checks exports,
+dependencies, licences and aliases, runs the host and shell tests, and
+publishes seven packages to a workspace file repository. Neither job loads a
+module or installs a package into a running image.
 
 ## Licence
 
