@@ -1,0 +1,59 @@
+#
+# SPDX-License-Identifier: MIT
+# Copyright 2026 The illumos-drm authors
+#
+# amdgpu, AMD's GPU driver of Linux v7.2 built for the illumos-drm DRM
+# core (drivers/amdgpu). Bring-up package for the first tests on Southern
+# Islands (FirePro D500, Tahiti): it ships no PCI aliases, so installing
+# it never binds a GPU; a test binds one device by its subsystem-specific
+# compatible name (update_drv -a -i '"pci1002,679e.106b.126"' amdgpu).
+# The licence file is written by drivers/i915/gen-license.sh from
+# amdgpu's linux-inputs.txt, as LICENSE.amdgpu:
+#
+#   drivers/i915/gen-license.sh $LINUX <proto>/LICENSE.amdgpu $OUT/linux-inputs.txt
+#
+# The firmware is unmodified AMD microcode with its own licence
+# (firmware/README.md).
+#
+set name=pkg.fmri value=pkg://illumos-drm/driver/graphics/amdgpu@0.0.2,5.11-2026.0.0.0
+set name=pkg.summary value="AMD GPU driver from Linux amdgpu (bring-up)"
+set name=pkg.description value="amdgpu, the amdgpu driver of Linux v7.2 built for the illumos-drm DRM core and its Linux compatibility layer, for bring-up tests on Southern Islands GPUs (Tahiti). Untested. Includes the Tahiti firmware. Ships no PCI aliases."
+set name=info.classification value=org.opensolaris.category.2008:Drivers/Display
+set name=info.source-url value=https://code.aopc.cloud/illumos/illumos-drm
+set name=variant.arch value=i386
+set name=org.opensolaris.consolidation value=userland
+dir  path=kernel owner=root group=sys mode=0755
+dir  path=kernel/drv owner=root group=sys mode=0755
+dir  path=kernel/drv/amd64 owner=root group=sys mode=0755
+file path=kernel/drv/amd64/amdgpu owner=root group=sys mode=0755 reboot-needed=true
+# ddi-no-autodetach=1: nothing may open a GPU (a compute GPU never is), and
+# illumos detaches idle instances during boot; amdgpu's teardown is not safe
+# to run then (on the Mac Pro it switches the machine off).
+file packaging/amdgpu.conf path=kernel/drv/amdgpu.conf owner=root group=sys mode=0644 preserve=true reboot-needed=true
+# As i915n: the DRM minors are 0666, the console minor gfx0 0600.
+# devlink.tab's name= is the device node's name (devfsadm.c, di_node_name()),
+# which is "display" for a VGA-class GPU, not the driver's: name=amdgpu would
+# never match. type=ddi_display:drm keeps it to DRM minor nodes.
+driver name=amdgpu perms="* 0666 root sys" perms="gfx* 0600 root sys" \
+    devlink=type=ddi_display:drm;name=display\tdri/\M0
+depend fmri=pkg:/driver/graphics/drm-core@0.0.2 type=require
+depend fmri=pkg:/driver/graphics/linuxkpi@0.0.2 type=require
+depend fmri=pkg:/driver/graphics/drm-helpers@0.0.2 type=require
+depend fmri=pkg:/driver/graphics/drm-kms@0.0.2 type=require
+depend fmri=pkg:/driver/graphics/drmadm@0.0.2 type=require
+depend fmri=pkg:/driver/graphics/drm-core@0.0.2 type=incorporate
+depend fmri=pkg:/driver/graphics/linuxkpi@0.0.2 type=incorporate
+depend fmri=pkg:/driver/graphics/drm-kms@0.0.2 type=incorporate
+license LICENSE.amdgpu license=MIT-amdgpu
+
+# Unmodified AMD firmware (Tahiti); a separate licence from the driver.
+dir path=kernel/firmware owner=root group=sys mode=0755
+dir path=kernel/firmware/amdgpu owner=root group=sys mode=0755
+file firmware/amdgpu/tahiti_ce.bin path=kernel/firmware/amdgpu/tahiti_ce.bin owner=root group=sys mode=0444 reboot-needed=true
+file firmware/amdgpu/tahiti_mc.bin path=kernel/firmware/amdgpu/tahiti_mc.bin owner=root group=sys mode=0444 reboot-needed=true
+file firmware/amdgpu/tahiti_me.bin path=kernel/firmware/amdgpu/tahiti_me.bin owner=root group=sys mode=0444 reboot-needed=true
+file firmware/amdgpu/tahiti_pfp.bin path=kernel/firmware/amdgpu/tahiti_pfp.bin owner=root group=sys mode=0444 reboot-needed=true
+file firmware/amdgpu/tahiti_rlc.bin path=kernel/firmware/amdgpu/tahiti_rlc.bin owner=root group=sys mode=0444 reboot-needed=true
+file firmware/amdgpu/tahiti_smc.bin path=kernel/firmware/amdgpu/tahiti_smc.bin owner=root group=sys mode=0444 reboot-needed=true
+file firmware/amdgpu/tahiti_uvd.bin path=kernel/firmware/amdgpu/tahiti_uvd.bin owner=root group=sys mode=0444 reboot-needed=true
+license firmware/LICENSE.amdgpu license=AMD-firmware
