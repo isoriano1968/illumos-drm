@@ -1,23 +1,23 @@
 [workspace]
 resolver = "3"
 members = [
-    "crates/drm-uapi",
-    "crates/drm-facade-sys",
-    "crates/drm-core",
-    "crates/drm-facade",
-    "modules/drm_core",
-    "examples/rdrmnull",
-    "drivers/virtio-gpu",
-    "xtask",
+    "usr/src/uts/common/io/drm/drm-uapi",
+    "usr/src/uts/common/io/drm/drm-facade-sys",
+    "usr/src/uts/common/io/drm/drm-core",
+    "usr/src/uts/common/io/drm/drm-facade",
+    "usr/src/uts/common/io/drm/drm_core",
+    "usr/src/uts/common/io/rdrmnull",
+    "usr/src/uts/common/io/virtio_gpu",
+    "usr/src/tools/xtask",
 ]
 default-members = [
-    "crates/drm-uapi",
-    "crates/drm-facade-sys",
-    "crates/drm-core",
-    "crates/drm-facade",
-    "modules/drm_core",
-    "examples/rdrmnull",
-    "drivers/virtio-gpu",
+    "usr/src/uts/common/io/drm/drm-uapi",
+    "usr/src/uts/common/io/drm/drm-facade-sys",
+    "usr/src/uts/common/io/drm/drm-core",
+    "usr/src/uts/common/io/drm/drm-facade",
+    "usr/src/uts/common/io/drm/drm_core",
+    "usr/src/uts/common/io/rdrmnull",
+    "usr/src/uts/common/io/virtio_gpu",
 ]
 
 [workspace.package]
@@ -28,10 +28,10 @@ repository = "https://code.aopc.cloud/illumos/illumos-drm"
 rust-version = "1.97"
 
 [workspace.dependencies]
-drm-uapi = { path = "crates/drm-uapi" }
-drm-core = { path = "crates/drm-core", default-features = false }
-drm-facade = { path = "crates/drm-facade" }
-drm-facade-sys = { path = "crates/drm-facade-sys" }
+drm-uapi = { path = "usr/src/uts/common/io/drm/drm-uapi" }
+drm-core = { path = "usr/src/uts/common/io/drm/drm-core", default-features = false }
+drm-facade = { path = "usr/src/uts/common/io/drm/drm-facade" }
+drm-facade-sys = { path = "usr/src/uts/common/io/drm/drm-facade-sys" }
 # illumos-ddi at its main branch, which holds the merged pull requests
 # 4 to 9 (r3-kms-glue, r2-private-fd, r4-virtio, g1-gate-pin,
 # r5a-char-table, g7-module-busy): clone opens, the devmap(9E) entry
