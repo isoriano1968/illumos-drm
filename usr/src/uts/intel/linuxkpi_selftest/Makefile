@@ -3,7 +3,7 @@
 all:
 MODULE = linuxkpi_selftest
 BUILD_MODULE = linuxkpi
-REF_SCRIPT = $(UTSBASE)/common/io/linuxkpi/build.sh
+FLAGS_DIR = $(UTSBASE)/common/io/linuxkpi
 INSTALL_DIR = usr/kernel/drv/amd64
 OUT = $(INTEL)/$(BUILD_MODULE)/obj64
 include ../../Makefile.uts

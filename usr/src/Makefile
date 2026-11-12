@@ -5,8 +5,8 @@ include $(SRC)/Targetdirs
 
 all install clean clobber setup:
 	@set -e; for m in $(MODULES); do \
-	    (cd $(INTEL)/$$m && if test $@ = all -o $@ = install; then $(MAKE) flags; fi && $(MAKE) -m parallel -j $(DMAKE_MAX_JOBS) $@); \
-	    if test $$m = i915n; then t=$@; if test $$t = install; then t=all; fi; (cd $(INTEL)/i915n && if test $$t = all; then $(MAKE) VARIANT=headless DISPLAY=0 flags; fi && $(MAKE) -m parallel -j $(DMAKE_MAX_JOBS) VARIANT=headless DISPLAY=0 $$t); fi; \
+	    (cd $(INTEL)/$$m && $(MAKE) -m parallel -j $(DMAKE_MAX_JOBS) $@); \
+	    if test $$m = i915n; then t=$@; if test $$t = install; then t=all; fi; (cd $(INTEL)/i915n && $(MAKE) -m parallel -j $(DMAKE_MAX_JOBS) VARIANT=headless DISPLAY=0 $$t); fi; \
 	done
 	@cd $(SRC)/cmd/drmadm && $(MAKE) $@
 	@cd $(SRC)/pkg && $(MAKE) $@

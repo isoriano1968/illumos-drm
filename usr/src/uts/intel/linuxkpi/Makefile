@@ -3,7 +3,7 @@
 all:
 MODULE = linuxkpi
 BUILD_MODULE = linuxkpi
-REF_SCRIPT = $(UTSBASE)/common/io/linuxkpi/build.sh
+FLAGS_DIR = $(UTSBASE)/common/io/linuxkpi
 SOURCE_DIR = $(UTSBASE)/common/io/linuxkpi/src
 INSTALL_DIR = kernel/misc/amd64
 OUT = $(INTEL)/$(BUILD_MODULE)/obj64

@@ -34,19 +34,17 @@ case $module in
 linuxkpi_selftest) CPPFLAGS=$STCPP; LDFLAGS=$STLDFLAGS ;;
 drm_helpers_test) LDFLAGS=$TEST_LDFLAGS ;;
 esac
+flags_tmp=$(mktemp "$OUT/$module.flags.XXXXXX")
 # Quotes must survive make's recipe expansion as literal compiler arguments.
 # This escapes values, never selects or interprets shell program text.
 value() { printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/\$/$$/g' -e 's/#/\\#/g'; }
 printvar() { printf '%s = ' "$1"; value "$2"; printf '\n'; }
 {
+    printvar FLAGS_TOKEN "$flags_tmp"
     printvar CFLAGS "${CFLAGS:-}"
     printvar CPPFLAGS "${CPPFLAGS:-}"
     printvar LDFLAGS "${LDFLAGS:-}"
     printvar BASENAME_CPPFLAG "${BASENAME_CPPFLAG:-}"
     printvar DEPFLAGS "${DEPFLAGS:-}"
-} > "$OUT/$module.flags.mk.tmp"
-if ! cmp -s "$OUT/$module.flags.mk.tmp" "$OUT/$module.flags.mk"; then
-    mv "$OUT/$module.flags.mk.tmp" "$OUT/$module.flags.mk"
-else
-    touch "$OUT/$module.flags.mk"
-fi
+} > "$flags_tmp"
+mv "$flags_tmp" "$OUT/$module.flags.mk"

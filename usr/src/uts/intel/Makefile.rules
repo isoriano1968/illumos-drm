@@ -3,8 +3,10 @@
 
 $(OUT)/obj/%.o: $(SOURCE_DIR)/%.c $(CONFIG)
 	@mkdir -p $(@D)
+	@$(CHECK_FLAGS)
 	$(COMPILE) -c $< -o $@
 
 $(OUT)/selftest/%.o: $(UTSBASE)/common/io/linuxkpi/selftest/%.c $(CONFIG)
 	@mkdir -p $(@D)
+	@$(CHECK_FLAGS)
 	$(COMPILE.c) -c $< -o $@

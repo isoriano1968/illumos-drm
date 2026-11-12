@@ -3,7 +3,7 @@
 all:
 MODULE = drm_helpers_test
 BUILD_MODULE = drm_helpers
-REF_SCRIPT = $(UTSBASE)/common/io/drm_helpers/build.sh
+FLAGS_DIR = $(UTSBASE)/common/io/drm_helpers
 INSTALL_DIR = usr/kernel/drv/amd64
 OUT = $(INTEL)/$(BUILD_MODULE)/obj64
 include ../../Makefile.uts
@@ -14,13 +14,17 @@ include ../../Makefile.targ
 
 $(OUT)/obj/drm_helpers_test.o: $(HELPERS)/test/drm_helpers_test.c $(CONFIG)
 	@mkdir -p $(@D)
+	@$(CHECK_FLAGS)
 	$(COMPILE) -c $(HELPERS)/test/drm_helpers_test.c -o $@
 $(OUT)/obj/selftest_kernel.o: $(HELPERS)/test/selftest_kernel.c $(CONFIG)
 	@mkdir -p $(@D)
+	@$(CHECK_FLAGS)
 	$(COMPILE) -c $(HELPERS)/test/selftest_kernel.c -o $@
 $(OUT)/obj/drm_mm_selftest.o: $(HELPERS)/drm_mm/tests/drm_mm_selftest.c $(CONFIG)
 	@mkdir -p $(@D)
+	@$(CHECK_FLAGS)
 	$(COMPILE) -c $(HELPERS)/drm_mm/tests/drm_mm_selftest.c -o $@
 $(OUT)/obj/drm_cache_selftest.o: $(HELPERS)/drm_cache/tests/drm_cache_selftest.c $(CONFIG)
 	@mkdir -p $(@D)
+	@$(CHECK_FLAGS)
 	$(COMPILE) -c $(HELPERS)/drm_cache/tests/drm_cache_selftest.c -o $@

@@ -3,7 +3,7 @@
 all:
 MODULE = drm_helpers
 BUILD_MODULE = drm_helpers
-REF_SCRIPT = $(UTSBASE)/common/io/drm_helpers/build.sh
+FLAGS_DIR = $(UTSBASE)/common/io/drm_helpers
 INSTALL_DIR = kernel/misc/amd64
 OUT = $(INTEL)/$(BUILD_MODULE)/obj64
 include ../../Makefile.uts
@@ -21,4 +21,5 @@ $(OUT)/staged: $(SRC)/contrib/linux/drivers/gpu/drm/drm_mm.c $(SRC)/contrib/linu
 
 $(OUT)/obj/drm_helpers_mod.o: $(UTSBASE)/common/io/drm_helpers/drm_helpers/drm_helpers_mod.c $(CONFIG)
 	@mkdir -p $(@D)
+	@$(CHECK_FLAGS)
 	$(COMPILE) -c $(UTSBASE)/common/io/drm_helpers/drm_helpers/drm_helpers_mod.c -o $@

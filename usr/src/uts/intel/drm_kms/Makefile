@@ -3,7 +3,7 @@
 all:
 MODULE = drm_kms
 BUILD_MODULE = drm_kms
-REF_SCRIPT = $(UTSBASE)/common/io/drm_kms/build.sh
+FLAGS_DIR = $(UTSBASE)/common/io/drm_kms
 INSTALL_DIR = kernel/misc/amd64
 OUT = $(INTEL)/$(BUILD_MODULE)/obj64
 include ../../Makefile.uts
@@ -17,4 +17,5 @@ COMPILE = $(COMPILE.tu)
 
 $(OUT)/obj/%.o: %.c $(CONFIG)
 	@mkdir -p $(@D)
+	@$(CHECK_FLAGS)
 	$(COMPILE) -c $< -o $@

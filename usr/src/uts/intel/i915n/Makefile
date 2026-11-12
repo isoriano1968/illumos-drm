@@ -5,7 +5,7 @@ MODULE = i915n
 BUILD_MODULE = i915n
 VARIANT = display
 DISPLAY = 1
-REF_SCRIPT = $(UTSBASE)/intel/io/i915n/build.sh
+FLAGS_DIR = $(UTSBASE)/intel/io/i915n
 INSTALL_DIR = kernel/drv/amd64
 OUT = $(INTEL)/i915n/$(VARIANT)64
 include ../../Makefile.uts
@@ -19,4 +19,5 @@ COMPILE = $(COMPILE.tu)
 
 $(OUT)/obj/illumos/%.o: $(UTSBASE)/intel/io/i915n/illumos/%.c $(CONFIG)
 	@mkdir -p $(@D)
+	@$(CHECK_FLAGS)
 	$(COMPILE) -c $< -o $@

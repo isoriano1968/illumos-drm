@@ -3,7 +3,7 @@
 all:
 MODULE = cdrmnull
 BUILD_MODULE = cdrmnull
-REF_SCRIPT = $(UTSBASE)/common/io/cdrmnull/build.sh
+FLAGS_DIR = $(UTSBASE)/common/io/cdrmnull
 INSTALL_DIR = usr/kernel/drv/amd64
 OUT = $(INTEL)/$(BUILD_MODULE)/obj64
 include ../../Makefile.uts
@@ -13,4 +13,5 @@ include ../../Makefile.targ
 
 $(OUT)/cdrmnull.o: $(UTSBASE)/common/io/cdrmnull/cdrmnull.c $(CONFIG)
 	@mkdir -p $(@D)
+	@$(CHECK_FLAGS)
 	$(COMPILE) -c $(UTSBASE)/common/io/cdrmnull/cdrmnull.c -o $@
