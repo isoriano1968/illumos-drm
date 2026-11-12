@@ -4,9 +4,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 #
-# host-test.sh: builds the carried helpers (carried/fetch-and-patch's
-# output), linuxkpi's red-black trees and the self-tests into a userland
-# program and runs it: the drm_mm tests the kernel's drm_helpers_test runs,
+# host-test.sh: builds the staged vendored helpers, linuxkpi's red-black
+# trees and the self-tests into a userland program and runs it: the drm_mm
+# tests the kernel's drm_helpers_test runs,
 # the host-only drm_mm tests and the tree tests (carried/test/host/).
 # drm_cache's tests run in the kernel only (drm_helpers_test): drm_cache
 # needs misc/linuxkpi's processor facts, which exist in the kernel.
@@ -38,7 +38,7 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 1' INT TERM
 
-"$HERE/fetch-and-patch" "$OUT"
+sh "$HERE/prepare-sources.sh" "$OUT"
 
 LH=$REPO/linuxkpi/tests/host
 ARCH=

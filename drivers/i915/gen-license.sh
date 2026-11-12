@@ -9,7 +9,7 @@
 # under it. The files are those of `inputs` (build.sh's linux-inputs.txt:
 # every Linux file the compiler read, which check-licences.py accepted);
 # without it, the TUs of tus.txt and display-tus.txt, i915's own headers
-# and mit-headers.txt.
+# and the vendored include/ headers.
 #
 #   drivers/i915/gen-license.sh <Linux tree or ""> <output file> [inputs]
 # An empty tree argument uses LINUX or the repository's vendored tree.
@@ -30,9 +30,7 @@ if [ "${MODULE:-i915n}" = drm_kms ] && [ -z "$inputs" ]; then
 	exit 1
 fi
 if [ -n "$inputs" ]; then
-	# The tree's copies of the MIT headers stand for their originals.
-	sed 's|^\.illumos/mit-include/uapi/|include/uapi/|; s|^\.illumos/mit-include/|include/|' \
-	    "$inputs" | sort -u > "$out.files"
+	sort -u "$inputs" > "$out.files"
 else
 	{
 		grep -v '^#' "$HERE/tus.txt" | grep . | grep -v '^illumos/' | sed "s|^|$I915/|"
@@ -42,7 +40,7 @@ else
 		(cd "$LINUX" && find "$I915" -name '*.h' \
 		    ! -path '*/selftests/*' ! -name 'selftest_*' ! -path '*/gvt/*' \
 		    ! -name '*_trace.h')
-		grep -v '^#' "$HERE/mit-headers.txt" | grep .
+		(cd "$LINUX" && find include -type f -name '*.h')
 	} | sort -u > "$out.files"
 fi
 
@@ -51,13 +49,13 @@ tag=$(sed -n 's/^LINUX_TAG=//p' "$HERE/PIN")
 	if [ "${MODULE:-i915n}" = drm_kms ]; then
 		echo "misc/drm_kms is built from these files of Linux $tag (drivers/gpu/drm,"
 		echo "drivers/gpu/drm/display, drivers/video/hdmi.c, include/drm,"
-		echo "include/uapi/drm), MIT-licensed, with the illumos patches of"
-		echo "illumos-drm carried/drm_kms/patches, and from illumos-drm's own MIT"
+		echo "include/uapi/drm), MIT-licensed, with the illumos changes in"
+		echo "usr/src/contrib/linux, and from illumos-drm's own MIT"
 		echo "sources (carried/drm_kms/illumos). Their copyright notices:"
 	else
 		echo "i915n is built from these files of Linux $tag (drivers/gpu/drm/i915,"
-		echo "include/drm, include/uapi/drm), MIT-licensed, with the illumos patches"
-		echo "of illumos-drm drivers/i915/patches, and from illumos-drm's own MIT"
+		echo "include/drm, include/uapi/drm), MIT-licensed, with the illumos changes"
+		echo "in usr/src/contrib/linux, and from illumos-drm's own MIT"
 		echo "sources (drivers/i915/illumos). Their copyright notices:"
 	fi
 	echo

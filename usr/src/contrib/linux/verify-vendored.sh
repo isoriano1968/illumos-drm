@@ -12,10 +12,13 @@ repo=$(CDPATH= cd "$here/../../../.." && pwd) || exit 1
 failed=0
 pristine=
 inputs=
+no_fetched=0
+fetched=
 nl='
 '
 usage() {
-    echo "usage: $0 [-p pristine-checkout] [-i linux-inputs.txt]... fetched-tree" >&2
+    echo "usage: $0 [-n] [-p pristine-checkout] [-i linux-inputs.txt]... [fetched-tree]" >&2
+    echo '  -n: no fetched tree; check provenance coverage and licences only' >&2
     echo 'RESULT: FAIL'
     exit 2
 }
@@ -23,14 +26,33 @@ while [ "$#" -gt 0 ]; do
     case "$1" in
     -p) [ "$#" -ge 2 ] || usage; pristine=$2; shift 2 ;;
     -i) [ "$#" -ge 2 ] || usage; inputs=$inputs$nl$2; shift 2 ;;
+    -n) no_fetched=1; shift ;;
     --) shift; break ;;
     -*) usage ;;
     *) break ;;
     esac
 done
-[ "$#" -eq 1 ] || usage
-fetched=$1
+if [ "$no_fetched" -eq 1 ]; then
+    [ "$#" -eq 0 ] || usage
+else
+    [ "$#" -eq 1 ] || usage
+    fetched=$1
+fi
 fail() { echo "FAIL: $*"; failed=1; }
+# These are port files, not imports of their GPL-only upstream originals.
+# Their provenance is described in README; every one must still pass the
+# same licence gate as every imported source file.
+is_standin() {
+    case "$1" in
+    drivers/gpu/drm/i915/i915_trace.h|\
+    drivers/gpu/drm/i915/intel_uncore_trace.h|\
+    drivers/gpu/drm/i915/display/intel_display_trace.h|\
+    drivers/gpu/drm/drm_trace.h|\
+    drivers/platform/x86/intel_ips.h|\
+    drivers/gpu/drm/display/drm_dp_mst_topology_internal.h) return 0 ;;
+    *) return 1 ;;
+    esac
+}
 # Lexical normalization only: never resolve symlinks. Normalize before
 # mapping the fetched tree's copied-header namespace, then normalize again.
 normalize() {
@@ -62,7 +84,8 @@ sha256() {
         return 1
     fi
 }
-if [ ! -f "$here/SOURCES" ] || [ ! -d "$fetched" ]; then
+if [ ! -f "$here/SOURCES" ] ||
+    { [ "$no_fetched" -eq 0 ] && [ ! -d "$fetched" ]; }; then
     echo 'FAIL: SOURCES or fetched tree missing'
     echo 'RESULT: FAIL'
     exit 1
@@ -80,6 +103,10 @@ tab=$(printf '\t')
 while IFS="$tab" read -r rel expected licence; do
     [ -n "$rel" ] || continue
     sources=$((sources + 1))
+    if is_standin "$rel"; then
+        fail "GPL-original path must not be imported in SOURCES: $rel"
+        continue
+    fi
     canonical=$(printf '%s\n' "$rel" | normalize) || {
         fail "invalid SOURCES path: $rel"; continue;
     }
@@ -106,6 +133,9 @@ while IFS="$tab" read -r rel expected licence; do
     fi
 done < "$here/SOURCES"
 [ "$sources" -gt 0 ] || fail 'empty SOURCES'
+listed=$(cut -f1 "$here/SOURCES")
+duplicates=$(printf '%s\n' "$listed" | sort | uniq -d)
+[ -z "$duplicates" ] || fail "duplicate SOURCES paths: $duplicates"
 # These four repository metadata/tool files are not upstream source inputs.
 files=$(cd "$here" && find . -type f -print) || {
     echo 'FAIL: cannot enumerate vendored tree'; echo 'RESULT: FAIL'; exit 1;
@@ -117,8 +147,18 @@ links=$(cd "$here" && find . -type l -print) || fail 'cannot enumerate symlinks'
 [ -z "$links" ] || fail "unexpected symlinks: $links"
 compared=0
 headers=0
+covered=0
+standins=0
 while IFS= read -r rel; do
     [ -n "$rel" ] || continue
+    if is_standin "$rel"; then
+        standins=$((standins + 1))
+    elif printf '%s\n' "$listed" | grep -F -x "$rel" >/dev/null; then
+        covered=$((covered + 1))
+    else
+        fail "vendored source has no SOURCES record: $rel"
+    fi
+    [ "$no_fetched" -eq 0 ] || continue
     compared=$((compared + 1))
     if ! cmp -s "$here/$rel" "$fetched/$rel"; then
         fail "fetched file differs or is missing: $rel"
@@ -133,6 +173,8 @@ while IFS= read -r rel; do
 done <<END_FILES
 $files
 END_FILES
+[ "$standins" -eq 6 ] || fail "expected six MIT stand-ins, found $standins"
+[ "$covered" -eq "$sources" ] || fail 'SOURCES and vendored inventory differ'
 lists=0
 input_count=0
 while IFS= read -r listing; do
@@ -164,7 +206,12 @@ elif ! printf '%s\n' "$files" |
     fail 'vendored licence check'
 fi
 echo "SOURCES: $sources entries checked; pristine digests verified: $pristine_ok"
-echo "Comparison: $compared files; $headers mit-include copies"
+echo "Inventory: $covered upstream files; $standins MIT stand-ins"
+if [ "$no_fetched" -eq 1 ]; then
+    echo 'Comparison: skipped (-n)'
+else
+    echo "Comparison: $compared files; $headers mit-include copies"
+fi
 echo "Build inputs: $lists lists; $input_count paths checked"
 if [ "$failed" -eq 0 ]; then
     echo 'RESULT: PASS'

@@ -20,8 +20,8 @@
 #     alloc must succeed for every framebuffer)
 # and the tracepoint TU display/intel_display_trace.c (GPL-2.0; it only
 # defines the display tracepoints, which illumos does not have, as R5c's
-# two headless tracepoint TUs; fetch-and-patch.sh replaces
-# intel_display_trace.h by a generated MIT no-op header).
+# two headless tracepoint TUs; the vendored intel_display_trace.h is a
+# generated MIT no-op header).
 #
 # A line "-<TU>" takes a TU of tus.txt out of the display build: the
 # headless stubs of the display (i915_nodisplay.c) and of the KMS helpers

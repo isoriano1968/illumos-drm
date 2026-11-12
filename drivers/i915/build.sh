@@ -44,14 +44,8 @@ export LC_ALL=C
 HERE=$(cd "$(dirname "$0")" && pwd)
 REPO=${REPO:-$(cd "$HERE/../.." && pwd)}
 LINUX=${LINUX:-$REPO/usr/src/contrib/linux}
-# During the transition, SOURCES identifies the vendored subset; the old
-# prepared tree has an applied stamp and a separate MIT include directory.
-if [ -f "$LINUX/SOURCES" ]; then
-	LINUX_INCLUDE=$LINUX/include
-elif [ -f "$LINUX/.illumos/applied" ]; then
-	LINUX_INCLUDE=$LINUX/.illumos/mit-include
-else
-	echo "build.sh: $LINUX is not a vendored or prepared Linux tree" >&2
+if [ ! -f "$LINUX/SOURCES" ]; then
+	echo "build.sh: $LINUX is not a vendored Linux tree (SOURCES missing)" >&2
 	exit 1
 fi
 CC=${CC:-gcc}
@@ -79,7 +73,7 @@ fi
 CFLAGS=$LKPI_CFLAGS
 CPPFLAGS="$LKPI_CPPFLAGS -DI915 -DKBUILD_MODNAME=\"i915\""
 CPPFLAGS="$CPPFLAGS -nostdinc -I$REPO/linuxkpi/include -I$REPO/include"
-CPPFLAGS="$CPPFLAGS -I$LINUX_INCLUDE -I$LINUX_INCLUDE/uapi"
+CPPFLAGS="$CPPFLAGS -I$LINUX/include -I$LINUX/include/uapi"
 CPPFLAGS="$CPPFLAGS -I$I915 -I$OUT/sysinc"
 # Last: the illumos glue's headers the patches include (i915_illumos_vbt.h).
 CPPFLAGS="$CPPFLAGS -I$HERE/illumos"

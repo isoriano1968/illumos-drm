@@ -3,44 +3,61 @@ Linux files used by the illumos DRM port
 Upstream: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git
 Version: v7.2
 Commit: 8d3ae59288f1e7d58d76558a6ee96d533bc5019f
+Pin record: drivers/i915/PIN
 
-This is the pristine upstream subset, imported on linux-pristine; port changes
-are separate commits on the main integration line. The initial list is the
-textually normalized union of the i915 display, i915 headless and drm_kms
-linux-inputs.txt lists built at illumos-drm e101f9814da43756bc7f13f02ae6020f05e7d069,
-with .illumos/mit-include paths mapped to include/, the six GPL originals
-excluded, and fourteen build-script inputs added (five fetch-time header copies
-and nine licence-generation fallback headers). SOURCES records each upstream
-path, its pristine SHA-256 and its licence class, separated by tabs. All 847
-upstream files passed drivers/i915/check-licences.py: SPDX MIT or a dual licence
-offering MIT, or an MIT/HPND permission notice; every original notice is kept.
+The build reads this tree directly. Port changes are commits on these files;
+edit a vendored file and commit it on the integration branch. Its git log
+records the port history. linux-pristine holds only pristine imports and
+their metadata; merge it to bring upstream changes into the port.
 
-.gitattributes disables Git text conversion throughout this directory so the
-upstream and patched bytes remain exact regardless of clone configuration.
+The initial selection is the normalized union of the i915 display, i915
+headless and drm_kms linux-inputs.txt lists at illumos-drm
+e101f9814da43756bc7f13f02ae6020f05e7d069, with .illumos/mit-include mapped
+to include/, six GPL originals excluded, and fourteen build-script inputs
+added (five header copies and nine licence-generation fallback headers).
+The two unmodified helper C files, drm_mm.c and drm_cache.c, were added by
+a second pristine import; their two headers were already present. Their
+old helper patch series were empty. Builds stage just these four helper
+files to preserve the helpers' include selection and compiler flags.
 
-The four tracepoint headers are committed MIT outputs of
- drivers/i915/illumos/gen-trace-stubs.py; intel_ips.h and
- drm_dp_mst_topology_internal.h are MIT replacements from this repository.
-Their six GPL originals are never imported. Today fetch-and-patch.sh generates
-the four trace stubs at fetch time; in the vendored model they are committed
-stand-ins and gen-trace-stubs.py is a maintainer tool for pin updates. This
-import does not change the existing fetch script or build path.
+SOURCES has 849 upstream paths with pristine SHA-256 and licence class,
+separated by tabs. All are SPDX MIT, a dual licence offering MIT, or an
+MIT/HPND permission notice. Original notices remain. .gitattributes disables
+Git text conversion throughout this directory to preserve source bytes.
 
-The maintainer generators drivers/i915/config/gen-config.py and
- drivers/i915/illumos/gen-nodisplay.py need a full upstream checkout at the pinned
-commit, passed as their tree argument. They run only when the pin or the
-configuration changes; their outputs are committed and a normal build does not
-run either generator.
+Six port headers are separate MIT stand-ins, not imports of GPL originals:
+  drivers/gpu/drm/i915/i915_trace.h
+  drivers/gpu/drm/i915/intel_uncore_trace.h
+  drivers/gpu/drm/i915/display/intel_display_trace.h
+  drivers/gpu/drm/drm_trace.h
+  drivers/platform/x86/intel_ips.h
+  drivers/gpu/drm/display/drm_dp_mst_topology_internal.h
+The first four are committed outputs of drivers/i915/illumos/gen-trace-stubs.py;
+the last two originate in this repository's MIT headers. They have no upstream
+SOURCES record. Their GPL originals are never imported. No GPL-only file is
+vendored. The normal build runs none of the maintainer generators.
 
-Verify from the repository root, supplying a prepared fetch-and-patch tree:
-  sh usr/src/contrib/linux/verify-vendored.sh -p /path/to/full/linux /path/to/prepared/linux
-Repeat -i /path/to/linux-inputs.txt for each build input list. The optional -p
-checks SOURCES against Git objects of the full upstream checkout, independently
-of linux-pristine; every vendored source is compared with the prepared tree and
-checked by the existing Python licence gate. The directory walk excludes only
-.gitattributes, SOURCES, README and verify-vendored.sh.
+Verify without an upstream checkout or a fetched tree:
+  sh usr/src/contrib/linux/verify-vendored.sh -n
+This requires a SOURCES record for every upstream source, exactly the six
+stand-ins above, no symlinks, and acceptance of every source by the existing
+drivers/i915/check-licences.py gate. Only .gitattributes, SOURCES, README and
+verify-vendored.sh are excluded as metadata/tooling. The licence gate checks
+the first 6000 characters and first 60 lines for an SPDX MIT alternative
+(rejecting AND/WITH), or an MIT/HPND permission notice.
 
-To update, regenerate the build input lists and SOURCES for the new pin, import
-pristine MIT-compatible bytes on linux-pristine, merge it into the integration
-branch, and review conflicts with the port commits. Regenerate the stand-ins
-from the new pin and repeat the byte comparisons and licence gate on illumos.
+Optional -p /path/to/full/linux verifies every pristine digest against Git
+objects of the pinned upstream revision. Repeat -i /path/to/linux-inputs.txt
+to check build inputs. Without -n, supply a prepared Linux tree as the last
+argument for byte comparison, including its old mit-include header copies;
+this mode retains the import's comparison with the former fetch model.
+
+To update Linux, regenerate the input selection and SOURCES at the new pin,
+import only pristine MIT-compatible files on linux-pristine, then merge
+that branch into the integration branch and review conflicts with port
+commits. Update PIN, this README and verify-vendored.sh's upstream_rev.
+Regenerate the six stand-ins and configuration outputs from the full pinned
+upstream checkout. gen-trace-stubs.py, drivers/i915/config/gen-config.py
+and drivers/i915/illumos/gen-nodisplay.py are maintainer tools for this step;
+the latter two take the full checkout as their tree argument. Commit the
+outputs and repeat provenance/licence, build-input and native build checks.

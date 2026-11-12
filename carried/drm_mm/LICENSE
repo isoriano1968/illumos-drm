@@ -1,4 +1,4 @@
-drm_mm.c and drm_mm.h of Linux v7.2 (carried/drm_mm/linux/ in
+drm_mm.c and drm_mm.h of Linux v7.2 (usr/src/contrib/linux/ in
 illumos-drm, built into misc/drm_helpers) carry this notice:
 
 drivers/gpu/drm/drm_mm.c:

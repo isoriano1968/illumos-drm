@@ -123,8 +123,8 @@ jobs:
           elfdump -d target/linuxkpi/linuxkpi | grep NEEDED &&
           elfdump -d target/linuxkpi/linuxkpi_selftest | grep NEEDED
       # misc/drm_helpers, the carried Linux helpers (carried/), and its test
-      # driver: the vendored Linux files against their pinned SHA-256, the
-      # layer's flags, -z defs against the gate's ddi.mapfile and
+      # driver: vendored sources checked for provenance and licences below,
+      # the layer's flags, -z defs against the gate's ddi.mapfile and
       # linuxkpi.mapfile; the module's global symbols must be exactly
       # drm_helpers_scope.mapfile's, and the test driver links with
       # -N misc/drm_helpers against drm_helpers.mapfile only.
@@ -137,6 +137,7 @@ jobs:
       # changes, every Linux input licence-checked, all TUs
       # compiled with the layer's flags (any failure fails the step) and
       # linked with -z defs against the facade, layer, helpers and DDI.
+      - run: sh usr/src/contrib/linux/verify-vendored.sh -n
       - run: >
           SYSINC=$PWD/target/sysinc DDI_MAPFILE=target/ddi.mapfile
           LKPI_MAPFILE=target/linuxkpi/linuxkpi.mapfile OUT=target/i915 JOBS=4
@@ -157,3 +158,5 @@ jobs:
       # printf, strings) and the carried helpers' as userland programs.
       - run: CC=gcc linuxkpi/tests/host/host-test.sh
       - run: CC=gcc carried/host-test.sh
+      - run: sh tools/test/test-drmadm-aliases.sh
+      - run: CC=gcc sh tools/test/test-hotplug-deadline.sh

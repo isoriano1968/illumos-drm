@@ -67,15 +67,7 @@ die() {
 	exit 1
 }
 
-# SOURCES identifies the vendored subset; the old prepared tree uses a
-# separate MIT include directory and must have its applied stamp.
-if [ -f "$LINUX/SOURCES" ]; then
-	LINUX_INCLUDE=$LINUX/include
-elif [ -f "$LINUX/.illumos/applied" ]; then
-	LINUX_INCLUDE=$LINUX/.illumos/mit-include
-else
-	die "$LINUX is not a vendored or prepared Linux tree"
-fi
+[ -f "$LINUX/SOURCES" ] || die "$LINUX is not a vendored Linux tree (SOURCES missing)"
 mkdir -p "$OUT/obj" "$OUT/log"
 OUT=$(cd "$OUT" && pwd)
 # shellcheck disable=SC1091
@@ -83,7 +75,7 @@ OUT=$(cd "$OUT" && pwd)
 CFLAGS=$LKPI_CFLAGS
 CPPFLAGS="$LKPI_CPPFLAGS -DKBUILD_MODNAME=\"drm_kms\""
 CPPFLAGS="$CPPFLAGS -nostdinc -I$REPO/linuxkpi/include -I$REPO/include"
-CPPFLAGS="$CPPFLAGS -I$LINUX_INCLUDE -I$LINUX_INCLUDE/uapi"
+CPPFLAGS="$CPPFLAGS -I$LINUX/include -I$LINUX/include/uapi"
 CPPFLAGS="$CPPFLAGS -I$LINUX/drivers/gpu/drm -I$OUT/sysinc"
 CPPFLAGS="$CPPFLAGS -include $I915/config.h -include $REPO/linuxkpi/include/linux/kconfig.h"
 CPPFLAGS="$CPPFLAGS -include $REPO/linuxkpi/include/lkpi/prologue.h"
