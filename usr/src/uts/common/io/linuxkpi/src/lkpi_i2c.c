@@ -153,6 +153,22 @@ lkpi_i2c_register(struct i2c_adapter *adap, int nr)
 	return (0);
 }
 
+static void
+lkpi_i2c_devm_del(void *adap)
+{
+	i2c_del_adapter(adap);
+}
+
+int
+devm_i2c_add_adapter(struct device *dev, struct i2c_adapter *adap)
+{
+	int ret = i2c_add_adapter(adap);
+
+	if (ret != 0)
+		return (ret);
+	return (devm_add_action_or_reset(dev, lkpi_i2c_devm_del, adap));
+}
+
 int
 i2c_add_adapter(struct i2c_adapter *adap)
 {

@@ -12,7 +12,11 @@
  * where it reserves; xa_erase() always removes.
  *
  * Locking: xa_*() take xa->xa_lock, __xa_*() expect the caller to hold
- * it. Nodes are allocated with the caller's gfp (lkpi_kmflag()); the
+ * it. The readers (xa_load(), xa_find(), xa_find_after(), xa_get_mark(),
+ * xa_extract(), and xa_for_each() through them) take it only if the
+ * calling thread does not hold it already: Linux's readers run under RCU
+ * and may be called with xa_lock held (amdgpu_userq_mgr_fini() calls
+ * xa_find() and __xa_erase() inside xa_lock()). Nodes are allocated with the caller's gfp (lkpi_kmflag()); the
  * xa_*() forms allocate before taking the lock. The lock is an adaptive
  * kmutex_t, so a GFP_KERNEL allocation under it may sleep as on Linux
  * (where __xa_store() drops the lock to allocate).
@@ -37,7 +41,10 @@ struct lkpi_xa_node {
 	struct rb_node xn_rb;
 	unsigned long xn_index;
 	void *xn_entry;			/* NULL: reserved */
+	unsigned int xn_marks;		/* bit m: XA_MARK_m */
 };
+
+#define	LKPI_XA_NMARKS	3
 
 /* Internal stand-in for a reserved entry in comparisons (never stored). */
 #define	LKPI_XA_ZERO	((void *)0x406UL)
@@ -168,6 +175,7 @@ lkpi_xa_set(struct xarray *xa, unsigned long index, void *entry, gfp_t gfp,
 	}
 	n->xn_index = index;
 	n->xn_entry = entry;
+	n->xn_marks = 0;
 	lkpi_xa_link(xa, n);
 	return (NULL);
 }
@@ -277,10 +285,21 @@ lkpi_xa_alloc_locked(struct xarray *xa, unsigned long *idp, void *entry,
 	return (0);
 }
 
-/* The first entry (not reserved) at an index in [*indexp, max]. */
+/* An entry (not reserved) that passes filter (XA_PRESENT or a mark). */
+static bool
+lkpi_xa_match(const struct lkpi_xa_node *n, xa_mark_t filter)
+{
+	if (n->xn_entry == NULL)
+		return (false);
+	if (filter == XA_PRESENT)
+		return (true);
+	return (filter < LKPI_XA_NMARKS && (n->xn_marks & (1U << filter)) != 0);
+}
+
+/* The first entry passing filter at an index in [*indexp, max]. */
 static void *
 lkpi_xa_find_locked(struct xarray *xa, unsigned long *indexp,
-    unsigned long max)
+    unsigned long max, xa_mark_t filter)
 {
 	struct lkpi_xa_node *n;
 
@@ -288,7 +307,7 @@ lkpi_xa_find_locked(struct xarray *xa, unsigned long *indexp,
 	    n != NULL && n->xn_index <= max;
 	    n = rb_entry_safe(rb_next(&n->xn_rb), struct lkpi_xa_node,
 	    xn_rb)) {
-		if (n->xn_entry != NULL) {
+		if (lkpi_xa_match(n, filter)) {
 			*indexp = n->xn_index;
 			return (n->xn_entry);
 		}
@@ -327,16 +346,38 @@ xa_destroy(struct xarray *xa)
 	}
 }
 
+/*
+ * A reader's lock: xa_lock unless the calling thread holds it already
+ * (the lock is an adaptive kmutex_t, whose owner MUTEX_HELD() tests).
+ * Returns whether it was taken, for lkpi_xa_read_unlock().
+ */
+static bool
+lkpi_xa_read_lock(struct xarray *xa)
+{
+	if (MUTEX_HELD(&xa->xa_lock.rlock))
+		return (false);
+	xa_lock(xa);
+	return (true);
+}
+
+static void
+lkpi_xa_read_unlock(struct xarray *xa, bool taken)
+{
+	if (taken)
+		xa_unlock(xa);
+}
+
 void *
 xa_load(struct xarray *xa, unsigned long index)
 {
 	struct lkpi_xa_node *n;
+	bool taken;
 	void *e;
 
-	xa_lock(xa);
+	taken = lkpi_xa_read_lock(xa);
 	n = lkpi_xa_lookup(xa, index);
 	e = n != NULL ? n->xn_entry : NULL;
-	xa_unlock(xa);
+	lkpi_xa_read_unlock(xa, taken);
 	return (e);
 }
 
@@ -541,20 +582,20 @@ xa_alloc_cyclic(struct xarray *xa, u32 *id, void *entry,
 }
 
 /*
- * The first entry at an index in [*index, max]; *index is set to it.
- * Marks are not supported: a mark filter finds nothing.
+ * The first entry at an index in [*index, max] that passes filter
+ * (XA_PRESENT: any entry; XA_MARK_m: one with that mark); *index is set
+ * to it.
  */
 void *
 xa_find(struct xarray *xa, unsigned long *index, unsigned long max,
     xa_mark_t filter)
 {
+	bool taken;
 	void *e;
 
-	if (filter != XA_PRESENT)
-		return (NULL);
-	xa_lock(xa);
-	e = lkpi_xa_find_locked(xa, index, max);
-	xa_unlock(xa);
+	taken = lkpi_xa_read_lock(xa);
+	e = lkpi_xa_find_locked(xa, index, max, filter);
+	lkpi_xa_read_unlock(xa, taken);
 	return (e);
 }
 
@@ -564,16 +605,146 @@ xa_find_after(struct xarray *xa, unsigned long *index, unsigned long max,
     xa_mark_t filter)
 {
 	unsigned long i;
+	bool taken;
 	void *e;
 
-	if (filter != XA_PRESENT || *index == ULONG_MAX || *index >= max)
+	if (*index == ULONG_MAX || *index >= max)
 		return (NULL);
 	i = *index + 1;
-	xa_lock(xa);
-	e = lkpi_xa_find_locked(xa, &i, max);
-	xa_unlock(xa);
+	taken = lkpi_xa_read_lock(xa);
+	e = lkpi_xa_find_locked(xa, &i, max, filter);
+	lkpi_xa_read_unlock(xa, taken);
 	if (e != NULL)
 		*index = i;
+	return (e);
+}
+
+/* --- marks --------------------------------------------------------------- */
+
+/* Sets or clears a mark of index's entry (none: nothing); lock held. */
+static void
+lkpi_xa_mark_locked(struct xarray *xa, unsigned long index, xa_mark_t mark,
+    bool set)
+{
+	struct lkpi_xa_node *n;
+
+	if (mark >= LKPI_XA_NMARKS)
+		return;
+	n = lkpi_xa_lookup(xa, index);
+	if (n == NULL || n->xn_entry == NULL)
+		return;
+	if (set)
+		n->xn_marks |= 1U << mark;
+	else
+		n->xn_marks &= ~(1U << mark);
+}
+
+void
+__xa_set_mark(struct xarray *xa, unsigned long index, xa_mark_t mark)
+{
+	lkpi_xa_mark_locked(xa, index, mark, true);
+}
+
+void
+__xa_clear_mark(struct xarray *xa, unsigned long index, xa_mark_t mark)
+{
+	lkpi_xa_mark_locked(xa, index, mark, false);
+}
+
+void
+xa_set_mark(struct xarray *xa, unsigned long index, xa_mark_t mark)
+{
+	xa_lock(xa);
+	lkpi_xa_mark_locked(xa, index, mark, true);
+	xa_unlock(xa);
+}
+
+void
+xa_clear_mark(struct xarray *xa, unsigned long index, xa_mark_t mark)
+{
+	xa_lock(xa);
+	lkpi_xa_mark_locked(xa, index, mark, false);
+	xa_unlock(xa);
+}
+
+bool
+xa_get_mark(struct xarray *xa, unsigned long index, xa_mark_t mark)
+{
+	struct lkpi_xa_node *n;
+	bool taken, r;
+
+	taken = lkpi_xa_read_lock(xa);
+	n = lkpi_xa_lookup(xa, index);
+	r = n != NULL && lkpi_xa_match(n, mark) && mark != XA_PRESENT;
+	lkpi_xa_read_unlock(xa, taken);
+	return (r);
+}
+
+/* Whether any entry has the mark. */
+bool
+xa_marked(struct xarray *xa, xa_mark_t mark)
+{
+	unsigned long i = 0;
+
+	if (mark >= LKPI_XA_NMARKS)
+		return (false);
+	return (xa_find(xa, &i, ULONG_MAX, mark) != NULL);
+}
+
+/*
+ * Copies up to n entries passing filter from [start, max] to dst, in
+ * index order; returns how many.
+ */
+unsigned int
+xa_extract(struct xarray *xa, void **dst, unsigned long start,
+    unsigned long max, unsigned int n, xa_mark_t filter)
+{
+	unsigned long i = start;
+	unsigned int got = 0;
+	bool taken;
+	void *e;
+
+	if (n == 0 || start > max)
+		return (0);
+	taken = lkpi_xa_read_lock(xa);
+	while (got < n && (e = lkpi_xa_find_locked(xa, &i, max, filter)) !=
+	    NULL) {
+		dst[got++] = e;
+		if (i == max)
+			break;
+		i++;
+	}
+	lkpi_xa_read_unlock(xa, taken);
+	return (got);
+}
+
+/*
+ * The xa_state search: from xas->xa_index, the first entry with the mark,
+ * or, for XA_FREE_MARK in an allocating array, the first free index
+ * (whose entry is NULL). xas->xa_index is set to what was found, else to
+ * max + 1 (Linux leaves the state past the range); returns the entry.
+ */
+void *
+xas_find_marked(struct xa_state *xas, unsigned long max, xa_mark_t mark)
+{
+	struct xarray *xa = xas->xa;
+	unsigned long i = xas->xa_index;
+	void *e = NULL;
+
+	xa_lock(xa);
+	if (mark == XA_FREE_MARK && lkpi_xa_track_free(xa)) {
+		if (lkpi_xa_find_free(xa, i, max, &i) == 0)
+			xas->xa_index = i;
+		else
+			xas->xa_index = max == ULONG_MAX ? max : max + 1;
+	} else {
+		e = lkpi_xa_find_locked(xa, &i, max, mark);
+		if (e != NULL)
+			xas->xa_index = i;
+		else
+			xas->xa_index = max == ULONG_MAX ? max : max + 1;
+	}
+	xa_unlock(xa);
 	return (e);
 }
 

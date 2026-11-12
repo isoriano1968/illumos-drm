@@ -355,10 +355,74 @@ out:
 	kfree(r);
 }
 
+/* --- copying fences (TTM's ttm_bo_individualize_resv) ------------------ */
+
+static void
+st_copy(void)
+{
+	struct dma_resv *src = kzalloc(sizeof (*src), GFP_KERNEL);
+	struct dma_resv *dst = kzalloc(sizeof (*dst), GFP_KERNEL);
+	struct dma_fence *w, *b, *done;
+	u64 ctx = dma_fence_context_alloc(3);
+	int ret;
+
+	if (src == NULL || dst == NULL) {
+		CHECK("copy: allocation", 0);
+		kfree(src);
+		kfree(dst);
+		return;
+	}
+	dma_resv_init(src);
+	dma_resv_init(dst);
+	w = st_fence_new(ctx, 1);
+	b = st_fence_new(ctx + 1, 1);
+	done = st_fence_new(ctx + 2, 1);
+	if (w == NULL || b == NULL || done == NULL ||
+	    !st_resv_add(src, w, DMA_RESV_USAGE_WRITE) ||
+	    !st_resv_add(src, b, DMA_RESV_USAGE_BOOKKEEP) ||
+	    !st_resv_add(src, done, DMA_RESV_USAGE_READ)) {
+		CHECK("copy: fences", 0);
+		goto out;
+	}
+	dma_fence_signal(done);
+	(void) dma_resv_lock(dst, NULL);
+	ret = dma_resv_copy_fences(dst, src);
+	dma_resv_unlock(dst);
+	CHECK("copy_fences succeeds", ret == 0);
+	CHECK("copy keeps the write fence's usage",
+	    !dma_resv_test_signaled(dst, DMA_RESV_USAGE_WRITE));
+	dma_fence_signal(w);
+	CHECK("copy waits on the source's write fence",
+	    dma_resv_test_signaled(dst, DMA_RESV_USAGE_WRITE));
+	CHECK("copy carries the bookkeeping fence",
+	    !dma_resv_test_signaled(dst, DMA_RESV_USAGE_BOOKKEEP));
+	dma_fence_signal(b);
+	CHECK("copy idle once the source's fences are",
+	    dma_resv_test_signaled(dst, DMA_RESV_USAGE_BOOKKEEP));
+out:
+	if (w != NULL) {
+		dma_fence_signal(w);
+		dma_fence_put(w);
+	}
+	if (b != NULL) {
+		dma_fence_signal(b);
+		dma_fence_put(b);
+	}
+	if (done != NULL) {
+		dma_fence_signal(done);
+		dma_fence_put(done);
+	}
+	dma_resv_fini(src);
+	dma_resv_fini(dst);
+	kfree(src);
+	kfree(dst);
+}
+
 void
 st_resv_tests(void)
 {
 	st_walks();
 	st_transactions();
 	st_arrays();
+	st_copy();
 }

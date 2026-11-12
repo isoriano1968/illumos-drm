@@ -11,11 +11,12 @@
  */
 #ifndef _ASM_SET_MEMORY_H
 #define	_ASM_SET_MEMORY_H
-#define	set_pages_wb(p, n)		((void)(p), (void)(n), 0)
-#define	set_pages_uc(p, n)		((void)(p), (void)(n), 0)
-#define	set_pages_wc(p, n)		((void)(p), (void)(n), 0)
-#define	set_pages_array_wb(p, n)	((void)(p), (void)(n), 0)
-#define	set_pages_array_uc(p, n)	((void)(p), (void)(n), 0)
+struct page;
+static inline int set_pages_wb(struct page *p, int n) { return 0; }
+static inline int set_pages_uc(struct page *p, int n) { return 0; }
+static inline int set_pages_wc(struct page *p, int n) { return 0; }
+static inline int set_pages_array_wb(struct page **p, int n) { return 0; }
+static inline int set_pages_array_uc(struct page **p, int n) { return 0; }
 #define	set_pages_array_wc(p, n)	((void)(p), (void)(n), 0)
 #define	set_memory_wb(a, n)		((void)(a), (void)(n), 0)
 #define	set_memory_uc(a, n)		((void)(a), (void)(n), 0)

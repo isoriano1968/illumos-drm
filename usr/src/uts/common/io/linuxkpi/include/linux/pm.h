@@ -77,8 +77,24 @@ struct dev_pm_info {
 #define	pm_suspend_via_firmware()	false
 #define	pm_resume_via_firmware()	false
 #define	pm_suspend_target_state	0
+
+/* System sleep states (Linux: <linux/suspend.h>; amdgpu keeps the last). */
+typedef int suspend_state_t;
 #define	PM_SUSPEND_ON		0
 #define	PM_SUSPEND_TO_IDLE	1
+#define	PM_SUSPEND_STANDBY	2
 #define	PM_SUSPEND_MEM		3
+
+/*
+ * A power domain's callbacks (vga_switcheroo fills one on laptops with
+ * two GPUs; the layer never calls them).
+ */
+struct dev_pm_domain {
+	struct dev_pm_ops ops;
+	void (*detach)(struct device *dev, bool power_off);
+	int (*activate)(struct device *dev);
+	void (*sync)(struct device *dev);
+	void (*dismiss)(struct device *dev);
+};
 
 #endif

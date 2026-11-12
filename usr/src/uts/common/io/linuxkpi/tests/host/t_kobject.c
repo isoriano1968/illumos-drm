@@ -6,7 +6,7 @@
  * lkpi_kobject_orphan_children() as a layer device uses it
  * (lkpi_device_fini(), src/lkpi_device.c): a kobject embedded in memory
  * that its owner frees, with children left under it, including children
- * deleted concurrently with the orphaning. Freed memory is detected by
+ * deleted concurrently with the orphaning; ksets and their member lists. Freed memory is detected by
  * AddressSanitizer.
  */
 
@@ -162,6 +162,113 @@ TEST(kobject_children)
 	CHECK_EQ(d->released, 1);
 	CHECK(d->kobj.name == NULL && !d->kobj.state_initialized);
 	free(d);
+}
+
+/* --- ksets, as amdgpu's IP discovery builds and tears them down -------- */
+
+static volatile int t_kset_released;
+
+struct t_kset_box {
+	struct kset kset;
+	int id;
+};
+
+static void
+t_kset_release(struct kobject *kobj)
+{
+	__atomic_add_fetch(&t_kset_released, 1, __ATOMIC_SEQ_CST);
+	free(container_of(to_kset(kobj), struct t_kset_box, kset));
+}
+
+static const struct kobj_type t_kset_ktype = {
+	.release = t_kset_release,
+	.sysfs_ops = &kobj_sysfs_ops
+};
+
+/* amdgpu_discovery.c's teardown of a kset's members. */
+static void
+t_kset_put_members(struct kset *ks)
+{
+	struct list_head *el, *tmp;
+
+	spin_lock(&ks->list_lock);
+	list_for_each_prev_safe(el, tmp, &ks->list) {
+		list_del_init(el);
+		spin_unlock(&ks->list_lock);
+		kobject_put(container_of(el, struct kobject, entry));
+		spin_lock(&ks->list_lock);
+	}
+	spin_unlock(&ks->list_lock);
+}
+
+TEST(kset_members)
+{
+	struct t_dev *top = t_dev_new("ip_discovery");
+	struct t_kset_box *die = calloc(1, sizeof (*die));
+	struct t_kset_box *ip = calloc(1, sizeof (*ip));
+	struct t_child *inst[3];
+	struct kobject *k;
+	unsigned int refs;
+	int i, n;
+
+	t_kset_released = 0;
+	t_child_released = 0;
+	/* The die kset under the top kobject. */
+	CHECK_EQ(kobject_set_name(&die->kset.kobj, "%s", "die"), 0);
+	die->kset.kobj.parent = &top->kobj;
+	die->kset.kobj.ktype = &t_kset_ktype;
+	CHECK_EQ(kset_register(&die->kset), 0);
+	CHECK(die->kset.kobj.parent == &top->kobj);
+	CHECK_STR(kobject_name(&die->kset.kobj), "die");
+	CHECK(list_empty(&die->kset.list));
+	CHECK(die->kset.kobj.sd == NULL);
+
+	/* A member kset of the die kset: its parent is the die kset. */
+	CHECK_EQ(kobject_set_name(&ip->kset.kobj, "%d", 0), 0);
+	ip->kset.kobj.kset = &die->kset;
+	ip->kset.kobj.ktype = &t_kset_ktype;
+	CHECK_EQ(kset_register(&ip->kset), 0);
+	CHECK(ip->kset.kobj.parent == &die->kset.kobj);
+	CHECK(!list_empty(&die->kset.list));
+	CHECK(list_first_entry(&die->kset.list, struct kobject, entry) ==
+	    &ip->kset.kobj);
+
+	/* Plain kobjects joining the ip kset. */
+	for (i = 0; i < 3; i++) {
+		inst[i] = calloc(1, sizeof (*inst[i]));
+		inst[i]->id = i;
+		inst[i]->kobj.kset = &ip->kset;
+		CHECK_EQ(kobject_init_and_add(&inst[i]->kobj, &t_child_ktype,
+		    NULL, "%d", i), 0);
+		CHECK(inst[i]->kobj.parent == &ip->kset.kobj);
+	}
+	n = 0;
+	list_for_each_entry(k, &ip->kset.list, entry)
+		CHECK(k == &inst[n++]->kobj);
+	CHECK_EQ(n, 3);
+
+	/* A member deleted on its own leaves the list. */
+	kobject_del(&inst[1]->kobj);
+	n = 0;
+	list_for_each_entry(k, &ip->kset.list, entry)
+		n++;
+	CHECK_EQ(n, 2);
+	kobject_put(&inst[1]->kobj);
+	CHECK_EQ(t_child_released, 1);
+
+	/* Teardown as amdgpu: members, then each kset's own reference. */
+	t_kset_put_members(&ip->kset);
+	CHECK_EQ(t_child_released, 3);
+	CHECK(list_empty(&ip->kset.list));
+	kobject_put(&ip->kset.kobj);
+	t_kset_put_members(&die->kset);
+	CHECK_EQ(t_kset_released, 1);
+	kobject_put(&die->kset.kobj);
+	CHECK_EQ(t_kset_released, 2);
+	CHECK_EQ(t_dev_fini(top, &refs), 0);
+	CHECK_EQ(refs, 1);
+	CHECK_EQ(top->released, 1);
+	free(top);
 }
 
 TEST(kobject_uninitialised_parent)

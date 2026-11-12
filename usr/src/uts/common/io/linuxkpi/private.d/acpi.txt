@@ -1,0 +1,2 @@
+AcpiGetTable	# non-DDI kernel interface (misc/acpica, uts/intel/sys/acpi/acpixf.h; drivers such as power and vmm_vtd link -N misc/acpica for it): acpi_get_table() of <linux/acpi.h>, which amdgpu reads its VBIOS from (the ACPI VFCT table, src/lkpi_acpi.c)
+AcpiPutTable	# non-DDI kernel interface (misc/acpica): acpi_put_table(), the unmap of AcpiGetTable

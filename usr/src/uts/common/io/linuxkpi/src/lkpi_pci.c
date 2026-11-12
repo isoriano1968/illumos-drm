@@ -626,20 +626,268 @@ pcibios_align_resource(void *data, const struct resource *res,
 
 /* Resizable BARs are not supported: the nexus fixed the BAR sizes. */
 int
-pci_resize_resource(struct pci_dev *dev, int i, int size)
+pci_resize_resource(struct pci_dev *dev, int i, int size, int exclude_bars)
 {
 	(void) dev;
 	(void) i;
 	(void) size;
+	(void) exclude_bars;
 	return (-ENOTSUPP);
 }
 
-int
+u64
 pci_rebar_get_possible_sizes(struct pci_dev *pdev, int bar)
 {
 	(void) pdev;
 	(void) bar;
 	return (0);
+}
+
+int
+pci_rebar_get_max_size(struct pci_dev *pdev, int bar)
+{
+	(void) pdev;
+	(void) bar;
+	return (-ENOTSUPP);
+}
+
+/* --- PCI Express ------------------------------------------------------ */
+
+int
+pci_pcie_type(const struct pci_dev *dev)
+{
+	u16 flags;
+
+	if (!pci_is_pcie(dev) ||
+	    pci_read_config_word(dev, dev->pcie_cap + PCI_EXP_FLAGS,
+	    &flags) != 0)
+		return (-1);
+	return ((flags & PCI_EXP_FLAGS_TYPE) >> 4);
+}
+
+/* Link Capabilities' Supported Link Speeds (1: 2.5 GT/s, ...) as Linux's. */
+static enum pci_bus_speed
+lkpi_pcie_speed(u32 sls)
+{
+	switch (sls) {
+	case PCI_EXP_LNKCAP_SLS_2_5GB:	return (PCIE_SPEED_2_5GT);
+	case PCI_EXP_LNKCAP_SLS_5_0GB:	return (PCIE_SPEED_5_0GT);
+	case PCI_EXP_LNKCAP_SLS_8_0GB:	return (PCIE_SPEED_8_0GT);
+	case PCI_EXP_LNKCAP_SLS_16_0GB:	return (PCIE_SPEED_16_0GT);
+	case PCI_EXP_LNKCAP_SLS_32_0GB:	return (PCIE_SPEED_32_0GT);
+	case PCI_EXP_LNKCAP_SLS_64_0GB:	return (PCIE_SPEED_64_0GT);
+	default:			return (PCI_SPEED_UNKNOWN);
+	}
+}
+
+/* GT/s of one lane, in Mb/s of payload after the line encoding. */
+static u32
+lkpi_pcie_lane_mbps(enum pci_bus_speed s)
+{
+	switch (s) {
+	case PCIE_SPEED_2_5GT:	return (2000);		/* 8b/10b */
+	case PCIE_SPEED_5_0GT:	return (4000);		/* 8b/10b */
+	case PCIE_SPEED_8_0GT:	return (7877);		/* 128b/130b */
+	case PCIE_SPEED_16_0GT:	return (15754);
+	case PCIE_SPEED_32_0GT:	return (31508);
+	case PCIE_SPEED_64_0GT:	return (60500);		/* PAM4, FLIT */
+	default:		return (0);
+	}
+}
+
+/*
+ * The fastest speed the device supports: Link Capabilities 2's vector
+ * when it has one (PCIe 3.0 and later), else Link Capabilities' field.
+ */
+enum pci_bus_speed
+pcie_get_speed_cap(struct pci_dev *dev)
+{
+	u32 cap2 = 0, cap = 0;
+	int n;
+
+	if (!pci_is_pcie(dev))
+		return (PCI_SPEED_UNKNOWN);
+	(void) pcie_capability_read_dword(dev, PCI_EXP_LNKCAP2, &cap2);
+	if ((cap2 & PCI_EXP_LNKCAP2_SLS) != 0) {
+		for (n = 7; n >= 1; n--) {
+			if ((cap2 & (1U << n)) != 0)
+				return (lkpi_pcie_speed((u32)n));
+		}
+	}
+	(void) pcie_capability_read_dword(dev, PCI_EXP_LNKCAP, &cap);
+	return (lkpi_pcie_speed(cap & PCI_EXP_LNKCAP_SLS));
+}
+
+enum pcie_link_width
+pcie_get_width_cap(struct pci_dev *dev)
+{
+	u32 cap = 0;
+
+	if (!pci_is_pcie(dev))
+		return (PCIE_LNK_WIDTH_UNKNOWN);
+	(void) pcie_capability_read_dword(dev, PCI_EXP_LNKCAP, &cap);
+	if ((cap & PCI_EXP_LNKCAP_MLW) == 0)
+		return (PCIE_LNK_WIDTH_UNKNOWN);
+	return ((enum pcie_link_width)((cap & PCI_EXP_LNKCAP_MLW) >> 4));
+}
+
+/*
+ * The bandwidth of the link as trained (Link Status), in Mb/s. Linux
+ * takes the slowest link on the path to the root port; the layer knows
+ * only the device's own link, so that link is the limiting one.
+ */
+u32
+pcie_bandwidth_available(struct pci_dev *dev, struct pci_dev **limiting_dev,
+    enum pci_bus_speed *speed, enum pcie_link_width *width)
+{
+	enum pci_bus_speed s = PCI_SPEED_UNKNOWN;
+	enum pcie_link_width w = PCIE_LNK_WIDTH_UNKNOWN;
+	u16 sta = 0;
+
+	if (pci_is_pcie(dev) &&
+	    pcie_capability_read_word(dev, PCI_EXP_LNKSTA, &sta) == 0 &&
+	    (sta & PCI_EXP_LNKSTA_NLW) != 0) {
+		s = lkpi_pcie_speed(sta & PCI_EXP_LNKSTA_CLS);
+		w = (enum pcie_link_width)((sta & PCI_EXP_LNKSTA_NLW) >> 4);
+	}
+	if (limiting_dev != NULL)
+		*limiting_dev = dev;
+	if (speed != NULL)
+		*speed = s;
+	if (width != NULL)
+		*width = w;
+	if (w == PCIE_LNK_WIDTH_UNKNOWN)
+		return (0);
+	return ((u32)w * lkpi_pcie_lane_mbps(s));
+}
+
+bool
+pcie_aspm_enabled(struct pci_dev *dev)
+{
+	u16 ctl = 0;
+
+	if (!pci_is_pcie(dev))
+		return (false);
+	(void) pcie_capability_read_word(dev, PCI_EXP_LNKCTL, &ctl);
+	return ((ctl & PCI_EXP_LNKCTL_ASPMC) != 0);
+}
+
+/*
+ * Wait until the device has no non-posted requests outstanding (Device
+ * Status' Transactions Pending), up to the 60 ms Linux allows: 1 if
+ * none are pending, 0 after the timeout.
+ */
+int
+pci_wait_for_pending_transaction(struct pci_dev *dev)
+{
+	u16 sta;
+	int ms;
+
+	if (!pci_is_pcie(dev))
+		return (1);
+	for (ms = 0; ; ms += 10) {
+		sta = 0;
+		(void) pcie_capability_read_word(dev, PCI_EXP_DEVSTA, &sta);
+		if ((sta & PCI_EXP_DEVSTA_TRPND) == 0)
+			return (1);
+		if (ms >= 60)
+			return (0);
+		delay(drv_usectohz(10000));
+	}
+}
+
+/*
+ * A function-level or bus reset of a device the PCI nexus owns would have
+ * to go through the nexus (and save/restore its config space): not
+ * offered, as for a device without a reset method.
+ */
+int
+pci_reset_function(struct pci_dev *dev)
+{
+	(void) dev;
+	return (-ENOTTY);
+}
+
+/*
+ * AtomicOps need every switch port up to the root port to route them and
+ * the root port to complete them; the path is not known, so they are
+ * refused, as Linux refuses them on a path that lacks support.
+ */
+int
+pci_enable_atomic_ops_to_root(struct pci_dev *dev, u32 cap_mask)
+{
+	(void) dev;
+	(void) cap_mask;
+	return (-EINVAL);
+}
+
+int
+pcie_get_readrq(struct pci_dev *dev)
+{
+	u16 ctl = 0;
+
+	(void) pcie_capability_read_word(dev, PCI_EXP_DEVCTL, &ctl);
+	return (128 << ((ctl & PCI_EXP_DEVCTL_READRQ) >> 12));
+}
+
+/* rq: 128 to 4096, a power of two (else -EINVAL), as Linux checks. */
+int
+pcie_set_readrq(struct pci_dev *dev, int rq)
+{
+	u16 v;
+
+	if (rq < 128 || rq > 4096 || (rq & (rq - 1)) != 0)
+		return (-EINVAL);
+	if (!pci_is_pcie(dev))
+		return (-EINVAL);
+	v = (u16)((ffs(rq) - 8) << 12);
+	return (pcie_capability_clear_and_set_word(dev, PCI_EXP_DEVCTL,
+	    PCI_EXP_DEVCTL_READRQ, v));
+}
+
+int
+pcie_get_mps(struct pci_dev *dev)
+{
+	u16 ctl = 0;
+
+	(void) pcie_capability_read_word(dev, PCI_EXP_DEVCTL, &ctl);
+	return (128 << ((ctl & PCI_EXP_DEVCTL_PAYLOAD) >> 5));
+}
+
+bool
+pci_device_is_present(struct pci_dev *dev)
+{
+	u32 v;
+
+	if (pci_read_config_dword(dev, PCI_VENDOR_ID, &v) != 0)
+		return (false);
+	return (!PCI_POSSIBLE_ERROR(v));
+}
+
+/* Saved config space: not supported (see pci_save_state()). */
+struct pci_saved_state *
+pci_store_saved_state(struct pci_dev *dev)
+{
+	(void) dev;
+	return (NULL);
+}
+
+int
+pci_load_saved_state(struct pci_dev *dev, struct pci_saved_state *state)
+{
+	(void) dev;
+	return (state == NULL ? 0 : -EINVAL);
+}
+
+int
+pci_load_and_free_saved_state(struct pci_dev *dev,
+    struct pci_saved_state **state)
+{
+	int ret;
+
+	ret = pci_load_saved_state(dev, *state);
+	*state = NULL;
+	return (ret);
 }
 
 /* --- BAR mappings ------------------------------------------------------ */

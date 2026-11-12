@@ -59,10 +59,57 @@ lkpi_radix_tree_next(struct radix_tree_root *root,
 	return ((void __rcu **)lkpi_xa_slot(root, idx));
 }
 
+/* The iterator as Linux's functions take it (a void * converts). */
+static inline struct radix_tree_iter *
+lkpi_rt_iter(struct radix_tree_iter *iter)
+{
+	return (iter);
+}
+
 #define	radix_tree_for_each_slot(slot, root, iter, start) \
-	for ((slot) = lkpi_radix_tree_next((root), (iter), (start)); \
-	    (slot) != NULL; \
-	    (slot) = lkpi_radix_tree_next((root), (iter), (iter)->next_index))
+	for ((slot) = lkpi_radix_tree_next((root), lkpi_rt_iter(iter), \
+	    (start)); (slot) != NULL; \
+	    (slot) = lkpi_radix_tree_next((root), lkpi_rt_iter(iter), \
+	    lkpi_rt_iter(iter)->next_index))
+
+/*
+ * Tags are the XArray's marks (tag t: XA_MARK_t). tag_set/tag_clear
+ * return the entry, or NULL when the index holds none.
+ */
+static inline void *
+radix_tree_tag_set(struct radix_tree_root *root, unsigned long index,
+    unsigned int tag)
+{
+	void *e = xa_load(root, index);
+
+	if (e != NULL)
+		xa_set_mark(root, index, (xa_mark_t)tag);
+	return (e);
+}
+
+static inline void *
+radix_tree_tag_clear(struct radix_tree_root *root, unsigned long index,
+    unsigned int tag)
+{
+	void *e = xa_load(root, index);
+
+	if (e != NULL)
+		xa_clear_mark(root, index, (xa_mark_t)tag);
+	return (e);
+}
+
+#define	radix_tree_tag_get(root, index, tag) \
+	xa_get_mark((root), (index), (xa_mark_t)(tag))
+#define	radix_tree_tagged(root, tag)	xa_marked((root), (xa_mark_t)(tag))
+
+/* Up to max_items entries tagged tag, from first_index on; how many. */
+static inline unsigned int
+radix_tree_gang_lookup_tag(struct radix_tree_root *root, void **results,
+    unsigned long first_index, unsigned int max_items, unsigned int tag)
+{
+	return (xa_extract(root, results, first_index, ULONG_MAX, max_items,
+	    (xa_mark_t)tag));
+}
 
 static inline void
 radix_tree_iter_delete(struct radix_tree_root *root,

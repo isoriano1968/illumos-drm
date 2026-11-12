@@ -5,7 +5,7 @@
 #
 # Builds the LinuxKPI layer: compiles usr/src/uts/common/io/linuxkpi/src/*.c with the kernel
 # flags of usr/src/uts/common/io/linuxkpi/kflags.sh and links the kernel module misc/linuxkpi
-#   ld -ztype=kmod -N misc/drm_core -z defs -M ddi.mapfile \
+#   ld -ztype=kmod -N misc/drm_core -N misc/acpica -N misc/gfx_private -z defs -M ddi.mapfile \
 #      -M usr/src/uts/common/drm/drm_facade.mapfile -M private.mapfile ...
 # where private.mapfile is generated from private.d/*.txt: the kernel
 # symbols the layer uses that ddi.mapfile lacks, one per line with the

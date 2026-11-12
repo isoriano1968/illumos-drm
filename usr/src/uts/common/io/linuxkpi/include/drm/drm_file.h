@@ -121,4 +121,24 @@ drm_is_primary_client(const struct drm_file *file_priv)
 
 #define	drm_file_err(f, fmt, ...)	DRM_ERROR(fmt, ##__VA_ARGS__)
 
+/*
+ * Linux's per-client memory statistics (drm_print_memory_stats(), fdinfo):
+ * amdgpu counts its VM's buffers into one. The layer prints no fdinfo.
+ */
+struct drm_memory_stats {
+	u64 shared;
+	u64 private;
+	u64 resident;
+	u64 purgeable;
+	u64 active;
+};
+
+static inline int
+drm_memory_stats_is_zero(const struct drm_memory_stats *stats)
+{
+	return (stats->shared == 0 && stats->private == 0 &&
+	    stats->resident == 0 && stats->purgeable == 0 &&
+	    stats->active == 0);
+}
+
 #endif

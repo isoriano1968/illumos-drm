@@ -30,6 +30,7 @@
 #include <linux/idr.h>
 #include <linux/srcu.h>
 #include <linux/ww_mutex.h>
+#include <linux/sched.h>	/* TASK_COMM_LEN (drm_wedge_task_info) */
 
 #if __has_include(<drm/drm_mode_config.h>)
 #include <linux/list.h>
@@ -92,5 +93,14 @@ drm_dev_is_unplugged(struct drm_device *dev)
 {
 	return (READ_ONCE(dev->unplugged));
 }
+
+/*
+ * Linux's record of the task that wedged a device (drm_dev_wedged_event()
+ * reports it; amdgpu keeps one per VM for its hang reports).
+ */
+struct drm_wedge_task_info {
+	pid_t pid;
+	char comm[TASK_COMM_LEN];
+};
 
 #endif

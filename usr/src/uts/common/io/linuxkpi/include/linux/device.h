@@ -184,6 +184,12 @@ struct device_attribute {
 #define	DEVICE_ATTR_ADMIN_RW(_name) \
 	struct device_attribute dev_attr_##_name = __ATTR_RW_MODE(_name, 0600)
 #define	device_create_file(dev, attr)		((void)(dev), (void)(attr), 0)
+/* sysfs groups: succeed without effect, as <linux/sysfs.h>. */
+#define	device_add_group(dev, grp)		((void)(dev), (void)(grp), 0)
+#define	device_remove_group(dev, grp)		((void)(dev), (void)(grp))
+#define	devm_device_add_group(dev, grp)		((void)(dev), (void)(grp), 0)
+/* Removable (Thunderbolt/USB4-attached) devices are not known. */
+#define	dev_is_removable(dev)			((void)(dev), false)
 #define	device_remove_file(dev, attr)		((void)(dev), (void)(attr))
 #define	device_create_bin_file(dev, attr)	((void)(dev), (void)(attr), 0)
 #define	device_remove_bin_file(dev, attr)	((void)(dev), (void)(attr))

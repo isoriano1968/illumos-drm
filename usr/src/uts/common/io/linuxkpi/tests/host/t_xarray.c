@@ -4,7 +4,8 @@
  *
  * Tests of src/lkpi_xarray.c: the XArray (store, load, erase, insert,
  * cmpxchg, reservations, alloc, alloc_cyclic, find, a random workload
- * against a reference array, node accounting), the radix tree front end,
+ * against a reference array, node accounting, marks, xa_extract, the
+ * xa_state free-index search), the radix tree front end and its tags,
  * the IDR and the IDA.
  */
 
@@ -333,6 +334,82 @@ idr_sum(int id, void *p, void *data)
 	return (id == 1000 ? 7 : 0);
 }
 
+TEST(xarray_marks)
+{
+	struct xarray xa;
+	RADIX_TREE(rt, GFP_KERNEL);
+	unsigned long base = lkpi_host_kmem_live, idx;
+	void *got[8], *e;
+	int n;
+
+	xa_init(&xa);
+	CHECK(xa_store(&xa, 1, P(1), GFP_KERNEL) == NULL);
+	CHECK(xa_store(&xa, 5, P(5), GFP_KERNEL) == NULL);
+	CHECK(xa_store(&xa, 9, P(9), GFP_KERNEL) == NULL);
+	CHECK(!xa_marked(&xa, XA_MARK_1));
+	xa_set_mark(&xa, 5, XA_MARK_1);
+	xa_set_mark(&xa, 9, XA_MARK_1);
+	xa_set_mark(&xa, 3, XA_MARK_1);		/* no entry: nothing */
+	CHECK(xa_marked(&xa, XA_MARK_1));
+	CHECK(!xa_marked(&xa, XA_MARK_2));
+	CHECK(xa_get_mark(&xa, 5, XA_MARK_1));
+	CHECK(!xa_get_mark(&xa, 1, XA_MARK_1));
+	CHECK(!xa_get_mark(&xa, 3, XA_MARK_1));
+	idx = 0;
+	CHECK(xa_find(&xa, &idx, ULONG_MAX, XA_MARK_1) == P(5) && idx == 5);
+	CHECK(xa_find_after(&xa, &idx, ULONG_MAX, XA_MARK_1) == P(9) &&
+	    idx == 9);
+	CHECK(xa_find_after(&xa, &idx, ULONG_MAX, XA_MARK_1) == NULL);
+	n = 0;
+	xa_for_each_marked(&xa, idx, e, XA_MARK_1)
+		n++;
+	CHECK_EQ(n, 2);
+	/* A store over a marked entry keeps the mark; erasing drops it. */
+	CHECK(xa_store(&xa, 5, P(6), GFP_KERNEL) == P(5));
+	CHECK(xa_get_mark(&xa, 5, XA_MARK_1));
+	CHECK(xa_erase(&xa, 5) == P(6));
+	CHECK(xa_store(&xa, 5, P(5), GFP_KERNEL) == NULL);
+	CHECK(!xa_get_mark(&xa, 5, XA_MARK_1));
+	xa_clear_mark(&xa, 9, XA_MARK_1);
+	CHECK(!xa_marked(&xa, XA_MARK_1));
+	/* xa_extract: present entries in order, bounded by n. */
+	CHECK_EQ(xa_extract(&xa, got, 0, ULONG_MAX, 8, XA_PRESENT), 3);
+	CHECK(got[0] == P(1) && got[1] == P(5) && got[2] == P(9));
+	CHECK_EQ(xa_extract(&xa, got, 2, 9, 1, XA_PRESENT), 1);
+	CHECK(got[0] == P(5));
+	xa_destroy(&xa);
+
+	/* XA_FREE_MARK in an allocating array: the first free index. */
+	xa_init_flags(&xa, XA_FLAGS_ALLOC);
+	{
+		u32 id;
+		XA_STATE(xas, &xa, 0);
+
+		CHECK_EQ(xa_alloc(&xa, &id, P(0), xa_limit_32b, GFP_KERNEL), 0);
+		CHECK_EQ(xa_alloc(&xa, &id, P(1), xa_limit_32b, GFP_KERNEL), 0);
+		CHECK(xas_find_marked(&xas, ULONG_MAX, XA_FREE_MARK) == NULL);
+		CHECK_EQ(xas.xa_index, 2);
+	}
+	xa_destroy(&xa);
+
+	/* The radix tree's tags. */
+	CHECK_EQ(radix_tree_insert(&rt, 10, P(10)), 0);
+	CHECK_EQ(radix_tree_insert(&rt, 20, P(20)), 0);
+	CHECK_EQ(radix_tree_insert(&rt, 30, P(30)), 0);
+	CHECK(radix_tree_tag_set(&rt, 20, 0) == P(20));
+	CHECK(radix_tree_tag_set(&rt, 30, 0) == P(30));
+	CHECK(radix_tree_tag_set(&rt, 40, 0) == NULL);
+	CHECK(radix_tree_tagged(&rt, 0));
+	CHECK_EQ(radix_tree_gang_lookup_tag(&rt, got, 0, 8, 0), 2);
+	CHECK(got[0] == P(20) && got[1] == P(30));
+	CHECK(radix_tree_tag_clear(&rt, 20, 0) == P(20));
+	CHECK_EQ(radix_tree_gang_lookup_tag(&rt, got, 0, 8, 0), 1);
+	CHECK(radix_tree_tag_clear(&rt, 30, 0) == P(30));
+	CHECK(!radix_tree_tagged(&rt, 0));
+	xa_destroy(&rt);
+	CHECK_EQ(lkpi_host_kmem_live, base);
+}
+
 TEST(idr)
 {
 	struct idr idr;
@@ -425,5 +502,42 @@ TEST(ida)
 	lkpi_host_cmn_quiet = 0;
 	ida_destroy(&ida);
 	CHECK(ida_is_empty(&ida));
+	CHECK_EQ(lkpi_host_kmem_live, base);
+}
+
+/*
+ * Readers with xa_lock held, as Linux allows: amdgpu_userq_mgr_fini()
+ * walks its array with xa_find() and __xa_erase() inside xa_lock().
+ */
+TEST(xarray_read_under_lock)
+{
+	struct xarray xa;
+	unsigned long base = lkpi_host_kmem_live;
+	unsigned long i, n = 0;
+	void *e;
+
+	xa_init(&xa);
+	CHECK(xa_store(&xa, 3, P(3), GFP_KERNEL) == NULL);
+	CHECK(xa_store(&xa, 9, P(9), GFP_KERNEL) == NULL);
+	xa_set_mark(&xa, 9, XA_MARK_0);
+	for (;;) {
+		i = 0;
+		xa_lock(&xa);
+		CHECK(xa_load(&xa, 3) == (n == 0 ? P(3) : NULL));
+		CHECK(xa_get_mark(&xa, 9, XA_MARK_0) == (n < 2));
+		e = xa_find(&xa, &i, ULONG_MAX, XA_PRESENT);
+		if (e != NULL)
+			CHECK(__xa_erase(&xa, i) == e);
+		xa_unlock(&xa);
+		if (e == NULL)
+			break;
+		n++;
+	}
+	CHECK_EQ(n, 2);
+	/* and without the lock, as before */
+	CHECK(xa_load(&xa, 3) == NULL);
+	i = 0;
+	CHECK(xa_find(&xa, &i, ULONG_MAX, XA_PRESENT) == NULL);
+	xa_destroy(&xa);
 	CHECK_EQ(lkpi_host_kmem_live, base);
 }

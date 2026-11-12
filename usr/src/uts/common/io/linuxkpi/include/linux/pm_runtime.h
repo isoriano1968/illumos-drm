@@ -63,9 +63,9 @@ pm_runtime_put(struct device *dev)
 #define	pm_runtime_put_sync_autosuspend(dev)	pm_runtime_put(dev)
 #define	pm_runtime_put_noidle(dev)		((void)pm_runtime_put(dev))
 #define	pm_runtime_put_sync_suspend(dev)	pm_runtime_put(dev)
-#define	pm_runtime_resume(dev)			((void)(dev), 0)
-#define	pm_runtime_suspend(dev)			((void)(dev), 0)
-#define	pm_runtime_idle(dev)			((void)(dev), 0)
+static inline int pm_runtime_resume(struct device *dev) { return 0; }
+static inline int pm_runtime_suspend(struct device *dev) { return 0; }
+static inline int pm_runtime_idle(struct device *dev) { return 0; }
 #define	pm_runtime_mark_last_busy(dev)		((void)(dev))
 #define	pm_runtime_set_autosuspend_delay(dev, d)	((void)(dev), (void)(d))
 #define	pm_runtime_use_autosuspend(dev)		((void)(dev))
@@ -86,6 +86,7 @@ pm_runtime_put(struct device *dev)
 #define	pm_runtime_barrier(dev)			((void)(dev))
 #define	pm_suspend_ignore_children(dev, e)	((void)(dev), (void)(e))
 #define	pm_runtime_autosuspend_expiration(dev)	0
+static inline int pm_runtime_autosuspend(struct device *dev) { return 0; }
 #define	pm_runtime_force_suspend(dev)		0
 #define	pm_runtime_force_resume(dev)		0
 #define	device_set_wakeup_capable(dev, c)	((void)(dev))

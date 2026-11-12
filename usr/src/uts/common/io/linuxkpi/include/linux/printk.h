@@ -38,6 +38,8 @@ extern int lkpi_vprintk(const char *fmt, va_list ap) __printf(1, 0);
 		lkpi_printk(fmt, ##__VA_ARGS__); \
 	0; })
 
+/* The prefix of hardware error reports (Linux: <linux/printk.h>). */
+#define	HW_ERR		"[Hardware Error]: "
 #define	pr_emerg(fmt, ...)	printk(KERN_EMERG pr_fmt(fmt), ##__VA_ARGS__)
 #define	pr_alert(fmt, ...)	printk(KERN_ALERT pr_fmt(fmt), ##__VA_ARGS__)
 #define	pr_crit(fmt, ...)	printk(KERN_CRIT pr_fmt(fmt), ##__VA_ARGS__)

@@ -6,9 +6,12 @@
  *
  * `current` is the struct task_struct of the calling thread, kept in
  * thread-specific data (tsd_create(), tsd_get(), tsd_set()): created on
- * the first use in thread context and freed by the key's destructor when
- * the thread exits (or at module unload, when tsd_destroy() runs the
- * destructor for every thread). A kthread's task belongs to its kthread
+ * the first use in thread context; the key's destructor drops the
+ * thread's reference when the thread exits (or at module unload, when
+ * tsd_destroy() runs the destructor for every thread), and the last
+ * put_task_struct() frees it, so a task a driver holds (amdgpu's userptr
+ * objects keep the creator's) stays valid after its thread is gone. A
+ * kthread's task belongs to its kthread
  * record (src/lkpi_kthread.c) and is only bound to the thread while the
  * kthread function runs. In an interrupt handler `current` is one shared
  * placeholder task that never sleeps and is never woken.
@@ -48,6 +51,8 @@ lkpi_task_init(struct task_struct *t, const char *comm)
 	(mutex_init)(&t->lock, NULL, MUTEX_DRIVER, NULL);
 	cv_init(&t->cv, NULL, CV_DRIVER, NULL);
 	(void) strlcpy(t->comm, comm, sizeof (t->comm));
+	t->group_leader = t;
+	t->lkpi_refs = 1;	/* the owner's; lkpi_release is the owner's too */
 }
 
 void
@@ -57,17 +62,39 @@ lkpi_task_fini(struct task_struct *t)
 	(mutex_destroy)(&t->lock);
 }
 
+/* Frees a thread's own task (lkpi_task_self()) at its last put. */
+static void
+lkpi_task_free(struct task_struct *t)
+{
+	lkpi_task_fini(t);
+	kmem_free(t, sizeof (*t));
+}
+
+/* Linux's put_task_struct(). */
+void
+lkpi_task_put(struct task_struct *t)
+{
+	if (t == NULL)
+		return;
+	if (__atomic_sub_fetch(&t->lkpi_refs, 1, __ATOMIC_ACQ_REL) != 0)
+		return;
+	if (t->lkpi_release != NULL)
+		t->lkpi_release(t);
+	else
+		cmn_err(CE_WARN, "linuxkpi: the last reference of task \"%s\" "
+		    "was put", t->comm);
+}
+
 /* The tsd destructor: a thread with a task exits (or the layer unloads). */
 static void
 lkpi_task_dtor(void *arg)
 {
 	struct task_struct *t = arg;
 
-	/* A kthread's task is freed by kthread_stop(), not here. */
+	/* A kthread's reference is its record's, dropped by kthread_stop(). */
 	if (t == NULL || t->kthread_data != NULL)
 		return;
-	lkpi_task_fini(t);
-	kmem_free(t, sizeof (*t));
+	lkpi_task_put(t);
 }
 
 void
@@ -75,6 +102,7 @@ lkpi_task_bind(struct task_struct *t)
 {
 	t->thread = curthread;
 	t->pid = ddi_get_pid();
+	t->tgid = t->pid;
 	if (lkpi_task_key == 0 || tsd_set(lkpi_task_key, t) != 0)
 		cmn_err(CE_WARN, "linuxkpi: cannot bind task \"%s\"", t->comm);
 }
@@ -106,8 +134,10 @@ lkpi_task_self(void)
 	if (t == NULL)
 		t = kmem_alloc(sizeof (*t), KM_SLEEP);
 	lkpi_task_init(t, "illumos");
+	t->lkpi_release = lkpi_task_free;
 	t->thread = curthread;
 	t->pid = ddi_get_pid();
+	t->tgid = t->pid;
 	if (tsd_set(lkpi_task_key, t) != 0) {
 		lkpi_task_fini(t);
 		kmem_free(t, sizeof (*t));

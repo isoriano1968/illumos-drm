@@ -10,8 +10,9 @@
  * wake_up_process(), calls the function (unless kthread_stop() came
  * first: -EINTR, as on Linux) and records its result. The kthread record
  * (with the task) lives until kthread_stop() collects the result and
- * destroys the task queue; kthreads never stopped are stopped at module
- * unload.
+ * destroys the task queue, and until the last put_task_struct() of the
+ * task (kthread_stop() drops the record's own reference); kthreads never
+ * stopped are stopped at module unload.
  */
 
 #include <linux/kthread.h>
@@ -74,6 +75,13 @@ lkpi_kthread_free(struct lkpi_kthread *kt)
 	kmem_free(kt, sizeof (*kt));
 }
 
+/* The last put_task_struct() of a kthread's task. */
+static void
+lkpi_kthread_release(struct task_struct *t)
+{
+	lkpi_kthread_free(t->kthread_data);
+}
+
 struct task_struct *
 lkpi_kthread_create(int (*fn)(void *data), void *data, const char *namefmt,
     ...)
@@ -93,6 +101,7 @@ lkpi_kthread_create(int (*fn)(void *data), void *data, const char *namefmt,
 	kt->task.__state = TASK_UNINTERRUPTIBLE;
 	kt->task.flags = PF_KTHREAD;
 	kt->task.kthread_data = kt;
+	kt->task.lkpi_release = lkpi_kthread_release;
 	kt->fn = fn;
 	kt->data = data;
 	(mutex_init)(&kt->lock, NULL, MUTEX_DRIVER, NULL);
@@ -141,7 +150,8 @@ kthread_stop(struct task_struct *k)
 	list_del(&kt->link);
 	mutex_exit(&lkpi_kthread_lock);
 	ddi_taskq_destroy(kt->tq);
-	lkpi_kthread_free(kt);
+	kt->tq = NULL;
+	lkpi_task_put(&kt->task);	/* the record's reference */
 	return (ret);
 }
 

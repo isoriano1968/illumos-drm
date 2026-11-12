@@ -21,8 +21,96 @@
 #include <linux/seq_file.h>
 #include <linux/slab.h>
 #include <linux/wait.h>
+#include <linux/sort.h>
+#include <linux/dma-fence-unwrap.h>
 
 /* --- arrays ------------------------------------------------------------ */
+
+/* --- __dma_fence_unwrap_merge ------------------------------------------ */
+
+struct dma_fence *
+__dma_fence_unwrap_merge(unsigned int num_fences, struct dma_fence **fences,
+    struct dma_fence_unwrap *iter)
+{
+	struct dma_fence **pend, *f;
+	struct dma_fence_array *arr;
+	ktime_t latest = 0;
+	unsigned int i, total = 0;
+	int n = 0;
+
+	/* An upper bound: every fence inside the given ones. */
+	for (i = 0; i < num_fences; i++) {
+		dma_fence_unwrap_for_each(f, &iter[i], fences[i])
+			total++;
+	}
+	pend = total == 0 ? NULL : kmalloc_array(total, sizeof (*pend),
+	    GFP_KERNEL);
+	if (total != 0 && pend == NULL)
+		return (NULL);
+	for (i = 0; i < num_fences; i++) {
+		dma_fence_unwrap_for_each(f, &iter[i], fences[i]) {
+			if (!dma_fence_is_signaled(f)) {
+				if ((unsigned int)n < total)
+					pend[n++] = dma_fence_get(f);
+			} else if (ktime_after(dma_fence_timestamp(f), latest)) {
+				latest = dma_fence_timestamp(f);
+			}
+		}
+	}
+	if (n == 0) {
+		kfree(pend);
+		return (dma_fence_allocate_private_stub(latest));
+	}
+	n = dma_fence_dedup_array(pend, n);
+	if (n == 1) {
+		f = pend[0];
+		kfree(pend);
+		return (f);
+	}
+	/* The array takes over pend and its references. */
+	arr = dma_fence_array_create(n, pend, dma_fence_context_alloc(1), 1);
+	if (arr == NULL) {
+		for (i = 0; i < (unsigned int)n; i++)
+			dma_fence_put(pend[i]);
+		kfree(pend);
+		return (NULL);
+	}
+	return (&arr->base);
+}
+
+/* --- dma_fence_dedup_array --------------------------------------------- */
+
+/* By context; within a context the later fence first. */
+static int
+lkpi_fence_dedup_cmp(const void *a, const void *b)
+{
+	struct dma_fence *fa = *(struct dma_fence * const *)a;
+	struct dma_fence *fb = *(struct dma_fence * const *)b;
+
+	if (fa->context != fb->context)
+		return (fa->context < fb->context ? -1 : 1);
+	if (fa == fb || fa->seqno == fb->seqno)
+		return (0);
+	return (dma_fence_is_later(fa, fb) ? -1 : 1);
+}
+
+int
+dma_fence_dedup_array(struct dma_fence **fences, int num_fences)
+{
+	int i, j;
+
+	if (num_fences <= 1)
+		return (num_fences);
+	sort(fences, (size_t)num_fences, sizeof (*fences),
+	    lkpi_fence_dedup_cmp, NULL);
+	for (i = 1, j = 0; i < num_fences; i++) {
+		if (fences[i]->context == fences[j]->context)
+			dma_fence_put(fences[i]);
+		else
+			fences[++j] = fences[i];
+	}
+	return (j + 1);
+}
 
 static const char *
 array_driver_name(struct dma_fence *fence)

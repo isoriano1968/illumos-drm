@@ -53,9 +53,18 @@
  *	0 (nothing supported) for an adapter without algorithm or without
  *	a functionality callback.
  *
- * Adapter quirks are checked only for the plain limits (quirks->flags 0:
- * max_num_msgs, max_read_len, max_write_len; -EOPNOTSUPP); the combined
- * message flags of Linux (I2C_AQ_*) are not declared and not checked.
+ * Adapter quirks are checked only for the plain limits (max_num_msgs,
+ * max_read_len, max_write_len; -EOPNOTSUPP); the I2C_AQ_* flags are
+ * declared but not checked: the adapter's algorithm sees such transfers
+ * and refuses them itself (amdgpu's SMU adapters do).
+ *
+ * devm_i2c_add_adapter(dev, adap)
+ *	i2c_add_adapter(), deleted when dev's managed resources are
+ *	released.
+ * i2c_new_client_device(adap, info)
+ *	ERR_PTR(-ENODEV): the layer has no I2C client drivers (Linux's
+ *	thermal sensor chips on old boards, an EEPROM); the caller goes on
+ *	without the client.
  */
 #ifndef _LINUX_I2C_H
 #define	_LINUX_I2C_H
@@ -67,6 +76,7 @@
 #include <linux/list.h>
 #include <linux/completion.h>
 #include <linux/mod_devicetable.h>
+#include <linux/acpi.h>		/* as Linux's i2c.h (ACPI companions) */
 
 /* struct i2c_msg flags (the uAPI values) */
 #define	I2C_M_RD		0x0001
@@ -183,6 +193,19 @@ struct i2c_lock_operations {
 	void (*unlock_bus)(struct i2c_adapter *adap, unsigned int flags);
 };
 
+#define	I2C_AQ_COMB			(1U << 0)
+#define	I2C_AQ_COMB_WRITE_FIRST		(1U << 1)
+#define	I2C_AQ_COMB_READ_SECOND		(1U << 2)
+#define	I2C_AQ_COMB_SAME_ADDR		(1U << 3)
+#define	I2C_AQ_COMB_WRITE_THEN_READ	(I2C_AQ_COMB | I2C_AQ_COMB_WRITE_FIRST | \
+	I2C_AQ_COMB_READ_SECOND | I2C_AQ_COMB_SAME_ADDR)
+#define	I2C_AQ_NO_CLK_STRETCH		(1U << 4)
+#define	I2C_AQ_NO_ZERO_LEN_READ		(1U << 5)
+#define	I2C_AQ_NO_ZERO_LEN_WRITE	(1U << 6)
+#define	I2C_AQ_NO_ZERO_LEN		(I2C_AQ_NO_ZERO_LEN_READ | \
+	I2C_AQ_NO_ZERO_LEN_WRITE)
+#define	I2C_AQ_NO_REP_START		(1U << 7)
+
 struct i2c_adapter_quirks {
 	u64 flags;
 	int max_num_msgs;
@@ -214,6 +237,23 @@ struct i2c_adapter {
 #define	to_i2c_adapter(d)	container_of(d, struct i2c_adapter, dev)
 
 extern int i2c_add_adapter(struct i2c_adapter *adap);
+extern int devm_i2c_add_adapter(struct device *dev, struct i2c_adapter *adap);
+
+#define	I2C_NAME_SIZE	20
+struct i2c_client;
+struct i2c_board_info {
+	char type[I2C_NAME_SIZE];
+	unsigned short flags;
+	unsigned short addr;
+	const char *dev_name;
+	void *platform_data;
+	int irq;
+};
+#define	I2C_BOARD_INFO(dev_type, dev_addr) \
+	.type = dev_type, .addr = (dev_addr)
+#define	i2c_new_client_device(adap, info) \
+	((void)(adap), (void)(info), (struct i2c_client *)ERR_PTR(-ENODEV))
+#define	i2c_unregister_device(c)	((void)(c))
 extern int i2c_add_numbered_adapter(struct i2c_adapter *adap);
 extern void i2c_del_adapter(struct i2c_adapter *adap);
 extern struct i2c_adapter *i2c_get_adapter(int nr);

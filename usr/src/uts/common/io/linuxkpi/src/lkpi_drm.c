@@ -39,6 +39,7 @@
 #include <drm/drm_print.h>
 #include <drm/drm_vma_manager.h>
 
+#include <lkpi/prime.h>
 #include "lkpi_internal.h"
 
 /*
@@ -55,6 +56,8 @@ struct lkpi_drm_driver {
 	struct device *parent;		/* referenced until release */
 	struct drm_device *drm;
 	bool stuck;			/* the core refused to unregister */
+	/* PRIME exports of private objects (lkpi_drm_set_prime_export()). */
+	const struct drm_illumos_prime_export_funcs *prime;
 	bool released;
 	int num_ioctls;
 	struct drm_ioctl_desc table[];
@@ -238,6 +241,56 @@ lkpi_drm_detach_end(struct device *dev)
 
 static void lkpi_drm_set_kdev(struct drm_device *dev);
 
+/*
+ * PRIME exports of the device's private objects to other devices
+ * (<drm/dma_buf.h>): the driver's callbacks, or -ENOTSUP.
+ */
+static const struct drm_illumos_prime_export_funcs *
+lkpi_prime_of(struct drm_gem_object *obj)
+{
+	const struct lkpi_drm_driver *ld =
+	    container_of(obj->dev->driver, struct lkpi_drm_driver, drv);
+
+	return (READ_ONCE(ld->prime));
+}
+
+static int
+lkpi_prime_pin(struct drm_gem_object *obj, void **kaddr)
+{
+	const struct drm_illumos_prime_export_funcs *f = lkpi_prime_of(obj);
+
+	return (f != NULL ? f->pin(obj, kaddr) : -ENOTSUP);
+}
+
+static void
+lkpi_prime_unpin(struct drm_gem_object *obj)
+{
+	const struct drm_illumos_prime_export_funcs *f = lkpi_prime_of(obj);
+
+	if (f != NULL)
+		f->unpin(obj);
+}
+
+static const struct drm_illumos_prime_export_funcs lkpi_prime_funcs = {
+	.pin = lkpi_prime_pin,
+	.unpin = lkpi_prime_unpin,
+};
+
+int
+lkpi_drm_set_prime_export(struct drm_device *dev,
+    const struct drm_illumos_prime_export_funcs *funcs)
+{
+	struct lkpi_drm_driver *ld;
+
+	if (dev == NULL || funcs == NULL || funcs->pin == NULL ||
+	    funcs->unpin == NULL)
+		return (-EINVAL);
+	ld = container_of((struct drm_driver *)dev->driver,
+	    struct lkpi_drm_driver, drv);
+	WRITE_ONCE(ld->prime, funcs);
+	return (0);
+}
+
 void *
 lkpi_devm_drm_dev_alloc(struct device *parent,
     const struct drm_driver *driver, size_t size, size_t offset)
@@ -292,6 +345,13 @@ lkpi_devm_drm_dev_alloc(struct device *parent,
 	 * adaptive mutex without an interrupt cookie, which the low-level
 	 * handlers request_irq() accepts may take (mutex_init(9F)).
 	 */
+	/*
+	 * Other devices map the device's private objects through the
+	 * driver's PRIME callbacks, which it sets later
+	 * (lkpi_drm_set_prime_export()); the core takes them before
+	 * registration, so the layer's trampolines go in now.
+	 */
+	(void) drm_dev_illumos_set_prime_export(drm, &lkpi_prime_funcs);
 	if ((ret = (drm_dev_register)(drm, 0)) != 0)
 		return (ERR_PTR(ret));
 	lkpi_drm_set_kdev(drm);
@@ -668,6 +728,99 @@ drm_vma_node_is_allowed(struct drm_vma_offset_node *node,
 
 /* --- PRIME: the core's ------------------------------------------------- */
 
+struct drm_client_dev;		/* Linux's <drm/drm_client.h> (drivers) */
+struct drm_client_funcs;
+
+/*
+ * In-kernel DRM clients (fbdev emulation, amdgpu's KFD client): illumos
+ * has none, so a client cannot be made (-ENODEV); registering and
+ * releasing one that was not made do nothing.
+ */
+int
+drm_client_init(struct drm_device *dev, struct drm_client_dev *client,
+    const char *name, const struct drm_client_funcs *funcs)
+{
+	(void) dev;
+	(void) client;
+	(void) name;
+	(void) funcs;
+	return (-ENODEV);
+}
+
+void
+drm_client_register(struct drm_client_dev *client)
+{
+	(void) client;
+}
+
+void
+drm_client_release(struct drm_client_dev *client)
+{
+	(void) client;
+}
+
+int
+drm_prime_sg_to_dma_addr_array(struct sg_table *sgt, dma_addr_t *addrs,
+    int max_entries)
+{
+	struct scatterlist *sg;
+	unsigned int i;
+	int n = 0;
+
+	for_each_sgtable_dma_sg(sgt, sg, i) {
+		dma_addr_t addr = sg_dma_address(sg);
+		size_t len = sg_dma_len(sg);
+
+		while (len > 0) {
+			if (WARN_ON(n >= max_entries))
+				return (-1);
+			addrs[n++] = addr;
+			addr += PAGE_SIZE;
+			len = len > PAGE_SIZE ? len - PAGE_SIZE : 0;
+		}
+	}
+	return (0);
+}
+
+int
+drm_gem_objects_lookup(struct drm_file *filp, void __user *bo_handles,
+    int count, struct drm_gem_object ***objs_out)
+{
+	struct drm_gem_object **objs;
+	u32 *handles;
+	int i, ret = 0;
+
+	*objs_out = NULL;
+	if (count == 0)
+		return (0);
+	if (count < 0)
+		return (-EINVAL);
+	objs = kvmalloc_array((size_t)count, sizeof (*objs), GFP_KERNEL);
+	if (objs == NULL)
+		return (-ENOMEM);
+	handles = vmemdup_array_user(bo_handles, count, sizeof (u32));
+	if (IS_ERR(handles)) {
+		kvfree(objs);
+		return ((int)PTR_ERR(handles));
+	}
+	for (i = 0; i < count; i++) {
+		objs[i] = drm_gem_object_lookup(filp, handles[i]);
+		if (objs[i] == NULL) {
+			ret = -ENOENT;
+			break;
+		}
+	}
+	kvfree(handles);
+	if (ret != 0) {
+		while (i-- > 0)
+			drm_gem_object_put(objs[i]);
+		kvfree(objs);
+		return (ret);
+	}
+	*objs_out = objs;
+	return (0);
+}
+
 struct dma_buf *
 drm_gem_dmabuf_export(struct drm_device *dev,
     struct dma_buf_export_info *exp_info)
@@ -699,10 +852,56 @@ drm_gem_unmap_dma_buf(struct dma_buf_attachment *attach,
 {
 }
 
-/* An imported object's import state is the core's; nothing to undo. */
+/*
+ * dma-buf attachments: the importing side of another device's buffer, on
+ * the core's PRIME maps (drm_illumos_prime_map(), <drm/dma_buf.h>). An
+ * attachment is static: its mapping pins the buffer until it is unmapped
+ * (no move notification), so dma_buf_pin() has nothing to add. The
+ * mapping's sg table carries DMA addresses only (no pages), bound for the
+ * importing device with its DMA attributes (device.lkpi_dma_attr).
+ */
+#define	LKPI_ATTACH_MAGIC	0x6c6b70695f617474ULL	/* "lkpi_att" */
+
+struct lkpi_dma_buf_attachment {
+	uint64_t magic;			/* before the facade's structure */
+	struct dma_buf_attachment a;
+	struct device *ldev;
+	struct drm_device *drm;
+	void *importer_priv;
+	struct drm_illumos_prime_map *map;
+	struct sg_table *sgt;
+};
+
+/* The layer's attachment behind `a`, or NULL (the core's own imports). */
+static struct lkpi_dma_buf_attachment *
+lkpi_attach_of(struct dma_buf_attachment *a)
+{
+	struct lkpi_dma_buf_attachment *w;
+
+	if (a == NULL)
+		return (NULL);
+	w = container_of(a, struct lkpi_dma_buf_attachment, a);
+	return (w->magic == LKPI_ATTACH_MAGIC ? w : NULL);
+}
+
+/*
+ * Linux's: unmaps and detaches the import of an object the driver made
+ * with dma_buf_attach() and drops the dma-buf. The core's own imports
+ * keep their state in the core: nothing to undo for them.
+ */
 void
 drm_prime_gem_destroy(struct drm_gem_object *obj, struct sg_table *sg)
 {
+	struct dma_buf_attachment *a = obj->import_attach;
+	struct dma_buf *dmabuf;
+
+	if (lkpi_attach_of(a) == NULL)
+		return;
+	dmabuf = a->dmabuf;
+	if (sg != NULL)
+		dma_buf_unmap_attachment_unlocked(a, sg, DMA_BIDIRECTIONAL);
+	dma_buf_detach(dmabuf, a);
+	dma_buf_put(dmabuf);
 }
 
 int
@@ -716,8 +915,7 @@ drm_gem_map_detach(struct dma_buf *dma_buf, struct dma_buf_attachment *attach)
 {
 }
 
-/* --- dma-buf attachments: not supported -------------------------------- */
-
+/* A driver's own dma-bufs are the core's exports, never the driver's. */
 struct dma_buf *
 dma_buf_export(const struct dma_buf_export_info *exp_info)
 {
@@ -727,45 +925,147 @@ dma_buf_export(const struct dma_buf_export_info *exp_info)
 struct dma_buf_attachment *
 dma_buf_attach(struct dma_buf *dmabuf, struct device *dev)
 {
-	return (ERR_PTR(-ENODEV));
+	struct lkpi_drm_driver *ld;
+	struct lkpi_dma_buf_attachment *w;
+
+	if (dmabuf == NULL || dev == NULL)
+		return (ERR_PTR(-EINVAL));
+	if ((ld = driver_of_parent(dev)) == NULL)
+		return (ERR_PTR(-ENODEV));
+	if ((w = kzalloc(sizeof (*w), GFP_KERNEL)) == NULL)
+		return (ERR_PTR(-ENOMEM));
+	w->magic = LKPI_ATTACH_MAGIC;
+	w->a.dmabuf = dmabuf;
+	w->a.dev = dev;
+	INIT_LIST_HEAD(&w->a.node);
+	w->ldev = dev;
+	w->drm = ld->drm;
+	return (&w->a);
 }
 
+/* A dynamic importer gets a static attachment (pinned while mapped). */
 struct dma_buf_attachment *
 dma_buf_dynamic_attach(struct dma_buf *dmabuf, struct device *dev,
     const struct dma_buf_attachment_ops *importer_ops, void *importer_priv)
 {
-	return (ERR_PTR(-ENODEV));
+	struct dma_buf_attachment *a = dma_buf_attach(dmabuf, dev);
+
+	if (!IS_ERR(a))
+		lkpi_attach_of(a)->importer_priv = importer_priv;
+	return (a);
 }
 
 void
 dma_buf_detach(struct dma_buf *dmabuf, struct dma_buf_attachment *attach)
 {
+	struct lkpi_dma_buf_attachment *w = lkpi_attach_of(attach);
+
+	if (w == NULL)
+		return;
+	if (WARN_ON(w->sgt != NULL))
+		dma_buf_unmap_attachment_unlocked(attach, w->sgt,
+		    DMA_BIDIRECTIONAL);
+	w->magic = 0;
+	kfree(w);
 }
 
+/* With dmabuf->resv held, as on Linux. */
 struct sg_table *
 dma_buf_map_attachment(struct dma_buf_attachment *attach,
     enum dma_data_direction dir)
 {
-	return (ERR_PTR(-ENODEV));
+	struct lkpi_dma_buf_attachment *w = lkpi_attach_of(attach);
+	struct sg_table *sgt = NULL;
+	struct scatterlist *sg;
+	uint64_t *addr = NULL;
+	size_t *len = NULL;
+	unsigned int n, i;
+	int ret;
+
+	(void) dir;
+	if (w == NULL)
+		return (ERR_PTR(-EINVAL));
+	if (w->sgt != NULL)
+		return (ERR_PTR(-EBUSY));
+	ret = drm_illumos_prime_map(w->drm, attach->dmabuf,
+	    &w->ldev->lkpi_dma_attr, &w->map);
+	if (ret != 0)
+		return (ERR_PTR(ret));
+	n = drm_illumos_prime_map_nsegs(w->map);
+	ret = -ENOMEM;
+	addr = kmalloc_array(n, sizeof (*addr), GFP_KERNEL);
+	len = kmalloc_array(n, sizeof (*len), GFP_KERNEL);
+	sgt = kzalloc(sizeof (*sgt), GFP_KERNEL);
+	if (n == 0 || addr == NULL || len == NULL || sgt == NULL)
+		goto fail;
+	if ((ret = sg_alloc_table(sgt, n, GFP_KERNEL)) != 0)
+		goto fail;
+	ret = -EIO;
+	if (drm_illumos_prime_map_segs(w->map, n, addr, len) != (int)n)
+		goto fail_table;
+	for_each_sg(sgt->sgl, sg, n, i) {
+		if (len[i] > UINT_MAX)
+			goto fail_table;
+		sg->offset = 0;
+		sg->length = (unsigned int)len[i];
+		sg_dma_address(sg) = addr[i];
+		sg_dma_len(sg) = (unsigned int)len[i];
+	}
+	kfree(addr);
+	kfree(len);
+	w->sgt = sgt;
+	return (sgt);
+fail_table:
+	sg_free_table(sgt);
+fail:
+	kfree(sgt);
+	kfree(addr);
+	kfree(len);
+	drm_illumos_prime_unmap(w->map);
+	w->map = NULL;
+	return (ERR_PTR(ret));
 }
 
 struct sg_table *
 dma_buf_map_attachment_unlocked(struct dma_buf_attachment *attach,
     enum dma_data_direction dir)
 {
-	return (ERR_PTR(-ENODEV));
+	struct sg_table *sgt;
+
+	if (attach == NULL)
+		return (ERR_PTR(-EINVAL));
+	dma_resv_lock(attach->dmabuf->resv, NULL);
+	sgt = dma_buf_map_attachment(attach, dir);
+	dma_resv_unlock(attach->dmabuf->resv);
+	return (sgt);
 }
 
+/* With dmabuf->resv held, as on Linux. */
 void
 dma_buf_unmap_attachment(struct dma_buf_attachment *attach,
     struct sg_table *sgt, enum dma_data_direction dir)
 {
+	struct lkpi_dma_buf_attachment *w = lkpi_attach_of(attach);
+
+	(void) dir;
+	if (w == NULL || w->sgt == NULL || WARN_ON(sgt != w->sgt))
+		return;
+	drm_illumos_prime_unmap(w->map);
+	w->map = NULL;
+	sg_free_table(sgt);
+	kfree(sgt);
+	w->sgt = NULL;
 }
 
 void
 dma_buf_unmap_attachment_unlocked(struct dma_buf_attachment *attach,
     struct sg_table *sgt, enum dma_data_direction dir)
 {
+	if (attach == NULL)
+		return;
+	dma_resv_lock(attach->dmabuf->resv, NULL);
+	dma_buf_unmap_attachment(attach, sgt, dir);
+	dma_resv_unlock(attach->dmabuf->resv);
 }
 
 int
@@ -779,10 +1079,11 @@ dma_buf_vunmap(struct dma_buf *dmabuf, struct iosys_map *map)
 {
 }
 
+/* A mapping pins the buffer already (static attachments). */
 int
 dma_buf_pin(struct dma_buf_attachment *attach)
 {
-	return (-ENODEV);
+	return (lkpi_attach_of(attach) != NULL ? 0 : -EINVAL);
 }
 
 void

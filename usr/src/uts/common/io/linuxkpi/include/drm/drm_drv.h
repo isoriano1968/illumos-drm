@@ -43,6 +43,15 @@ drm_core_check_feature(const struct drm_device *dev, u32 feature)
 #define	drm_drv_uses_atomic_modeset(dev) \
 	drm_core_check_feature((dev), DRIVER_ATOMIC)
 #define	drm_firmware_drivers_only()	false
+
+/*
+ * The device-memory cgroup controller (Linux's dmem): illumos has none,
+ * so no region is registered (NULL, as Linux without CONFIG_CGROUP_DMEM).
+ */
+struct dmem_cgroup_region;
+#define	drmm_cgroup_register_region(dev, name, size) \
+	((void)(dev), (void)(name), (void)(size), \
+	    (struct dmem_cgroup_region *)NULL)
 #define	DRIVER_COMPUTE_ACCEL		(1 << 7)
 #define	DRIVER_GEM_GPUVA		(1 << 8)
 #define	DRIVER_CURSOR_HOTSPOT		(1 << 9)

@@ -32,4 +32,12 @@ extern int drm_gem_map_attach(struct dma_buf *dma_buf,
 extern void drm_gem_map_detach(struct dma_buf *dma_buf,
     struct dma_buf_attachment *attach);
 
+/*
+ * The DMA address of every page of a mapped scatter-gather table, in
+ * order, into addrs (max_entries of them): 0, or -1 (with a warning) if
+ * the table has more pages.
+ */
+extern int drm_prime_sg_to_dma_addr_array(struct sg_table *sgt,
+    dma_addr_t *addrs, int max_entries);
+
 #endif

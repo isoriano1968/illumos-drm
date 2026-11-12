@@ -80,4 +80,11 @@ extern const struct dmi_system_id *dmi_first_match(
     const struct dmi_system_id *list);
 extern bool dmi_match(enum dmi_field f, const char *str);
 
+/* An SMBIOS structure header (KFD walks memory devices; not built here). */
+struct dmi_header {
+	u8 type;
+	u8 length;
+	u16 handle;
+} __packed;
+
 #endif

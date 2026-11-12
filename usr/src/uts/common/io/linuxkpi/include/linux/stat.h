@@ -3,6 +3,7 @@
 #ifndef _LINUX_STAT_H
 #define	_LINUX_STAT_H
 /* <sys/stat.h> is in the prologue. */
+#include <linux/time.h>	/* as Linux's stat.h (struct tm reaches amdgpu this way) */
 #define	S_IRWXUGO	(S_IRWXU | S_IRWXG | S_IRWXO)
 #define	S_IALLUGO	(S_ISUID | S_ISGID | S_ISVTX | S_IRWXUGO)
 #define	S_IRUGO		(S_IRUSR | S_IRGRP | S_IROTH)

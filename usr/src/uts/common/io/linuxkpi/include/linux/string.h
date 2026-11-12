@@ -52,6 +52,16 @@ extern void *memset64(u64 *s, u64 v, size_t count);
 extern void *memdup_user(const void __user *src, size_t len);
 extern void *vmemdup_user(const void __user *src, size_t len);
 extern void *memdup_user_nul(const void __user *src, size_t len);
+
+/* n elements of size bytes from user space; -EOVERFLOW if n * size does. */
+#define	memdup_array_user(src, n, size)	({ \
+	size_t __lkpi_nb; \
+	__builtin_mul_overflow((size_t)(n), (size_t)(size), &__lkpi_nb) ? \
+	    ERR_PTR(-EOVERFLOW) : memdup_user((src), __lkpi_nb); })
+#define	vmemdup_array_user(src, n, size)	({ \
+	size_t __lkpi_nb; \
+	__builtin_mul_overflow((size_t)(n), (size_t)(size), &__lkpi_nb) ? \
+	    ERR_PTR(-EOVERFLOW) : vmemdup_user((src), __lkpi_nb); })
 extern char *strndup_user(const char __user *s, long n);
 
 #define	strnlen(s, m)		lkpi_strnlen(s, m)

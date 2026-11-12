@@ -29,12 +29,17 @@ struct vga_switcheroo_client_ops {
 	bool (*can_switch)(struct pci_dev *dev);
 	void (*gpu_bound)(struct pci_dev *dev, int id);
 };
-#define	vga_switcheroo_register_client(p, o, d)	((void)(p), 0)
+struct vga_switcheroo_client_ops;
+static inline int vga_switcheroo_register_client(struct pci_dev *p,
+    const struct vga_switcheroo_client_ops *o, bool d) { return 0; }
 #define	vga_switcheroo_unregister_client(p)	((void)(p))
 #define	vga_switcheroo_process_delayed_switch()	0
 #define	vga_switcheroo_handler_flags()		0
 #define	vga_switcheroo_client_probe_defer(p)	false
-#define	vga_switcheroo_init_domain_pm_ops(d, p)	(-EINVAL)
+struct device;
+struct dev_pm_domain;
+static inline int vga_switcheroo_init_domain_pm_ops(struct device *d,
+    struct dev_pm_domain *p) { return -EINVAL; }
 #define	vga_switcheroo_fini_domain_pm_ops(d)	((void)(d))
 static inline void
 vga_switcheroo_lock_ddc(struct pci_dev *pdev)

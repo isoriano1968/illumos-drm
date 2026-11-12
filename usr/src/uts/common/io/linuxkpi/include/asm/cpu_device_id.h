@@ -43,6 +43,9 @@ struct cpuinfo_x86 {
 
 extern struct cpuinfo_x86 boot_cpu_data;
 
+/* Per-CPU data: every CPU is described by the boot CPU's (an lvalue). */
+#define	cpu_data(cpu)	(*((void)(cpu), &boot_cpu_data))
+
 #define	X86_FEATURE_CLFLUSH	(0 * 32 + 19)
 #define	X86_FEATURE_PAT		(0 * 32 + 16)
 #define	X86_FEATURE_XMM2	(0 * 32 + 26)

@@ -17,4 +17,5 @@ kas	# non-DDI kernel interface (vm/as.h): the kernel address space, whose a_hat 
 heap_arena	# non-DDI kernel interface (vm/seg_kmem.h): the kernel heap VA arena vmap()/vmap_pfn() reserve their ranges from
 vmem_alloc	# non-DDI kernel interface (sys/vmem.h): reserves the vmap() kernel VA range in heap_arena (VM_NOSLEEP)
 vmem_free	# non-DDI kernel interface (sys/vmem.h): releases a vmap() VA range at vunmap()
+pf_is_memory	# non-DDI kernel interface (vm/page.h, i86pc/vm/vm_machdep.c): page_is_ram() of a frame, which amdgpu's GMC v9 checks before treating a carveout address as system memory
 physmem	# non-DDI kernel interface (sys/systm.h): totalram_pages()/si_mem_available() (physmem_lkpi()); i915 sizes shrinker targets and its largest object by it; kmalloc() refuses sizes beyond it instead of blocking forever

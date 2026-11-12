@@ -17,4 +17,6 @@ struct mmu_notifier_range {
 	unsigned long start;
 	unsigned long end;
 };
+/* No MMU notifiers are registered (no HMM): nothing to wait for. */
+#define	mmu_notifier_synchronize()	((void)0)
 #endif

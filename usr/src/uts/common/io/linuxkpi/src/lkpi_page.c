@@ -58,6 +58,8 @@
  */
 
 #include <vm/seg_kmem.h>
+#include <sys/vmsystm.h>	/* pf_is_memory() */
+#include <linux/mmzone.h>
 #include <linux/io.h>
 #include <linux/mm.h>
 #include <linux/vmalloc.h>
@@ -65,6 +67,8 @@
 #include <linux/bug.h>
 #include "lkpi_internal.h"
 #include "lkpi_mem.h"
+#include <sys/gfx_private.h>
+#include <lkpi/umem_window.h>
 
 /*
  * From i86pc's <vm/hat_i86.h>, which is not installed: honour the caching
@@ -403,6 +407,23 @@ unsigned long
 physmem_lkpi(void)
 {
 	return ((unsigned long)physmem);
+}
+
+void
+split_page(struct lx_page *page, unsigned int order)
+{
+	(void) page;
+	WARN_ON_ONCE(order != 0);
+}
+
+/* The one memory node of <linux/mmzone.h>. */
+pg_data_t lkpi_node_data;
+
+/* Whether the frame is RAM (not device memory or a hole). */
+bool
+page_is_ram(unsigned long pfn)
+{
+	return (pf_is_memory((pfn_t)pfn) != 0);
 }
 
 /* --- the page allocator ------------------------------------------------ */
@@ -853,4 +874,90 @@ lkpi_page_fini(void)
 	rw_destroy(&lkpi_pg_lock);
 	(kmem_cache_destroy)(lkpi_pgmem_cache);
 	(kmem_cache_destroy)(lkpi_pg_cache);
+}
+
+/* --- user-mapping windows (<lkpi/umem_window.h>) ------------------------ */
+
+struct lkpi_umem_window {
+	caddr_t			uw_va;
+	size_t			uw_size;
+	ddi_umem_cookie_t	uw_cookie;
+	bool			uw_loaded;
+};
+
+struct lkpi_umem_window *
+lkpi_umem_window_create(size_t size)
+{
+	struct lkpi_umem_window *w;
+
+	if (size == 0 || (size & (PAGE_SIZE - 1)) != 0 ||
+	    LKPI_BTOP(size) > UINT_MAX)
+		return (NULL);
+	w = kmem_zalloc(sizeof (*w), KM_SLEEP);
+	/* The heap is a VA arena: VM_NOSLEEP fails only when it is full. */
+	w->uw_va = vmem_alloc(heap_arena, size, VM_NOSLEEP);
+	if (w->uw_va == NULL) {
+		kmem_free(w, sizeof (*w));
+		return (NULL);
+	}
+	w->uw_size = size;
+	w->uw_cookie = gfxp_umem_cookie_init(w->uw_va, size);
+	if (w->uw_cookie == NULL) {
+		vmem_free(heap_arena, w->uw_va, size);
+		kmem_free(w, sizeof (*w));
+		return (NULL);
+	}
+	return (w);
+}
+
+ddi_umem_cookie_t
+lkpi_umem_window_cookie(const struct lkpi_umem_window *w)
+{
+	return (w->uw_cookie);
+}
+
+bool
+lkpi_umem_window_loaded(const struct lkpi_umem_window *w)
+{
+	return (w->uw_loaded);
+}
+
+void
+lkpi_umem_window_unload(struct lkpi_umem_window *w)
+{
+	if (!w->uw_loaded)
+		return;
+	hat_unload(kas.a_hat, w->uw_va, w->uw_size, HAT_UNLOAD_UNLOCK);
+	w->uw_loaded = false;
+}
+
+int
+lkpi_umem_window_load(struct lkpi_umem_window *w, struct lx_page **pages,
+    unsigned long count)
+{
+	unsigned long i;
+
+	if (pages == NULL || LKPI_PTOB((size_t)count) != w->uw_size)
+		return (-EINVAL);
+	for (i = 0; i < count; i++) {
+		if (pages[i] == NULL)
+			return (-EFAULT);
+	}
+	lkpi_umem_window_unload(w);
+	if (!lkpi_vmap_load(w->uw_va, NULL, pages, (unsigned int)count,
+	    PAGE_KERNEL))
+		return (-EFAULT);
+	w->uw_loaded = true;
+	return (0);
+}
+
+void
+lkpi_umem_window_destroy(struct lkpi_umem_window *w)
+{
+	if (w == NULL)
+		return;
+	lkpi_umem_window_unload(w);
+	gfxp_umem_cookie_destroy(w->uw_cookie);
+	vmem_free(heap_arena, w->uw_va, w->uw_size);
+	kmem_free(w, sizeof (*w));
 }

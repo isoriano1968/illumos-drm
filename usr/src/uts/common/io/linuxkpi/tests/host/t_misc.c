@@ -18,6 +18,7 @@
 #include <linux/bsearch.h>
 #include <linux/random.h>
 #include <linux/uuid.h>
+#include <linux/time.h>
 #include <linux/kobject.h>
 #include <linux/sysfs.h>
 #include <linux/slab.h>
@@ -322,4 +323,36 @@ TEST(errno_map)
 	/* Nothing from 512 up stays. */
 	for (int e = 512; e < 700; e++)
 		CHECK(lkpi_errno(e) < 512);
+}
+
+TEST(time64_to_tm)
+{
+	static const struct {
+		time64_t t;
+		int off;
+		long year;
+		int mon, mday, hour, min, sec, wday, yday;
+	} c[] = {
+		{ 0, 0, 70, 0, 1, 0, 0, 0, 4, 0 },
+		{ 951782400, 0, 100, 1, 29, 0, 0, 0, 2, 59 },	/* leap day */
+		{ 1767225599, 0, 125, 11, 31, 23, 59, 59, 3, 364 },
+		{ -1, 0, 69, 11, 31, 23, 59, 59, 3, 364 },
+		{ 4102444800LL, 0, 200, 0, 1, 0, 0, 0, 5, 0 },
+		{ -2208988800LL, 0, 0, 0, 1, 0, 0, 0, 1, 0 },	/* 1900 */
+		{ 0, -1, 69, 11, 31, 23, 59, 59, 3, 364 },	/* offset */
+	};
+	struct tm tm;
+	size_t i;
+
+	for (i = 0; i < sizeof (c) / sizeof (c[0]); i++) {
+		time64_to_tm(c[i].t, c[i].off, &tm);
+		CHECK_EQ(tm.tm_year, c[i].year);
+		CHECK_EQ(tm.tm_mon, c[i].mon);
+		CHECK_EQ(tm.tm_mday, c[i].mday);
+		CHECK_EQ(tm.tm_hour, c[i].hour);
+		CHECK_EQ(tm.tm_min, c[i].min);
+		CHECK_EQ(tm.tm_sec, c[i].sec);
+		CHECK_EQ(tm.tm_wday, c[i].wday);
+		CHECK_EQ(tm.tm_yday, c[i].yday);
+	}
 }

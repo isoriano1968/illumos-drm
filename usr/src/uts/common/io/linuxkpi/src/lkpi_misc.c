@@ -10,6 +10,7 @@
  */
 
 #include <linux/kernel.h>
+#include <linux/time.h>
 #include <linux/list.h>
 #include <linux/list_sort.h>
 #include <linux/sort.h>
@@ -189,6 +190,59 @@ lkpi_heapsort(void *base, size_t num, const struct lkpi_sort_ops *o)
 		lkpi_sort_swap(o, b, b + i * o->size);
 		lkpi_sift_down(b, 0, i, o);
 	}
+}
+
+/* --- time64_to_tm ------------------------------------------------------ */
+
+static bool
+lkpi_leap(long y)
+{
+	return ((y % 4 == 0 && y % 100 != 0) || y % 400 == 0);
+}
+
+/*
+ * Seconds since 1970-01-01 00:00 UTC plus offset seconds, broken down
+ * (the proleptic Gregorian calendar; negative times work).
+ */
+void
+time64_to_tm(time64_t totalsecs, int offset, struct tm *r)
+{
+	static const unsigned short mdays[2][12] = {
+		{ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
+		{ 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
+	};
+	s64 t = totalsecs + offset;
+	s64 days = t / 86400;
+	s64 rem = t % 86400;
+	long y = 1970;
+	int m;
+
+	if (rem < 0) {
+		rem += 86400;
+		days--;
+	}
+	r->tm_hour = (int)(rem / 3600);
+	r->tm_min = (int)(rem % 3600 / 60);
+	r->tm_sec = (int)(rem % 60);
+	/* 1970-01-01 was a Thursday. */
+	r->tm_wday = (int)((4 + days % 7 + 7) % 7);
+	/* Whole 400-year cycles (146097 days) first, then single years. */
+	y += 400 * (long)(days / 146097);
+	days %= 146097;
+	if (days < 0) {
+		days += 146097;
+		y -= 400;
+	}
+	while (days >= (lkpi_leap(y) ? 366 : 365)) {
+		days -= lkpi_leap(y) ? 366 : 365;
+		y++;
+	}
+	r->tm_year = y - 1900;
+	r->tm_yday = (int)days;
+	for (m = 0; days >= mdays[lkpi_leap(y)][m]; m++)
+		days -= mdays[lkpi_leap(y)][m];
+	r->tm_mon = m;
+	r->tm_mday = (int)days + 1;
 }
 
 void
