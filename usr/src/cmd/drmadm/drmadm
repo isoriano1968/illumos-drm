@@ -69,6 +69,9 @@ ROOT=/
 # with '/' replaced by ':'. drmadm writes it; no package delivers it.
 FRAGMENT=etc/system.d/driver:graphics:drmadm
 LOCK=etc/system.d/.drmadm.lock
+# Live-root selections only. /var/run must be tmpfs, cleared at each boot.
+# Keep this absolute: -R must never write into an inactive root's /var/run.
+BOOT_MARKER=/var/run/drmadm.pending
 
 LEGACY_PKG=driver/graphics/drm
 LEGACY_DRIVER=i915
@@ -325,6 +328,7 @@ show() {
 # restores the previous fragment and exits.
 rollback() {
 	echo "$PROG: $1; undoing the selection" >&2
+	rm -f "$tmp"
 	for a in $(minus "$(aliases_of "$VIRTIO_DRIVER")" "$bound_virtio"); do
 		udrv -d -i "$a" "$VIRTIO_DRIVER" >/dev/null 2>&1
 	done
@@ -352,6 +356,9 @@ rollback() {
 		rm -f "$frag"
 		echo "$PROG: the aliases are as before; $frag is removed again" >&2
 	fi
+	if [ -z "$left$extra$vleft$vextra" ] && [ "$marker_added" = yes ]; then
+		rm -f "$BOOT_MARKER" || echo "$PROG: cannot remove $BOOT_MARKER after rollback" >&2
+	fi
 	if [ "$archiving" = yes ]; then
 		if live; then
 			bootadm update-archive
@@ -362,20 +369,29 @@ rollback() {
 	exit 1
 }
 
-boot_time() {
-	kstat -p unix:0:system_misc:boot_time 2>/dev/null | awk '{ print $2 }'
+# selection_pending: a changed selection made during this running boot.
+selection_pending() {
+	live && { [ -e "$BOOT_MARKER" ] || [ -h "$BOOT_MARKER" ]; }
 }
 
-# selected_since_boot: fail closed if the selection or boot time is unknown.
-selected_since_boot() {
+# selected_at_boot: timestamps in older fragments are informational only.
+selected_at_boot() {
 	live || return 1
 	[ "$(recorded selected)" = new ] || return 1
-	at=$(recorded time)
-	bt=$(boot_time)
-	case $at:$bt in
-	*[!0-9:]* | :* | *:) return 1 ;;
-	esac
-	[ "$at" -lt "$bt" ]
+	! selection_pending
+}
+
+# Mark before replacing the fragment. Refuse persistent markers, which could
+# survive reboot and indefinitely defer Xorg reconciliation. df -n reports
+# the type of the filesystem actually containing the directory.
+mark_selection() {
+	live || return 0
+	fs=$(df -n "${BOOT_MARKER%/*}" 2>/dev/null) &&
+	    [ "$(printf '%s\n' "$fs" | awk '{ print $NF }')" = tmpfs ] ||
+	    rollback "${BOOT_MARKER%/*} must be on tmpfs for a live selection"
+	selection_pending && return 0
+	marker_added=yes
+	(set -C; : > "$BOOT_MARKER") || rollback "cannot create $BOOT_MARKER"
 }
 
 # reconcile_xorg: boot service (also on package refresh), under select's lock.
@@ -396,7 +412,7 @@ reconcile_xorg() {
 			return 0
 		fi
 	fi
-	if selected_since_boot; then
+	if selected_at_boot; then
 		[ -f "$template" ] || die "no Xorg template $template"
 		mkdir -p "${active%/*}" || die "cannot create ${active%/*}"
 		if cmp -s "$active" "$template"; then
@@ -794,15 +810,13 @@ do_perms() {
 do_status() {
 	frag=$(under "$FRAGMENT")
 	sel=$(recorded selected)
-	at=$(recorded time)
 	echo "Root: $ROOT"
 	if [ -z "$sel" ]; then
 		echo "Selected stack: none (no $frag; nothing is excluded by drmadm)"
 	else
 		when="since the last boot"
 		if live; then
-			bt=$(boot_time)
-			if [ -n "$at" ] && [ -n "$bt" ] && [ "$at" -ge "$bt" ]; then
+			if selection_pending; then
 				when="from the next boot (selected after this boot)"
 			fi
 		else
@@ -981,6 +995,7 @@ do_select() {
 	# undoes the selection; before and after, it only drops the lock.
 	moving=no
 	archiving=no
+	marker_added=no
 	trap 'if [ $moving = yes ]; then rollback "interrupted"; fi; exit 1' HUP INT TERM
 
 	changed=0
@@ -1079,6 +1094,7 @@ do_select() {
 	else
 		[ -f "$frag" ] && { cp -p "$frag" "$prev" || die "cannot save $frag"; }
 		moving=yes
+		mark_selection
 		mv -f "$tmp" "$frag" || rollback "cannot replace $frag"
 		echo "Wrote $frag: selects $target, excludes $(names "$other_modules" | tr '\n' ' ')"
 		changed=1

@@ -3,7 +3,7 @@
 .\" License, v. 2.0. If a copy of the MPL was not distributed with this
 .\" file, You can obtain one at https://mozilla.org/MPL/2.0/.
 .\"
-.Dd October 11, 2026
+.Dd November 12, 2026
 .Dt DRMADM 8
 .Os
 .Sh NAME
@@ -178,11 +178,24 @@ runs
 before the optional display managers lightdm, gdm, cde-login and xdm.
 It installs
 .Pa /etc/X11/xorg.conf.d/20-drmadm.conf
-only if new is selected and in effect since this boot (the recorded
-selection time precedes the kernel boot time). Otherwise it removes its
+only if new is selected and in effect since this boot. Otherwise it removes its
 own active copy. A selection pending reboot does not enable the template.
 .Nm Cm select
 does not change the running Xorg configuration.
+.Pp
+A changed selection on the running system creates
+.Pa /var/run/drmadm.pending .
+While this marker exists, the selection is reported as pending reboot.
+The marker disappears at boot because
+.Pa /var/run
+is mounted as tmpfs; a live selection fails if this cannot be verified.
+An unchanged selection preserves the marker's presence or absence.
+The timestamp recorded in the selection fragment is informational and does
+not determine whether the selection has taken effect.
+With
+.Fl R ,
+no marker is created on either root: the selection takes effect when the
+alternate root boots.
 .Pp
 The saved copy
 .Pa /etc/X11/.drmadm.conf
@@ -377,6 +390,8 @@ service when it boots.
 .It Pa /etc/system.d/driver:graphics:drmadm
 The selection and its excludes, written only by
 .Nm .
+.It Pa /var/run/drmadm.pending
+Boot-volatile marker of a changed selection on the running system.
 .It Pa /etc/driver_aliases
 The alias bindings that
 .Nm
