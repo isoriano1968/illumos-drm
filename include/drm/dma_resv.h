@@ -142,6 +142,18 @@ extern int drm_illumos_resv_fences(struct dma_resv *obj,
     enum dma_resv_usage usage, uint32_t flags, struct dma_fence **fences,
     uint8_t *usages, uint32_t max, uint32_t *count);
 
+/*
+ * Facade 2.1.
+ *
+ * drm_illumos_resv_replace_fences()
+ *	Linux's dma_resv_replace_fences(): every fence of `context` in `obj`
+ *	becomes `fence` with `usage`; the calling thread holds the lock
+ *	(dma_resv_lock). 0, -EINVAL (not held, bad arguments), -ENOMEM.
+ *	Thread context.
+ */
+extern int drm_illumos_resv_replace_fences(struct dma_resv *obj,
+    uint64_t context, struct dma_fence *fence, enum dma_resv_usage usage);
+
 #ifdef	__cplusplus
 }
 #endif

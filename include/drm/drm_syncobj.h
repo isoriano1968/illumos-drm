@@ -84,6 +84,20 @@ extern struct dma_fence *drm_syncobj_fence_get(struct drm_syncobj *obj);
 extern bool drm_is_current_master(struct drm_file *file);
 
 /*
+ * Giving a sync object the driver made (drm_syncobj_create()) to user
+ * space, as Linux's: drm_syncobj_get_handle() adds a handle of `file`
+ * for it, drm_syncobj_get_fd() makes a sync object file and a
+ * close-on-exec descriptor of the calling process for it (only inside an
+ * ioctl handler of the file's device). Each takes its own reference; the
+ * caller still puts its own. Return 0 or a negative errno: -ENOTSUP for a
+ * sync object whose fences are signalled at another interrupt priority
+ * than the device's. Thread context.
+ */
+extern int drm_syncobj_get_handle(struct drm_file *file_private,
+    struct drm_syncobj *syncobj, uint32_t *handle);
+extern int drm_syncobj_get_fd(struct drm_syncobj *syncobj, int *p_fd);
+
+/*
  * sync_file_get_fence() with the reason of a failure (an illumos
  * addition): 0 and the fence in *fence, or -EBADF (no such descriptor),
  * -EINVAL (not a sync file), -ENOTSUP (a sync file of a device whose

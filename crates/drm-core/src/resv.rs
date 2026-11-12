@@ -195,6 +195,59 @@ impl Resv {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
+
+    /// Linux's `dma_resv_replace_fences`: every fence of `context` becomes
+    /// `fence` with `usage` (amdgpu swaps its eviction and VM fences this
+    /// way). The calling thread holds the lock as
+    /// [`WwMutex::lock_raw`](crate::wwmutex::WwMutex::lock_raw) takes it
+    /// (`EINVAL` otherwise), so the list changes only here meanwhile. The
+    /// replaced references are dropped after the list's lock.
+    pub fn replace_fences_raw(&self, context: u64, fence: &Fence, usage: Usage, ctx: &Sleepable) -> Result<(), Errno> {
+        if !self.lock.held_raw_by_current() {
+            return Err(Errno::EINVAL);
+        }
+        let n = self.fences.lock().iter().filter(|(f, _)| f.context() == context).count();
+        if n == 0 {
+            return Ok(());
+        }
+        let mut old = KVec::new();
+        old.reserve(n, ctx)?;
+        {
+            let mut l = self.fences.lock();
+            for e in l.iter_mut() {
+                if e.0.context() == context {
+                    let (prev, _) = core::mem::replace(e, (fence.clone(), usage));
+                    // Room for n was reserved and only this thread changes
+                    // the list: push does not allocate.
+                    let _ = old.push(prev, ctx);
+                }
+            }
+        }
+        for f in drain(old) {
+            f.put(Ctx::Sleep(ctx));
+        }
+        Ok(())
+    }
+
+    /// Moves every fence (with its usage) to `to`, after the ones `to`
+    /// holds; this reservation is empty afterwards. Allocates nothing when
+    /// `to` is empty. For a reservation that must outlive its owner (a GEM
+    /// object's, which the driver still uses after the core's object went).
+    pub fn move_fences_to(&self, to: &Resv, ctx: &Sleepable) {
+        let moved = core::mem::take(&mut *self.fences.lock());
+        let mut l = to.fences.lock();
+        if l.is_empty() {
+            *l = moved;
+            return;
+        }
+        drop(l);
+        for (f, u) in drain_pairs(moved) {
+            // Nobody else can reach `to` yet (its owner is about to get
+            // it): no lock to take. Without memory for the entry the fence
+            // cannot be waited for any more, as when its owner is gone.
+            let _ = to.add_locked(f, u, ctx);
+        }
+    }
 }
 
 impl Default for Resv {
@@ -268,6 +321,49 @@ mod tests {
         assert!(r.singleton(&d, Usage::Read, &ctx).unwrap().is_none());
         r.clear(&ctx);
         drop((one, w1, r1));
+        d.drain(&ctx);
+        assert_eq!(d.stats.live(), [0; 8]);
+    }
+
+    /// A GEM object's fences move to the reservation that outlives it
+    /// (the facade's release order): waits on the new one see them, the old
+    /// one is empty, and a second move appends.
+    #[test]
+    fn move_fences_to_a_fresh_reservation() {
+        let ctx = sleep();
+        let d = FenceDomain::new_test(&ctx);
+        let old = Resv::new();
+        let new = Resv::new();
+        let (c1, c2) = (d.alloc_contexts(1), d.alloc_contexts(1));
+        let w = Fence::new(&d, c1, 1, &ctx).unwrap();
+        let b = Fence::new(&d, c2, 1, &ctx).unwrap();
+        {
+            let g = old.lock().lock_plain(&ctx);
+            old.add_fence(&g, w.clone(), Usage::Write, &ctx).unwrap();
+            old.add_fence(&g, b.clone(), Usage::Bookkeep, &ctx).unwrap();
+        }
+        old.move_fences_to(&new, &ctx);
+        assert!(old.is_empty(), "the old reservation gave everything up");
+        assert_eq!(new.len(), 2);
+        assert!(!new.test_signaled(Usage::Write));
+        w.signal(Ctx::Sleep(&ctx));
+        assert!(new.test_signaled(Usage::Write));
+        assert!(!new.test_signaled(Usage::Bookkeep), "the bookkeeping fence came along");
+        // A second move appends (and replaces the signalled write fence).
+        let third = Resv::new();
+        let x = Fence::new(&d, d.alloc_contexts(1), 1, &ctx).unwrap();
+        {
+            let g = third.lock().lock_plain(&ctx);
+            third.add_fence(&g, x.clone(), Usage::Read, &ctx).unwrap();
+        }
+        third.move_fences_to(&new, &ctx);
+        assert!(third.is_empty());
+        assert_eq!(new.len(), 2, "x took the signalled entry's slot");
+        b.signal(Ctx::Sleep(&ctx));
+        x.signal(Ctx::Sleep(&ctx));
+        assert_eq!(new.wait(Usage::Bookkeep, true, None, &ctx), Ok(()));
+        new.clear(&ctx);
+        drop((w, b, x));
         d.drain(&ctx);
         assert_eq!(d.stats.live(), [0; 8]);
     }

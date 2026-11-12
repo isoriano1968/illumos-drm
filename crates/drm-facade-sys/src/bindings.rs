@@ -65,7 +65,7 @@ pub const GFP_KERNEL: u32 = 1024;
 pub const GFP_NOWAIT: u32 = 0;
 pub const GFP_ATOMIC: u32 = 0;
 pub const DRM_FACADE_MAJOR: u32 = 2;
-pub const DRM_FACADE_MINOR: u32 = 0;
+pub const DRM_FACADE_MINOR: u32 = 1;
 pub const DRM_FACADE_MAX_SIZES: u32 = 64;
 pub const DRM_FACADE_KMS_DEVICE_WORDS: u32 = 1024;
 pub const DRM_FACADE_KMS_FILE_WORDS: u32 = 32;
@@ -914,6 +914,14 @@ unsafe extern "C" {
     pub fn drm_illumos_resv_is_locked(obj: *mut dma_resv) -> bool;
 }
 unsafe extern "C" {
+    pub fn drm_illumos_resv_replace_fences(
+        obj: *mut dma_resv,
+        context: u64,
+        fence: *mut dma_fence,
+        usage: dma_resv_usage,
+    ) -> core::ffi::c_int;
+}
+unsafe extern "C" {
     pub fn drm_illumos_resv_fences(
         obj: *mut dma_resv,
         usage: dma_resv_usage,
@@ -1451,6 +1459,57 @@ unsafe extern "C" {
 unsafe extern "C" {
     pub fn dma_buf_fd(dmabuf: *mut dma_buf, flags: core::ffi::c_int) -> core::ffi::c_int;
 }
+#[repr(C)]
+#[derive(Debug)]
+pub struct drm_illumos_prime_map {
+    _unused: [u8; 0],
+}
+#[repr(C)]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct drm_illumos_prime_export_funcs {
+    pub pin: ::core::option::Option<
+        unsafe extern "C" fn(obj: *mut drm_gem_object, kaddr: *mut *mut core::ffi::c_void) -> core::ffi::c_int,
+    >,
+    pub unpin: ::core::option::Option<unsafe extern "C" fn(obj: *mut drm_gem_object)>,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of drm_illumos_prime_export_funcs"][::core::mem::size_of::<drm_illumos_prime_export_funcs>() - 16usize];
+    ["Alignment of drm_illumos_prime_export_funcs"]
+        [::core::mem::align_of::<drm_illumos_prime_export_funcs>() - 8usize];
+    ["Offset of field: drm_illumos_prime_export_funcs::pin"]
+        [::core::mem::offset_of!(drm_illumos_prime_export_funcs, pin) - 0usize];
+    ["Offset of field: drm_illumos_prime_export_funcs::unpin"]
+        [::core::mem::offset_of!(drm_illumos_prime_export_funcs, unpin) - 8usize];
+};
+unsafe extern "C" {
+    pub fn drm_dev_illumos_set_prime_export(
+        dev: *mut drm_device,
+        funcs: *const drm_illumos_prime_export_funcs,
+    ) -> core::ffi::c_int;
+}
+unsafe extern "C" {
+    pub fn drm_illumos_prime_map(
+        dev: *mut drm_device,
+        dmabuf: *mut dma_buf,
+        attr: *const ddi_dma_attr_t,
+        mapp: *mut *mut drm_illumos_prime_map,
+    ) -> core::ffi::c_int;
+}
+unsafe extern "C" {
+    pub fn drm_illumos_prime_map_nsegs(map: *const drm_illumos_prime_map) -> core::ffi::c_uint;
+}
+unsafe extern "C" {
+    pub fn drm_illumos_prime_map_segs(
+        map: *const drm_illumos_prime_map,
+        n: core::ffi::c_uint,
+        addr: *mut u64,
+        len: *mut usize,
+    ) -> core::ffi::c_int;
+}
+unsafe extern "C" {
+    pub fn drm_illumos_prime_unmap(map: *mut drm_illumos_prime_map);
+}
 unsafe extern "C" {
     pub fn get_dma_buf(dmabuf: *mut dma_buf);
 }
@@ -1500,6 +1559,16 @@ unsafe extern "C" {
 }
 unsafe extern "C" {
     pub fn drm_is_current_master(file: *mut drm_file) -> bool;
+}
+unsafe extern "C" {
+    pub fn drm_syncobj_get_handle(
+        file_private: *mut drm_file,
+        syncobj: *mut drm_syncobj,
+        handle: *mut u32,
+    ) -> core::ffi::c_int;
+}
+unsafe extern "C" {
+    pub fn drm_syncobj_get_fd(syncobj: *mut drm_syncobj, p_fd: *mut core::ffi::c_int) -> core::ffi::c_int;
 }
 unsafe extern "C" {
     pub fn drm_illumos_sync_file_get_fence(fd: core::ffi::c_int, fence: *mut *mut dma_fence) -> core::ffi::c_int;

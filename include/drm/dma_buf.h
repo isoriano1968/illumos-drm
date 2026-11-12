@@ -92,6 +92,48 @@ extern struct dma_buf *dma_buf_get(int fd);
  */
 extern int dma_buf_fd(struct dma_buf *dmabuf, int flags);
 
+/*
+ * Another device's dma-buf mapped for DMA by this one (illumos additions,
+ * PRIME imports between devices). The memory is the exporting object's:
+ * memory the core allocated for it (drm_gem_object_init()), or, for a
+ * private object, pages its driver pins with the callbacks it set with
+ * drm_dev_illumos_set_prime_export():
+ *
+ * pin		pins the object's memory for an importer and returns a kernel
+ *		address of all of it in *kaddr, valid (and its pages locked)
+ *		until the matching unpin; 0 or a negative errno. Called with
+ *		obj->resv held (by the importer), as Linux's map_dma_buf.
+ * unpin	undoes one pin, with obj->resv held.
+ *
+ * drm_illumos_prime_map() maps the buffer for `dev`: pins it if the
+ * exporter needs that and binds it against dev's node with `attr` (NULL:
+ * the attributes of drm_dev_illumos_set_dma_attr()). Returns 0 and the map
+ * in *mapp, -ENOTSUP for an exporter without core memory or callbacks or a
+ * device without attributes, or another negative errno.
+ * drm_illumos_prime_map_nsegs() and drm_illumos_prime_map_segs() give its
+ * DMA segments (bus address and length; segs copies the first n and
+ * returns how many it copied). drm_illumos_prime_unmap() unbinds it and
+ * unpins. The map holds the exporting object. Thread context; the caller
+ * holds dmabuf->resv for map and unmap.
+ */
+struct drm_illumos_prime_map;
+
+struct drm_illumos_prime_export_funcs {
+	int (*pin)(struct drm_gem_object *obj, void **kaddr);
+	void (*unpin)(struct drm_gem_object *obj);
+};
+
+extern int drm_dev_illumos_set_prime_export(struct drm_device *dev,
+    const struct drm_illumos_prime_export_funcs *funcs);
+extern int drm_illumos_prime_map(struct drm_device *dev,
+    struct dma_buf *dmabuf, const ddi_dma_attr_t *attr,
+    struct drm_illumos_prime_map **mapp);
+extern unsigned int drm_illumos_prime_map_nsegs(
+    const struct drm_illumos_prime_map *map);
+extern int drm_illumos_prime_map_segs(const struct drm_illumos_prime_map *map,
+    unsigned int n, uint64_t *addr, size_t *len);
+extern void drm_illumos_prime_unmap(struct drm_illumos_prime_map *map);
+
 extern void get_dma_buf(struct dma_buf *dmabuf);
 /*
  * Drops a reference; the contexts of drm_gem_object_put() (a thread that

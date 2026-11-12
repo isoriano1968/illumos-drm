@@ -286,3 +286,77 @@ pub unsafe extern "C" fn drm_is_current_master(file: *mut f::drm_file) -> bool {
     let Some((c, core)) = (unsafe { file_of(file) }) else { return false };
     core.device().is_some_and(|d| d.is_current_master(c))
 }
+
+// --- sync objects a driver made, given to user space ---
+
+/// Linux's `drm_syncobj_get_handle`: a new handle of `file` for the sync
+/// object (another reference; the caller keeps its own). 0 and the handle
+/// in `*handle`, `-EINVAL`, `-ENOMEM`, or `-ENOTSUP` for a sync object of a
+/// fence domain at another priority. Thread context.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn drm_syncobj_get_handle(
+    file: *mut f::drm_file,
+    obj: *mut f::drm_syncobj,
+    handle: *mut u32,
+) -> i32 {
+    // SAFETY: documented for thread context.
+    let ctx = unsafe { super::sleepable() };
+    if handle.is_null() {
+        return neg(Errno::EINVAL);
+    }
+    // SAFETY: the caller's handle structure.
+    let Some(s) = (unsafe { syncobj(obj) }) else { return neg(Errno::EINVAL) };
+    // SAFETY: the caller's open file.
+    let Some((c, core)) = (unsafe { file_of(file) }) else { return neg(Errno::EINVAL) };
+    let Some(d) = core.device() else { return neg(Errno::ENODEV) };
+    match d.sync().syncobj_install(c, s.clone(), &ctx) {
+        Ok(h) => {
+            // SAFETY: checked above.
+            unsafe { *handle = h };
+            0
+        }
+        Err(e) => neg(e),
+    }
+}
+
+/// Linux's `drm_syncobj_get_fd`: a sync object file for the object
+/// (another reference) and a close-on-exec descriptor of the calling
+/// process for it. Only inside an ioctl handler, whose device the file
+/// belongs to. 0 and the descriptor in `*fdp`, or a negative errno
+/// (`-ENOTSUP` as for `drm_syncobj_get_handle`).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn drm_syncobj_get_fd(obj: *mut f::drm_syncobj, fdp: *mut i32) -> i32 {
+    // SAFETY: documented for ioctl handlers, thread context.
+    let ctx = unsafe { super::sleepable() };
+    if fdp.is_null() {
+        return neg(Errno::EINVAL);
+    }
+    // SAFETY: the caller's handle structure.
+    let Some(s) = (unsafe { syncobj(obj) }) else { return neg(Errno::EINVAL) };
+    let r = crate::ctxt::with_current(|frame, arg| {
+        // SAFETY: as in drm_sync_file_install.
+        let core = unsafe { frame.core.as_ref() };
+        let d = core.device().ok_or(Errno::ENODEV)?;
+        let mut out = -1;
+        d.sync().export_syncobj(
+            s.clone(),
+            arg,
+            |fd| {
+                out = fd;
+                Ok(())
+            },
+            &ctx,
+        )?;
+        Ok(out)
+    });
+    match r {
+        Some(Ok(fd)) => {
+            // SAFETY: checked above.
+            unsafe { *fdp = fd };
+            0
+        }
+        Some(Err(e)) => neg(e),
+        // Outside an ioctl handler there is no process to give it to.
+        None => neg(Errno::EINVAL),
+    }
+}

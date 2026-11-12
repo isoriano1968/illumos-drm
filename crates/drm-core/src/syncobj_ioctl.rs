@@ -391,3 +391,41 @@ impl<O: GemObject> SyncCore<O> {
         }
     }
 }
+
+/// Sync objects a driver made, given to a file or a process (the facade's
+/// `drm_syncobj_get_handle` and `drm_syncobj_get_fd`). A sync object whose
+/// fence domain has another interrupt priority is `ENOTSUP`: the locks
+/// that wait on it are created with this device's (as
+/// [`SyncCore::lookup`] refuses such imports).
+impl<O: GemObject> SyncCore<O> {
+    /// Gives file `c` a new handle for `s` (Linux's
+    /// `drm_syncobj_get_handle`); the caller keeps its own reference.
+    pub fn syncobj_install(&self, c: CloneId, s: Syncobj, ctx: &Sleepable) -> Result<u32, Errno> {
+        if s.priority() != self.domain.priority() {
+            return Err(Errno::ENOTSUP);
+        }
+        let r = self.so_handle_create(c, s, ctx);
+        self.publish();
+        r
+    }
+
+    /// Makes a sync object file for `s` and hands it out to the calling
+    /// process as a close-on-exec descriptor, from inside an ioctl (Linux's
+    /// `drm_syncobj_get_fd`); `write_fd` copies the number out before the
+    /// descriptor becomes visible.
+    pub fn export_syncobj(
+        &self,
+        s: Syncobj,
+        arg: &IoctlArg<'_>,
+        write_fd: impl FnOnce(i32) -> Result<(), Errno>,
+        ctx: &Sleepable,
+    ) -> Result<(), Errno> {
+        if s.priority() != self.domain.priority() {
+            return Err(Errno::ENOTSUP);
+        }
+        let flags = FdFlags { write: false, cloexec: true };
+        let r = self.anon.export(&self.dev, AnonObj::Syncobj(s), flags, arg, write_fd, &self.domain.stats, ctx);
+        self.publish();
+        r
+    }
+}

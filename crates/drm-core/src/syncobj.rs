@@ -88,6 +88,11 @@ pub fn create(domain: &KArc<FenceDomain>, signaled: bool, ctx: &Sleepable) -> Re
 }
 
 impl SyncobjInner {
+    /// Returns the interrupt priority of the sync object's fence domain.
+    pub fn priority(&self) -> Option<ddi::IntrPriority> {
+        self.domain.priority()
+    }
+
     /// Returns the current fence.
     pub fn fence(&self) -> Option<Fence> {
         self.state.lock().fence.clone()

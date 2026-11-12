@@ -85,8 +85,18 @@ pub unsafe extern "C" fn drm_gem_private_object_init(
     unsafe { init(dev, obj, size, false) }
 }
 
+/// Linux drivers call this from their free callback: the core released
+/// its state before free, except the reservation the driver's free still
+/// uses (`fobj` gives `_resv` its own); that one goes here, as in Linux.
 #[unsafe(no_mangle)]
-pub extern "C" fn drm_gem_object_release(_obj: *mut f::drm_gem_object) {}
+pub unsafe extern "C" fn drm_gem_object_release(obj: *mut f::drm_gem_object) {
+    if obj.is_null() {
+        return;
+    }
+    // SAFETY: the driver's structure, in its free; a reservation the core
+    // did not hand over (a live object's) is left alone by dma_resv_fini.
+    unsafe { super::resv::dma_resv_fini(core::ptr::addr_of_mut!((*obj)._resv)) };
+}
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn drm_gem_object_get(obj: *mut f::drm_gem_object) {

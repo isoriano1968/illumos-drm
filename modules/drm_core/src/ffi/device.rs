@@ -108,6 +108,27 @@ pub unsafe extern "C" fn drm_dev_illumos_set_fence_priority(dev: *mut f::drm_dev
     0
 }
 
+/// The callbacks with which the device's objects that have no core memory
+/// (private objects) give their pages to an importing device
+/// (`drm_illumos_prime_map`). Before registration; both are required.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn drm_dev_illumos_set_prime_export(
+    dev: *mut f::drm_device,
+    funcs: *const f::drm_illumos_prime_export_funcs,
+) -> i32 {
+    let core = match unregistered(dev) {
+        Ok(c) => c,
+        Err(e) => return neg(e),
+    };
+    // SAFETY: the caller's structure, copied.
+    let Some(funcs) = (unsafe { funcs.as_ref() }).copied() else { return neg(Errno::EINVAL) };
+    if funcs.pin.is_none() || funcs.unpin.is_none() {
+        return neg(Errno::EINVAL);
+    }
+    core.setup.lock().prime_export = Some(funcs);
+    0
+}
+
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn drm_dev_illumos_set_mode_config(
     dev: *mut f::drm_device,
