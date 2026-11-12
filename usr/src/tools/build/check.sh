@@ -46,6 +46,7 @@ CC=${CC:-gcc} OUT=$out/linuxkpi sh usr/src/uts/common/io/linuxkpi/tests/host/hos
 CC=${CC:-gcc} OUT=$out/helpers sh usr/src/uts/common/io/drm_helpers/host-test.sh
 sh usr/src/test/drm-tests/test-drmadm-aliases.sh
 CC=${CC:-gcc} sh usr/src/test/drm-tests/test-hotplug-deadline.sh
+CC=${CC:-gcc} sh usr/src/test/drm-tests/test-dirtyfb-ranges.sh
 /usr/sbin/svccfg validate usr/src/data/drm/drm-perms.xml
 # Retain the native layout comparison previously run by the illumos CI job.
 REPO=$repo
