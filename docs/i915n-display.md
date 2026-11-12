@@ -61,6 +61,8 @@ gfx_private console; it provides no KMS outputs. Have SSH recovery access.
 Build both display and headless variants natively; preserve the exact source
 revision, Linux PIN, compiler/flags, licence audit and link results. A successful
 link against mapfiles does not prove runtime symbol providers or hardware.
+The build reads `usr/src/contrib/linux` by default. Port changes are commits
+on those files; its `README` describes pristine imports and Linux pin updates.
 
 For each platform, record PCI ID/stepping, BIOS, panel/output and dock, exact
 package hashes and loaded modules. Exercise first attach, internal panel,

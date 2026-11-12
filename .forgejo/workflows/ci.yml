@@ -123,8 +123,8 @@ jobs:
           elfdump -d target/linuxkpi/linuxkpi | grep NEEDED &&
           elfdump -d target/linuxkpi/linuxkpi_selftest | grep NEEDED
       # misc/drm_helpers, the carried Linux helpers (carried/), and its test
-      # driver: the vendored Linux files against their pinned SHA-256, the
-      # layer's flags, -z defs against the gate's ddi.mapfile and
+      # driver: vendored sources checked for provenance and licences below,
+      # the layer's flags, -z defs against the gate's ddi.mapfile and
       # linuxkpi.mapfile; the module's global symbols must be exactly
       # drm_helpers_scope.mapfile's, and the test driver links with
       # -N misc/drm_helpers against drm_helpers.mapfile only.
@@ -133,24 +133,24 @@ jobs:
           LKPI_MAPFILE=target/linuxkpi/linuxkpi.mapfile carried/build.sh &&
           elfdump -d target/carried/drm_helpers | grep NEEDED &&
           elfdump -d target/carried/drm_helpers_test | grep NEEDED
-      # The i915n link gate: the pinned Linux tree (a shallow fetch) with
-      # the illumos patches, every Linux input licence-checked, all TUs
+      # The i915n link gate: the vendored Linux tree with the illumos
+      # changes, every Linux input licence-checked, all TUs
       # compiled with the layer's flags (any failure fails the step) and
       # linked with -z defs against the facade, layer, helpers and DDI.
+      - run: sh usr/src/contrib/linux/verify-vendored.sh -n
       - run: >
-          drivers/i915/fetch-and-patch.sh target/linux &&
-          SYSINC=$PWD/target/sysinc LINUX=target/linux DDI_MAPFILE=target/ddi.mapfile
+          SYSINC=$PWD/target/sysinc DDI_MAPFILE=target/ddi.mapfile
           LKPI_MAPFILE=target/linuxkpi/linuxkpi.mapfile OUT=target/i915 JOBS=4
           drivers/i915/build.sh all &&
           elfdump -d target/i915/i915n | grep NEEDED
-      # misc/drm_kms, Linux's KMS code (carried/drm_kms), from the tree the
-      # step above fetched and patched: its TUs licence-checked and
+      # misc/drm_kms, Linux's KMS code (carried/drm_kms), from the same
+      # vendored tree: its TUs licence-checked and
       # compiled (any failure fails the step), the exports equal to the
       # committed drm_kms.mapfile (which i915n links against), linked with
       # -z defs against the core, layer, helpers and DDI, and the module's
       # global symbols exactly the exports.
       - run: >
-          SYSINC=$PWD/target/sysinc LINUX=target/linux DDI_MAPFILE=target/ddi.mapfile
+          SYSINC=$PWD/target/sysinc DDI_MAPFILE=target/ddi.mapfile
           LKPI_MAPFILE=target/linuxkpi/linuxkpi.mapfile OUT=target/drm_kms JOBS=4
           carried/drm_kms/build.sh all &&
           elfdump -d target/drm_kms/drm_kms | grep NEEDED
@@ -158,3 +158,5 @@ jobs:
       # printf, strings) and the carried helpers' as userland programs.
       - run: CC=gcc linuxkpi/tests/host/host-test.sh
       - run: CC=gcc carried/host-test.sh
+      - run: sh tools/test/test-drmadm-aliases.sh
+      - run: CC=gcc sh tools/test/test-hotplug-deadline.sh

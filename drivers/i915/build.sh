@@ -20,7 +20,7 @@
 #   drivers/i915/build.sh all        both
 #
 # Environment (defaults in brackets):
-#   LINUX        the patched Linux tree (fetch-and-patch.sh) [required]
+#   LINUX        the Linux sources [REPO/usr/src/contrib/linux]
 #   REPO         the illumos-drm checkout [two directories above]
 #   CC           the compiler [gcc]
 #   LD           the illumos link-editor [/usr/bin/ld]
@@ -43,7 +43,11 @@ export LC_ALL=C
 
 HERE=$(cd "$(dirname "$0")" && pwd)
 REPO=${REPO:-$(cd "$HERE/../.." && pwd)}
-: "${LINUX:?set LINUX to the patched Linux tree}"
+LINUX=${LINUX:-$REPO/usr/src/contrib/linux}
+if [ ! -f "$LINUX/SOURCES" ]; then
+	echo "build.sh: $LINUX is not a vendored Linux tree (SOURCES missing)" >&2
+	exit 1
+fi
 CC=${CC:-gcc}
 LD=${LD:-/usr/bin/ld}
 SYSINC=${SYSINC:-/usr/include}
@@ -58,12 +62,18 @@ I915=$LINUX/drivers/gpu/drm/i915
 mode=${1:-all}
 
 mkdir -p "$OUT/obj" "$OUT/log"
+# Keep the binding data tied to the PCI table before compiling either variant.
+sh "$HERE/gen-aliases.sh" "$LINUX" > "$OUT/i915n.aliases" || exit 1
+if ! cmp -s "$OUT/i915n.aliases" "$REPO/packaging/i915n.aliases"; then
+	echo "build.sh: regenerate packaging/i915n.aliases for this PIN" >&2
+	exit 1
+fi
 # shellcheck disable=SC1091
 . "$REPO/linuxkpi/kflags.sh"
 CFLAGS=$LKPI_CFLAGS
 CPPFLAGS="$LKPI_CPPFLAGS -DI915 -DKBUILD_MODNAME=\"i915\""
 CPPFLAGS="$CPPFLAGS -nostdinc -I$REPO/linuxkpi/include -I$REPO/include"
-CPPFLAGS="$CPPFLAGS -I$LINUX/.illumos/mit-include -I$LINUX/.illumos/mit-include/uapi"
+CPPFLAGS="$CPPFLAGS -I$LINUX/include -I$LINUX/include/uapi"
 CPPFLAGS="$CPPFLAGS -I$I915 -I$OUT/sysinc"
 # Last: the illumos glue's headers the patches include (i915_illumos_vbt.h).
 CPPFLAGS="$CPPFLAGS -I$HERE/illumos"

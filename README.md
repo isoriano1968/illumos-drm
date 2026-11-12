@@ -549,14 +549,11 @@ header the bindings come from, `crates/drm-uapi/src/virtgpu_compat.rs`
 the older layouts, and `tools/uapi/virtgpu_compat_layout.c` their gcc
 check.
 
-`carried/` holds the Linux helper code that C drivers call and the
-Rust core does not provide (R5e), carried as Linux C: per helper a
-directory with the Linux files vendored unmodified at the revision of
-`carried/linux.pin` (`<helper>/linux/`, MIT or dual MIT only, listed with
-SHA-256 and licence in `<helper>/SOURCES`), the illumos patch series
-(`<helper>/patches/series`) and the self-tests (`<helper>/tests/`).
-`carried/fetch-and-patch` checks the vendored files (with `-f` against the
-pinned Linux revision, with `-u` it refreshes them) and applies the series;
+`carried/` holds the glue and tests for the Linux helpers that C drivers
+call and the Rust core does not provide (R5e). Their Linux files are in
+`usr/src/contrib/linux`, with the other vendored sources and their `SOURCES`
+provenance. `carried/prepare-sources.sh` stages the four helper files under
+the output directory, preserving their isolated header search path.
 `carried/build.sh` builds `misc/drm_helpers` (`carried/drm_helpers/`) and
 the test driver `drm_helpers_test` (`carried/test/`, run by
 `tools/test/run-r5e-test.sh`); `carried/host-test.sh` runs the self-tests
@@ -575,12 +572,16 @@ each (`linuxkpi/private.d/`), the kernel flags of everything built on it
 `drivers/i915/` builds `i915n`, Linux v7.2's i915 (with display on Ivy
 Bridge since facade 2.0, see *i915n with display* below), on
 it: the pin (`PIN`), the configuration (`config/`), the translation units
-(`tus.txt`, and `display-tus.txt` for the display), the MIT Linux headers used unchanged (`mit-headers.txt`), the
-illumos patch series (`patches/`), `fetch-and-patch.sh` (no Linux source
-is in this repository), `build.sh`, the licence checks
+(`tus.txt`, and `display-tus.txt` for the display), `build.sh`, the licence checks
 (`check-licences.py`, `gen-license.sh`) and the illumos glue
 (`illumos/`). `packaging/linuxkpi.p5m` and `packaging/i915n.p5m` package
-them.
+them. The Linux sources, including the port changes and MIT header stand-ins,
+are in `usr/src/contrib/linux`; the build uses them by default. `LINUX` may
+name another tree with the same layout. Make a port change by editing the
+vendored file and committing it; `git log` on that file shows its port history.
+For a Linux update, import pristine bytes on `linux-pristine` and merge that
+branch, then review the conflicts. The vendored tree's `README` describes
+the input selection, stand-ins, licence checks and pin-update procedure.
 
 ### misc/drm_kms
 
@@ -600,17 +601,18 @@ reached through the facade 2.0 hooks (`include/drm/drm_lkms.h`).
   (atomic and state helpers, CRTC, damage, modeset, plane, probe and
   self-refresh helpers), the `drm_display_helper` libraries (DP, DP dual
   mode, DP MST, DSC, HDMI, SCDC) and `drivers/video/hdmi.c` (HDMI
-  infoframes). Three patches (`patches/`, conditional on `__illumos__`):
+  infoframes). Three port changes (conditional on `__illumos__`):
   `drm_mode_object.c` has no legacy load callback to read; the device's
   `registered` means "KMS registered" (the layer registers the device
   with the core before mode setting starts); the vblank event list is
   initialised in `drmm_mode_config_init()`.
 - **Licences:** every carried file is MIT (SPDX MIT, `GPL-2.0 OR MIT`, or
   the MIT/HPND notice); `drm_hdcp_helper.c` (GPL-2.0-only) is not carried.
-  `drivers/i915/fetch-and-patch.sh` prepares one Linux tree for i915n and
-  this module, refuses non-MIT TUs and headers, and replaces the GPL
-  `drm_dp_mst_topology_internal.h` and `drm_trace.h` by MIT files; the
-  build checks every Linux file the compiler read
+  The vendored tree contains MIT stand-ins for the GPL
+  `drm_dp_mst_topology_internal.h` and `drm_trace.h`; the originals are
+  not imported. `verify-vendored.sh -n` checks provenance coverage and
+  licences over the entire tree. The build checks every Linux file the
+  compiler read
   (`drivers/i915/check-licences.py`). GPL Linux headers the code includes
   are MIT reimplementations under `linuxkpi/include`. The package's
   licence file lists the carried files' notices
@@ -654,9 +656,8 @@ the default) carries i915's display code for Ivy Bridge (display version
   `-N misc/drm_core -N misc/linuxkpi -N misc/drm_helpers -N misc/drm_kms
   -z defs` against the DDI, facade, LinuxKPI, drm_helpers and drm_kms
   mapfiles and `private.mapfile`. `I915_DISPLAY=0` builds R5c's headless
-  i915n (158 TUs, no `misc/drm_kms`). Both lists are licence-checked
-  (`fetch-and-patch.sh` for the TUs, the build for every file the compiler
-  read).
+  i915n (158 TUs, no `misc/drm_kms`). The build licence-checks every Linux
+  file the compiler read in either variant.
 - **The platform gate** (patch 0011): `intel_display_device_probe()` takes
   Linux's `no_display` path on every platform but Ivy Bridge and logs
   `display on <platform> is not supported on illumos; running headless`;
@@ -2654,7 +2655,7 @@ The carried helpers (R5e) build on illumos with the same kernel flags:
 DDI_MAPFILE=<gate>/usr/src/uts/common/mapfiles/ddi.mapfile carried/build.sh
 # OUT (./target/carried): drm_helpers, drm_helpers_test
 carried/host-test.sh                 # the self-tests as a userland program
-carried/fetch-and-patch -f           # vendored files = Linux at the pin
+sh usr/src/contrib/linux/verify-vendored.sh -n  # provenance coverage and licences
 ```
 
 `tools/test/run-r5e-test.sh` installs, tests and removes both modules on a
@@ -2662,16 +2663,15 @@ disposable guest (see its header). Since R5c the helpers build on the
 compatibility layer, so `carried/build.sh` needs `LKPI_MAPFILE` (below).
 
 The compatibility layer and i915n (R5c) build on illumos with gcc (bash,
-GNU grep, python3, the pinned Linux tree fetched once, about 260 MB):
+GNU grep and python3), using the vendored Linux sources:
 
 ```sh
 export DDI_MAPFILE=<gate>/usr/src/uts/common/mapfiles/ddi.mapfile JOBS=2
 OUT=target/linuxkpi linuxkpi/build.sh all      # misc/linuxkpi, linuxkpi_selftest, linuxkpi.mapfile
 LKPI_MAPFILE=target/linuxkpi/linuxkpi.mapfile OUT=target/carried carried/build.sh
-drivers/i915/fetch-and-patch.sh target/linux   # Linux v7.2 + patches/, licence checks
-LINUX=target/linux LKPI_MAPFILE=target/linuxkpi/linuxkpi.mapfile \
+LKPI_MAPFILE=target/linuxkpi/linuxkpi.mapfile \
     OUT=target/i915 drivers/i915/build.sh all  # i915n, linked -z defs
-drivers/i915/gen-license.sh target/linux target/i915/LICENSE.i915n \
+drivers/i915/gen-license.sh "" target/i915/LICENSE.i915n \
     target/i915/linux-inputs.txt               # the package's licence file
 linuxkpi/tests/host/host-test.sh               # the layer's host tests
 ```
@@ -2718,8 +2718,8 @@ core's stateful modules), and builds `cdrmnull` with `-z defs` against
 the gate's `ddi.mapfile`. Neither loads a module, which needs root on a
 kernel that may panic (an R1 trial did panic the test machine, see
 *System memory and DMA*). The same job builds `misc/drm_helpers` and
-`drm_helpers_test` with `carried/build.sh` (vendored files against their
-SHA-256, `-z defs`, the module's globals against its scope mapfile) and
+`drm_helpers_test` with `carried/build.sh` (vendored sources, `-z defs`,
+the module's globals against its scope mapfile) and
 runs `carried/host-test.sh` with gcc.
 
 ## Licence
@@ -2727,6 +2727,11 @@ runs `carried/host-test.sh` with gcc.
 MPL-2.0, see `LICENSE`. The generated uAPI bindings in `crates/drm-uapi`
 and the patch in `tools/uapi/patches` are derived from MIT-licensed
 headers and keep that licence; the notice is in `crates/drm-uapi/src/lib.rs`
-and in the patch. The carried Linux files in `carried/*/linux/` keep their
-own MIT notices (`carried/drm_mm/LICENSE`); `linuxkpi/` and the carried
-helpers' tests are MIT, like the facade headers.
+and in the patch. The Linux files in `usr/src/contrib/linux/` keep their
+MIT, dual-MIT or HPND/X11 notices; `SOURCES` records the pristine upstream
+digests and licence classes. Six MIT stand-ins replace excluded GPL-only
+headers. `verify-vendored.sh -n` checks every vendored source with the
+existing licence gate and requires provenance for each upstream file.
+The helpers' notices are also in `carried/drm_mm/LICENSE` and
+`carried/drm_cache/LICENSE`; `linuxkpi/` and the helpers' tests are MIT,
+like the facade headers.

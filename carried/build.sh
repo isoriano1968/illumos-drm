@@ -11,8 +11,8 @@
 #
 #   carried/build.sh
 #
-# 1. carried/fetch-and-patch verifies the vendored Linux files and applies
-#    the patch series into $OUT/src/linux.
+# 1. carried/prepare-sources.sh stages the four vendored helper files into
+#    $OUT/src/linux, preserving the helpers' isolated include directory.
 # 2. drm_mm.c and drm_cache.c (Linux) and the module linkage are compiled
 #    against the carried headers, linuxkpi/include (with the layer's
 #    prologue), the facade (include/) and the system headers, and linked
@@ -69,7 +69,7 @@ done
 mkdir -p "$OUT"
 OUT=$(cd "$OUT" && pwd)
 
-"$HERE/fetch-and-patch" "$OUT/src"
+sh "$HERE/prepare-sources.sh" "$OUT/src"
 
 REPO_SAVED=$REPO
 # shellcheck disable=SC1091

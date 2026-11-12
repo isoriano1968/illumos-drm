@@ -4,8 +4,9 @@
 #
 # Generate opt-in alias data from the pinned Linux PCI IDs, not gfx-drm.
 #
-# Usage: gen-aliases.sh <patched Linux tree> > packaging/i915n.aliases
-# The groups match patch 0009's PCH Gen6-Gen9.5 admission boundary. They must
+# Usage: gen-aliases.sh [Linux tree] > packaging/i915n.aliases
+# Defaults to LINUX or the repository's usr/src/contrib/linux.
+# The groups match the port's PCH Gen6-Gen9.5 admission boundary. They must
 # be reviewed together when that boundary changes. Requires a C preprocessor
 # ($CC, default gcc).
 
@@ -18,10 +19,10 @@ die() {
 	exit 1
 }
 
-[ $# -eq 1 ] || die "usage: gen-aliases.sh <patched Linux tree>"
-tree=$(cd "$1" && pwd -P)
+[ $# -le 1 ] || die "usage: gen-aliases.sh [Linux tree]"
 here=$(cd "$(dirname "$0")" && pwd -P)
 repo=$(cd "$here/../.." && pwd -P)
+tree=$(cd "${1:-${LINUX:-$repo/usr/src/contrib/linux}}" && pwd -P)
 header=$tree/include/drm/intel/pciids.h
 pci=$repo/linuxkpi/src/lkpi_pci.c
 [ -r "$pci" ] || die "cannot read $pci"
@@ -62,7 +63,7 @@ cpp_out=$(printf '%s\n' "$src" | ${CC:-gcc} -E -P -x c -)
 set +f
 ids=$(printf '%s\n' "$cpp_out" | hexids)
 
-# Cross-check the native stolen-memory inventory too. Patch 0009 excludes
+# Cross-check the native stolen-memory inventory too. The port excludes
 # Valleyview (the only SoC in those four tables); every other listed ID
 # must receive binding data. This catches separate groups such as WHL.
 known=$(awk '
