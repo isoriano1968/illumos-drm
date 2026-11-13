@@ -1,0 +1,13 @@
+diff ... libdrm-2.4.134/libsync.h
+--- libdrm-2.4.134-ref/libsync.h
++++ libdrm-2.4.134/libsync.h
+@@ -33,6 +33,9 @@
+ #include <stdint.h>
+ #include <string.h>
+ #include <sys/ioctl.h>
++#if defined(__sun)
++#include <sys/ioccom.h>	/* _IOWR() */
++#endif
+ #include <poll.h>
+ #include <unistd.h>
+ 

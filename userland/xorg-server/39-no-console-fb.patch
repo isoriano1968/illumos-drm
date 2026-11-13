@@ -1,0 +1,88 @@
+Run without a console device when /dev/fb is no console framebuffer.
+
+Without VTs (no console on the display, as when a KMS driver such as
+amdgpu owns the display GPU) xf86OpenConsole() fell back to opening
+/dev/fb as console fd and failed fatally when it was missing. devfsadm
+links /dev/fb to the display GPU's DRM node in that case; holding it open
+made the server DRM master on the wrong file, so the KMS driver could not
+take master.
+
+Check /dev/fb (or -dev) with VIS_GETIDENTIFIER first. If it is missing or
+not a visual_io framebuffer, run without a console device: consoleFd = -1,
+no KDSETMODE, nothing to restore or close in xf86CloseConsole(). Consoles
+with VTs and real console framebuffers are unchanged. Specific to illumos.
+
+--- a/hw/xfree86/os-support/solaris/sun_init.c
++++ b/hw/xfree86/os-support/solaris/sun_init.c
+@@ -38,6 +38,7 @@
+ #include <sys/fbio.h>
+ #include <sys/mman.h>
+ #endif
++#include <sys/visual_io.h>
+ 
+ /*
+  * Applications see VT number as consecutive integers starting from 1.
+@@ -91,6 +92,26 @@
+                 from, strerror(errno));
+ }
+ 
++#ifdef HAS_USL_VTS
++/*
++ * True if dev is a visual_io framebuffer that can serve as console
++ * device (answers VIS_GETIDENTIFIER); false if it is missing or another
++ * kind of device, such as a DRM node.
++ */
++static Bool
++ConsoleIsFramebuffer(const char *dev)
++{
++    struct vis_identifier visid;
++    int fd, ret;
++
++    if ((fd = open(dev, O_RDONLY | O_NDELAY, 0)) < 0)
++        return FALSE;
++    SYSCALL(ret = ioctl(fd, VIS_GETIDENTIFIER, &visid));
++    close(fd);
++    return (ret >= 0);
++}
++#endif
++
+ void
+ xf86OpenConsole(void)
+ {
+@@ -164,6 +185,26 @@
+ 
+             xf86StartVT = 0;
+             xf86Info.vtno = 0;
++
++            /*
++             * Without VTs the console fd only serves KDSETMODE on a
++             * visual_io console framebuffer.  When a KMS driver owns the
++             * display (no console on it), /dev/fb is missing or links to
++             * the DRM node; holding that open would make the server DRM
++             * master on the wrong file.  Run without a console device.
++             */
++            if (!ConsoleIsFramebuffer(xf86SolarisFbDev)) {
++                xf86Msg(X_INFO, "%s is not a console framebuffer, "
++                        "running without a console device\n",
++                        xf86SolarisFbDev);
++                if (fd != -1)
++                    close(fd);
++                if (!KeepTty)
++                    setpgrp();
++                xf86Info.consoleFd = -1;
++                return;
++            }
++
+             strlcpy(consoleDev, xf86SolarisFbDev, sizeof(consoleDev));
+             goto OPENCONSOLE;
+         }
+@@ -339,6 +380,9 @@
+ 
+ #endif
+ 
++    if (xf86Info.consoleFd < 0)         /* no console device, see above */
++        return;
++
+ #ifdef KDSETMODE
+     /* Reset the display back to text mode */
+     SYSCALL(ioctl(xf86Info.consoleFd, KDSETMODE, KD_TEXT));

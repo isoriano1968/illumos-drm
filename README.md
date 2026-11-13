@@ -2708,6 +2708,49 @@ kernel that may panic (an R1 trial did panic the test machine, see
 SHA-256, `-z defs`, the module's globals against its scope mapfile) and
 runs `carried/host-test.sh` with gcc.
 
+## amdgpu (Southern Islands) on illumos
+
+Branch `amdgpu/si-bringup` runs Linux v7.2's amdgpu on this core and
+LinuxKPI. Tested on a Mac Pro 2013 with two FirePro D500 (Tahiti LE,
+Southern Islands): both GPUs attach, KMS drives a 3840x2160@60 DisplayPort
+monitor, and GNOME 45 runs on Xorg 21.1.25 (modesetting + glamor) with
+Mesa 26.2.6 radeonsi (glxinfo: direct rendering, "AMD Radeon Graphics
+(radeonsi, tahiti, ACO, DRM 3.64)", OpenGL 4.6). EGL offscreen rendering
+also works on the second GPU.
+
+What it took:
+
+| Layer | Change |
+|---|---|
+| LinuxKPI | dma-buf attachments and PRIME trampolines, task reference counts, XArray readers that may run with `xa_lock` held, `dma_resv_copy_fences()` and `dma_resv_replace_fences()` |
+| DRM core | facade 2.1 (`drm_illumos_resv_replace_fences`); a GEM object's reservation lives until the driver's `drm_gem_object_release()` as in Linux (TTM's delayed delete used it after the core freed it); the `_resv` pair is bound to its address, so TTM's ghost BOs get their own reservation |
+| `drivers/amdgpu` | build in the layout of `drivers/i915`; patches 0001-0015 on the pinned tree (the core owns the device file, GEM, fences, offsets and user mappings; VBIOS from ACPI VFCT; mode setting through `misc/drm_kms`; `amdgpu_illumos_dpm_level` in `/etc/system` instead of sysfs) |
+| Firmware | Tahiti `ce`, `me`, `pfp`, `rlc`, `mc`, `smc`, `uvd` from linux-firmware into `firmware/amdgpu/` (not committed; checksums in `firmware/README.md`) |
+| libdrm, Mesa, Xorg | see `userland/`: libdrm import size fallback and `libsync.h` include, Mesa's dma-buf capability on illumos, Xorg 21.1.25 with glamor and `39-no-console-fb` |
+
+Build and install: as for i915n, then `packaging/amdgpu.p5m` builds
+`driver/graphics/amdgpu` (with `drm-core`, `linuxkpi`, `drm-helpers`,
+`drm-kms`, `drmadm`). Install it into a new boot environment and bind the
+GPUs by alias there (`update_drv -b <root> -a -i '"pciex1002,679e.106b.126"'
+amdgpu`, and so on for each GPU); the package ships no aliases while the
+port is young. `amdgpu.conf` sets `ddi-no-autodetach=1` (amdgpu's
+teardown is not safe yet).
+
+Status:
+
+| Area | State |
+|---|---|
+| Attach, VRAM/GTT, rings, firmware | works (both GPUs) |
+| Open/close, queries, render nodes | works |
+| radeonsi (GL 4.6, EGL, GBM), glamor, DRI3 | works |
+| KMS on DCE6, EDID over DP AUX | works; legacy helper turns the CRTC off when X disables the unused CRTCs, so no vblank/page-flip events (window drags stall without another GL client) and DP audio is disabled: under investigation |
+| Kernel console (tem) on amdgpu | missing: no VTs, so no logindevperm device handover; X runs without a console device (`39-no-console-fb`) and reads input through conskbd/consms |
+| DisplayPort audio | pin and ELD work; rate off by 0.831 (DCE6 audio DTO); stream off with the CRTC (above) |
+| Power management (si_dpm) | initialises; the SMC refuses levels above 0 (`SetForcedLevels` 0xFF), so 300/150 MHz |
+| dma-buf `lseek(SEEK_END)` | returns 0 (libdrm falls back); to return the size as Linux does |
+| UVD/VCE, `pci_save_state`, quiesce(9E) | disabled / missing |
+| Detach | not safe (powers the Mac Pro off) |
+
 ## Licence
 
 MPL-2.0, see `LICENSE`. The generated uAPI bindings in `crates/drm-uapi`
