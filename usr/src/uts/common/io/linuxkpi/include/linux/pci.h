@@ -124,8 +124,18 @@ struct pci_error_handlers {
 	void (*cor_error_detected)(struct pci_dev *dev);
 };
 
-/* Saved config space: not supported (pci_store_saved_state() is NULL). */
-struct pci_saved_state;
+/*
+ * Saved config space (pci_save_state() and friends): the standard header
+ * and the PCI Express capability's control registers, as Linux restores
+ * them after a reset. MSI/MSI-X stay with the illumos interrupt framework
+ * (the driver frees and re-adds its interrupts across a reset).
+ */
+#define	LKPI_PCI_SAVED_PCIE	4	/* DEVCTL LNKCTL DEVCTL2 LNKCTL2 (an endpoint's) */
+struct pci_saved_state {
+	u32 config_space[16];
+	u16 pcie[LKPI_PCI_SAVED_PCIE];
+	bool has_pcie;
+};
 
 struct pci_bus {
 	struct pci_bus *parent;
@@ -169,7 +179,9 @@ struct pci_dev {
 	 */
 	phys_addr_t rom;
 	size_t romlen;
-	u32 saved_config_space[16];	/* never filled: see pci_save_state() */
+	u32 saved_config_space[16];	/* pci_save_state() */
+	unsigned int state_saved:1;
+	u16 lkpi_saved_pcie[LKPI_PCI_SAVED_PCIE];
 	/* illumos */
 	ddi_acc_handle_t lkpi_cfg;
 	int lkpi_regnum[PCI_NUM_RESOURCES + 1];

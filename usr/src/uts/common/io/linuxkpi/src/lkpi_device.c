@@ -23,6 +23,7 @@
 #include <linux/string.h>
 #include <linux/limits.h>
 #include <linux/bug.h>
+#include <linux/hwmon.h>
 #include "lkpi_internal.h"
 
 /*
@@ -464,4 +465,35 @@ lkpi_devres_release_all(struct device *dev)
 			dr->lr_action(dr->lr_data);
 		lkpi_devres_free(dr);
 	}
+}
+
+/* --- hwmon (see <linux/hwmon.h>) ----------------------------------------- */
+
+/*
+ * A hwmon child device without sysfs files: what the driver keeps and its
+ * attribute callbacks get (drvdata), with the device as parent.
+ */
+struct device *
+hwmon_device_register_with_groups(struct device *dev, const char *name,
+    void *drvdata, const struct attribute_group **groups)
+{
+	struct device *hw;
+
+	(void) groups;
+	if (name == NULL)
+		return (ERR_PTR(-EINVAL));
+	hw = kzalloc(sizeof (*hw), GFP_KERNEL);
+	if (hw == NULL)
+		return (ERR_PTR(-ENOMEM));
+	hw->parent = dev;
+	hw->init_name = name;
+	dev_set_drvdata(hw, drvdata);
+	return (hw);
+}
+
+void
+hwmon_device_unregister(struct device *dev)
+{
+	if (dev != NULL && !IS_ERR(dev))
+		kfree(dev);
 }

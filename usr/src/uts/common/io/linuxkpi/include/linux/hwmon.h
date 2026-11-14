@@ -3,9 +3,14 @@
  * Copyright 2026 The illumos-drm authors
  *
  * Linux's hardware monitoring class (amdgpu's temperature, fan and power
- * sensors in sysfs). Not provided on illumos yet: registration returns
- * -ENODEV, which amdgpu reports and ignores. (illumos's equivalent is the
- * ksensor framework; a bridge is future work.)
+ * sensors in sysfs). illumos has no sysfs, so the class has no files:
+ * registration creates the hwmon child device a driver keeps and passes
+ * to its attribute callbacks (drvdata = the driver's pointer, parent =
+ * the device), and nothing else, as Linux does without a sysfs entry.
+ * Drivers then run the same init path as on Linux (amdgpu_pm_sysfs_init()
+ * continues to its device attributes); the values stay readable through
+ * the drivers' own interfaces (amdgpu: AMDGPU_INFO_SENSOR). (illumos's
+ * sensor framework is ksensor; a bridge is future work.)
  */
 #ifndef _LINUX_HWMON_H
 #define	_LINUX_HWMON_H
@@ -39,11 +44,7 @@ enum hwmon_temp_attributes {
 	hwmon_temp_offset,
 	hwmon_temp_label
 };
-static inline struct device *
-hwmon_device_register_with_groups(struct device *dev, const char *name,
-    void *drvdata, const struct attribute_group **groups)
-{
-	return (ERR_PTR(-ENODEV));
-}
-static inline void hwmon_device_unregister(struct device *dev) {}
+extern struct device *hwmon_device_register_with_groups(struct device *dev,
+    const char *name, void *drvdata, const struct attribute_group **groups);
+extern void hwmon_device_unregister(struct device *dev);
 #endif

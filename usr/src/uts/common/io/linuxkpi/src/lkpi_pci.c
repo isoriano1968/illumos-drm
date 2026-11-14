@@ -538,18 +538,59 @@ pci_set_power_state(struct pci_dev *dev, pci_power_t state)
 	return (0);
 }
 
-/* Config space is not saved or restored (no power transitions). */
+/*
+ * Config space save and restore, Linux's pci_save_state() /
+ * pci_restore_state() for what a GPU reset loses: the 64-byte standard
+ * header (BARs, command, cache line, latency, interrupt line) and the PCI
+ * Express capability's control registers. Restore writes the header from
+ * the top dword down, as Linux does, so the command register (memory
+ * decode, bus master) comes back last, and only dwords that changed.
+ */
+static const int lkpi_pcie_ctl[LKPI_PCI_SAVED_PCIE] = {
+	PCI_EXP_DEVCTL, PCI_EXP_LNKCTL, PCI_EXP_DEVCTL2, PCI_EXP_LNKCTL2
+};
+
 int
 pci_save_state(struct pci_dev *dev)
 {
-	(void) dev;
+	int i;
+
+	if (dev == NULL || dev->lkpi_cfg == NULL || dev->lkpi_foreign)
+		return (-ENODEV);
+	for (i = 0; i < 16; i++)
+		(void) pci_read_config_dword(dev, i * 4,
+		    &dev->saved_config_space[i]);
+	for (i = 0; i < LKPI_PCI_SAVED_PCIE; i++) {
+		dev->lkpi_saved_pcie[i] = 0;
+		if (dev->pcie_cap != 0)
+			(void) pcie_capability_read_word(dev, lkpi_pcie_ctl[i],
+			    &dev->lkpi_saved_pcie[i]);
+	}
+	dev->state_saved = 1;
 	return (0);
 }
 
 void
 pci_restore_state(struct pci_dev *dev)
 {
-	(void) dev;
+	u32 cur;
+	int i;
+
+	if (dev == NULL || !dev->state_saved || dev->lkpi_foreign)
+		return;
+	if (dev->pcie_cap != 0) {
+		for (i = 0; i < LKPI_PCI_SAVED_PCIE; i++)
+			(void) pcie_capability_write_word(dev, lkpi_pcie_ctl[i],
+			    dev->lkpi_saved_pcie[i]);
+	}
+	for (i = 15; i >= 0; i--) {
+		if (pci_read_config_dword(dev, i * 4, &cur) == 0 &&
+		    cur == dev->saved_config_space[i])
+			continue;
+		(void) pci_write_config_dword(dev, i * 4,
+		    dev->saved_config_space[i]);
+	}
+	dev->state_saved = 0;
 }
 
 /* The nexus owns the address space: regions are always "available". */
@@ -864,19 +905,37 @@ pci_device_is_present(struct pci_dev *dev)
 	return (!PCI_POSSIBLE_ERROR(v));
 }
 
-/* Saved config space: not supported (see pci_save_state()). */
+/* A copy of the state pci_save_state() saved, for a later reload. */
 struct pci_saved_state *
 pci_store_saved_state(struct pci_dev *dev)
 {
-	(void) dev;
-	return (NULL);
+	struct pci_saved_state *st;
+
+	if (dev == NULL || !dev->state_saved)
+		return (NULL);
+	st = kzalloc(sizeof (*st), GFP_KERNEL);
+	if (st == NULL)
+		return (NULL);
+	memcpy(st->config_space, dev->saved_config_space,
+	    sizeof (st->config_space));
+	memcpy(st->pcie, dev->lkpi_saved_pcie, sizeof (st->pcie));
+	st->has_pcie = dev->pcie_cap != 0;
+	return (st);
 }
 
 int
 pci_load_saved_state(struct pci_dev *dev, struct pci_saved_state *state)
 {
-	(void) dev;
-	return (state == NULL ? 0 : -EINVAL);
+	if (dev == NULL)
+		return (-EINVAL);
+	dev->state_saved = 0;
+	if (state == NULL)
+		return (0);
+	memcpy(dev->saved_config_space, state->config_space,
+	    sizeof (dev->saved_config_space));
+	memcpy(dev->lkpi_saved_pcie, state->pcie, sizeof (dev->lkpi_saved_pcie));
+	dev->state_saved = 1;
+	return (0);
 }
 
 int
@@ -886,6 +945,7 @@ pci_load_and_free_saved_state(struct pci_dev *dev,
 	int ret;
 
 	ret = pci_load_saved_state(dev, *state);
+	kfree(*state);
 	*state = NULL;
 	return (ret);
 }
