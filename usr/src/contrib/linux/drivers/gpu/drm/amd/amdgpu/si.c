@@ -1117,6 +1117,22 @@ static void si_uvd_ctx_wreg(struct amdgpu_device *adev, u32 reg, u32 v)
 }
 
 static struct amdgpu_allowed_register_entry si_allowed_read_registers[] = {
+#ifdef __illumos__
+	/*
+	 * illumos: the dpm control registers, read-only, for the user-space
+	 * view Linux gets from debugfs and umr (no debugfs here): power
+	 * management enables, the current and target level, the activity
+	 * sampling and the display gap (smu_6_0_d.h).
+	 */
+	{0x1E0},	/* GENERAL_PWRMGT */
+	{0x1E2},	/* SCLK_PWRMGT_CNTL */
+	{0x1E6},	/* TARGET_AND_CURRENT_PROFILE_INDEX */
+	{0x1EF},	/* CG_FTV */
+	{0x1FF},	/* CG_BSP */
+	{0x201},	/* CG_GIT */
+	{0x203},	/* CG_SSP */
+	{0x20A},	/* CG_DISPLAY_GAP_CNTL */
+#endif
 	{mmGRBM_STATUS},
 	{mmGRBM_STATUS2},
 	{mmGRBM_STATUS_SE0},

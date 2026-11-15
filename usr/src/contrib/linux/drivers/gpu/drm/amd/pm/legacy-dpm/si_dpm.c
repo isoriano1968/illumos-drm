@@ -4312,6 +4312,11 @@ static void si_setup_bsp(struct amdgpu_device *adev)
 	pi->psp = (pi->pbsp << CG_BSP__BSP__SHIFT) | (pi->pbsu << CG_BSP__BSU__SHIFT);
 
 	WREG32(mmCG_BSP, pi->dsp);
+#ifdef __illumos__
+	drm_info(adev_to_drm(adev),
+	    "illumos: si_dpm xclk %u (10 kHz), bsp %u bsu %u, pbsp %u pbsu %u\n",
+	    xclk, pi->bsp, pi->bsu, pi->pbsp, pi->pbsu);
+#endif
 }
 
 static void si_program_git(struct amdgpu_device *adev)
@@ -5706,6 +5711,25 @@ static int si_populate_smc_t(struct amdgpu_device *adev,
 		a_t = (0xffff) << CG_AT__CG_R__SHIFT | (t_h * high_bsp / 20000) << CG_AT__CG_L__SHIFT;
 		smc_state->levels[i + 1].aT = cpu_to_be32(a_t);
 	}
+
+#ifdef __illumos__
+	/* The activity thresholds (CG_R up, CG_L down), when they change. */
+	{
+		static u32 last[SISLANDS_MAX_HARDWARE_POWERLEVELS];
+
+		for (i = 0; i < state->performance_level_count &&
+		    i < SISLANDS_MAX_HARDWARE_POWERLEVELS; i++) {
+			a_t = be32_to_cpu(smc_state->levels[i].aT);
+			if (a_t == last[i])
+				continue;
+			last[i] = a_t;
+			drm_info(adev_to_drm(adev),
+			    "illumos: si_dpm level %d aT 0x%08x (up %u down %u)\n",
+			    i, a_t, (a_t & CG_AT__CG_R_MASK) >> CG_AT__CG_R__SHIFT,
+			    (a_t & CG_AT__CG_L_MASK) >> CG_AT__CG_L__SHIFT);
+		}
+	}
+#endif
 
 	return 0;
 }
