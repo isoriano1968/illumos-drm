@@ -14,6 +14,7 @@
 #   usr/src/uts/intel/io/i915n/gen-license.sh <Linux tree or ""> <output file> [inputs]
 # An empty tree argument uses LINUX or the repository's vendored tree.
 #
+# MODULE=amdgpu writes amdgpu's licence file (inputs required).
 # MODULE=drm_kms writes misc/drm_kms' licence file instead (inputs: the
 # linux-inputs.txt of usr/src/uts/common/io/drm_kms/build.sh).
 set -euo pipefail
@@ -25,6 +26,10 @@ out=${2:?usage: gen-license.sh <linux> <out>}
 I915=drivers/gpu/drm/i915
 
 inputs=${3:-}
+if [ "${MODULE:-i915n}" = amdgpu ] && [ -z "$inputs" ]; then
+	echo "gen-license: MODULE=amdgpu needs the amdgpu module's linux-inputs.txt" >&2
+	exit 1
+fi
 if [ "${MODULE:-i915n}" = drm_kms ] && [ -z "$inputs" ]; then
 	echo "gen-license: MODULE=drm_kms needs usr/src/uts/common/io/drm_kms/build.sh's linux-inputs.txt" >&2
 	exit 1
@@ -46,7 +51,13 @@ fi
 
 tag=$(sed -n 's/^LINUX_TAG=//p' "$HERE/PIN")
 {
-	if [ "${MODULE:-i915n}" = drm_kms ]; then
+	if [ "${MODULE:-i915n}" = amdgpu ]; then
+		echo "amdgpu is built from these files of Linux $tag (drivers/gpu/drm/amd,"
+		echo "drivers/gpu/drm/ttm, drivers/gpu/drm/scheduler, the DRM helpers it"
+		echo "carries, include/drm, include/uapi), MIT-licensed, with the illumos"
+		echo "changes in usr/src/contrib/linux, and from illumos-drm's own MIT"
+		echo "sources (usr/src/uts/intel/io/amdgpu/illumos). Their copyright notices:"
+	elif [ "${MODULE:-i915n}" = drm_kms ]; then
 		echo "misc/drm_kms is built from these files of Linux $tag (drivers/gpu/drm,"
 		echo "drivers/gpu/drm/display, drivers/video/hdmi.c, include/drm,"
 		echo "include/uapi/drm), MIT-licensed, with the illumos changes in"

@@ -7,11 +7,12 @@ include $(SRC)/Targetdirs
 GEN_LICENSE = $(UTSBASE)/intel/io/i915n/gen-license.sh
 I915_INPUTS = $(INTEL)/i915n/display64/linux-inputs.txt
 KMS_INPUTS = $(INTEL)/drm_kms/obj64/linux-inputs.txt
+AMDGPU_INPUTS = $(INTEL)/amdgpu/obj64/linux-inputs.txt
 PKG_SERIAL:sh= printf '%s' "${PKG_SERIAL-}"
 PKG_PUBLISHER:sh= printf '%s' "${PKG_PUBLISHER:-illumos-drm}"
 PKG_MANIFESTS = $(PKGREPO).manifests
 
-install: directories $(ROOT)/LICENSE.i915n $(ROOT)/LICENSE.drm_kms
+install: directories $(ROOT)/LICENSE.i915n $(ROOT)/LICENSE.drm_kms $(ROOT)/LICENSE.amdgpu
 	@sh $(BUILD_TOOLS)/stage.sh
 
 $(ROOT)/LICENSE.i915n: $(I915_INPUTS) $(GEN_LICENSE)
@@ -24,6 +25,12 @@ $(ROOT)/LICENSE.drm_kms: $(KMS_INPUTS) $(GEN_LICENSE)
 	@mkdir -p $(ROOT)
 	@if test -f $@; then chmod u+w $@; fi
 	MODULE=drm_kms bash $(GEN_LICENSE) $(SRC)/contrib/linux $@ $(KMS_INPUTS)
+	chmod 0444 $@
+
+$(ROOT)/LICENSE.amdgpu: $(AMDGPU_INPUTS) $(GEN_LICENSE)
+	@mkdir -p $(ROOT)
+	@if test -f $@; then chmod u+w $@; fi
+	MODULE=amdgpu bash $(GEN_LICENSE) $(SRC)/contrib/linux $@ $(AMDGPU_INPUTS)
 	chmod 0444 $@
 
 package:
