@@ -1199,7 +1199,15 @@ static struct ttm_tt *amdgpu_ttm_tt_create(struct ttm_buffer_object *bo,
 	else
 		gtt->pool_id = abo->xcp_id;
 
+#ifdef __illumos__
+	/*
+	 * The DRM core maps objects write-back for user space, so GTT pages
+	 * stay cached and the GPU snoops them (AMDGPU_PTE_SNOOPED).
+	 */
+	if (false)
+#else
 	if (abo->flags & AMDGPU_GEM_CREATE_CPU_GTT_USWC)
+#endif
 		caching = ttm_write_combined;
 	else
 		caching = ttm_cached;

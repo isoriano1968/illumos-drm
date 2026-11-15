@@ -418,6 +418,15 @@ const struct drm_gem_object_funcs amdgpu_gem_object_funcs = {
 	.vunmap = drm_gem_ttm_vunmap,
 	.mmap = amdgpu_gem_object_mmap,
 	.vm_ops = &amdgpu_gem_vm_ops,
+#else
+	/*
+	 * User mappings through the DRM core: a kernel window over the
+	 * object's pages, or BAR 0 for VRAM (illumos/amdgpu_illumos_mmap.c).
+	 */
+	.illumos_umem = amdgpu_illumos_gem_umem,
+	.illumos_mapped = amdgpu_illumos_gem_mapped,
+	.illumos_access = amdgpu_illumos_gem_access,
+	.illumos_movable = true,
 #endif
 };
 

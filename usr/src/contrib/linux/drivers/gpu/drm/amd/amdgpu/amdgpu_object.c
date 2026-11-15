@@ -67,6 +67,9 @@ static void amdgpu_bo_destroy(struct ttm_buffer_object *tbo)
 		drm_prime_gem_destroy(&bo->tbo.base, bo->tbo.sg);
 	drm_gem_object_release(&bo->tbo.base);
 	amdgpu_bo_unref(&bo->parent);
+#ifdef __illumos__
+	amdgpu_illumos_bo_fini(bo);
+#endif
 	kvfree(bo);
 }
 

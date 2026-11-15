@@ -100,6 +100,10 @@ struct amdgpu_bo_va {
 	bool				userq_va_mapped;
 };
 
+#ifdef __illumos__
+struct lkpi_umem_window;
+#endif
+
 struct amdgpu_bo {
 	/* Protected by tbo.reserved */
 	u32				preferred_domains;
@@ -108,6 +112,22 @@ struct amdgpu_bo {
 	struct ttm_placement		placement;
 	struct ttm_buffer_object	tbo;
 	struct ttm_bo_kmap_obj		kmap;
+#ifdef __illumos__
+	/*
+	 * User mappings (illumos/amdgpu_illumos_mmap.c): the kernel window
+	 * over the TT pages, created at the first mmap(2) and loaded under
+	 * the reservation; and what every user mapping piece shows now:
+	 * the window (false) or BAR 0 at illumos_bar_off (true, VRAM).
+	 * Changed with the reservation and the DRM core's mapping lock
+	 * held. illumos_remap_pending: a piece may show something else
+	 * (an mmap(2) while the view was VRAM, a failed remap); set and
+	 * cleared with the mapping lock held.
+	 */
+	struct lkpi_umem_window		*illumos_window;
+	bool				illumos_view_vram;
+	bool				illumos_remap_pending;
+	u64				illumos_bar_off;
+#endif
 	u64				flags;
 	/* per VM structure for page tables and with virtual addresses */
 	struct amdgpu_vm_bo_base	*vm_bo;
@@ -354,5 +374,16 @@ void amdgpu_debugfs_sa_init(struct amdgpu_device *adev);
 
 bool amdgpu_bo_support_uswc(u64 bo_flags);
 
+
+#ifdef __illumos__
+/* User mappings of buffer objects (illumos/amdgpu_illumos_mmap.c). */
+ddi_umem_cookie_t amdgpu_illumos_gem_umem(struct drm_gem_object *gobj);
+int amdgpu_illumos_gem_mapped(struct drm_gem_object *gobj,
+			      struct drm_illumos_mapping *map);
+int amdgpu_illumos_gem_access(struct drm_gem_object *gobj,
+			      struct drm_illumos_mapping *map,
+			      struct drm_illumos_fault *fault);
+void amdgpu_illumos_bo_fini(struct amdgpu_bo *bo);
+#endif
 
 #endif
