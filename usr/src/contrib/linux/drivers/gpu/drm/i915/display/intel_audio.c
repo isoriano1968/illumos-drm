@@ -1352,6 +1352,70 @@ static void intel_audio_component_init(struct intel_display *display)
 	intel_audio_cdclk_change_post(display);
 }
 
+#ifdef __illumos__
+/*
+ * illumos: no aggregate driver binds the audio component (there is no
+ * snd_hda_intel), so audiohd(4D) reaches its power and cdclk operations
+ * through these three functions, found with ddi_modsym(9F) in drv/i915n.
+ * The display HD-audio controller of Haswell and Broadwell is powered by
+ * the display power well and clocked from CDCLK. The first display device
+ * whose audio component registers serves them.
+ */
+int i915n_audio_power_get(unsigned long *cookie);
+void i915n_audio_power_put(unsigned long cookie);
+int i915n_audio_cdclk_khz(void);
+
+static DEFINE_MUTEX(i915n_audio_lock);
+static struct device *i915n_audio_kdev;
+
+int i915n_audio_power_get(unsigned long *cookie)
+{
+	int ret = -ENODEV;
+
+	mutex_lock(&i915n_audio_lock);
+	if (i915n_audio_kdev) {
+		*cookie = intel_audio_component_get_power(i915n_audio_kdev);
+		ret = 0;
+	}
+	mutex_unlock(&i915n_audio_lock);
+	return ret;
+}
+
+void i915n_audio_power_put(unsigned long cookie)
+{
+	mutex_lock(&i915n_audio_lock);
+	if (i915n_audio_kdev)
+		intel_audio_component_put_power(i915n_audio_kdev, cookie);
+	mutex_unlock(&i915n_audio_lock);
+}
+
+int i915n_audio_cdclk_khz(void)
+{
+	int ret = -ENODEV;
+
+	mutex_lock(&i915n_audio_lock);
+	if (i915n_audio_kdev)
+		ret = intel_audio_component_get_cdclk_freq(i915n_audio_kdev);
+	mutex_unlock(&i915n_audio_lock);
+	return ret;
+}
+
+static void i915n_audio_publish(struct intel_display *display, bool on)
+{
+	mutex_lock(&i915n_audio_lock);
+	if (on && !i915n_audio_kdev) {
+		i915n_audio_kdev = display->drm->dev;
+	} else if (!on && i915n_audio_kdev == display->drm->dev) {
+		if (display->audio.power_refcount)
+			drm_err(display->drm,
+				"audio power refcount %d at audio cleanup\n",
+				display->audio.power_refcount);
+		i915n_audio_kdev = NULL;
+	}
+	mutex_unlock(&i915n_audio_lock);
+}
+#endif
+
 static void intel_audio_component_register(struct intel_display *display)
 {
 	int ret;
@@ -1367,6 +1431,9 @@ static void intel_audio_component_register(struct intel_display *display)
 	}
 
 	display->audio.component_registered = true;
+#ifdef __illumos__
+	i915n_audio_publish(display, true);
+#endif
 }
 
 /**
@@ -1381,6 +1448,9 @@ static void intel_audio_component_cleanup(struct intel_display *display)
 	if (!display->audio.component_registered)
 		return;
 
+#ifdef __illumos__
+	i915n_audio_publish(display, false);
+#endif
 	component_del(display->drm->dev, &intel_audio_component_bind_ops);
 	display->audio.component_registered = false;
 }
