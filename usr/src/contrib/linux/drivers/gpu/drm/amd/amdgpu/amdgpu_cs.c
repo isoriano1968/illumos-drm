@@ -1620,6 +1620,19 @@ int amdgpu_cs_fence_to_handle_ioctl(struct drm_device *dev, void *data,
 		return r;
 
 	case AMDGPU_FENCE_TO_HANDLE_GET_SYNC_FILE_FD:
+#ifdef __illumos__
+		/*
+		 * Sync files are the DRM core's on illumos: made and installed
+		 * in one step.
+		 */
+		r = drm_sync_file_install(fence, true, &fd);
+		dma_fence_put(fence);
+		(void)sync_file;
+		if (r)
+			return r;
+		info->out.handle = fd;
+		return 0;
+#else
 		fd = get_unused_fd_flags(O_CLOEXEC);
 		if (fd < 0) {
 			dma_fence_put(fence);
@@ -1636,6 +1649,7 @@ int amdgpu_cs_fence_to_handle_ioctl(struct drm_device *dev, void *data,
 		fd_install(fd, sync_file->file);
 		info->out.handle = fd;
 		return 0;
+#endif
 
 	default:
 		dma_fence_put(fence);
