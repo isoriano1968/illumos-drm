@@ -989,7 +989,16 @@ err_unlock:
 		dma_resv_unlock(bo->base.resv);
 
 err_put:
+#ifdef __illumos__
+	/*
+	 * The DRM core holds the GEM object (drm_gem_private_object_init()
+	 * registered it): dropping the core's reference calls the driver's
+	 * free callback, which puts the buffer object as below.
+	 */
+	drm_gem_object_put(&bo->base);
+#else
 	ttm_bo_put(bo);
+#endif
 	return ret;
 }
 EXPORT_SYMBOL(ttm_bo_init_reserved);

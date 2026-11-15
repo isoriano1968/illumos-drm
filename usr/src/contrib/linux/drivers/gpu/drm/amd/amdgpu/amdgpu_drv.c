@@ -3106,6 +3106,14 @@ const struct drm_ioctl_desc amdgpu_ioctls_kms[] = {
 static const struct drm_driver amdgpu_kms_driver = {
 #ifdef __illumos__
 	DRM_FACADE_DRIVER_VERSION,
+	/*
+	 * No DRM core object size limit (256 MiB by default):
+	 * amdgpu_bo_validate_size() limits an object to the size of its
+	 * domains, as on Linux. amdgpu's objects are private (TTM's), so
+	 * the core's memory budget (illumos_max_memory) charges them
+	 * nothing and keeps its default.
+	 */
+	.illumos_max_object_size = U64_MAX,
 #endif
 	.driver_features =
 	    DRIVER_ATOMIC |
@@ -3144,6 +3152,7 @@ static const struct drm_driver amdgpu_kms_driver = {
 const struct drm_driver amdgpu_partition_driver = {
 #ifdef __illumos__
 	DRM_FACADE_DRIVER_VERSION,
+	.illumos_max_object_size = U64_MAX,	/* as amdgpu_kms_driver */
 #endif
 	.driver_features =
 	    DRIVER_GEM | DRIVER_RENDER | DRIVER_SYNCOBJ |

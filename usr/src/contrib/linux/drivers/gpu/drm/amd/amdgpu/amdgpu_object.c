@@ -669,8 +669,23 @@ int amdgpu_bo_create(struct amdgpu_device *adev,
 	bo = kvzalloc(bp->bo_ptr_size, GFP_KERNEL);
 	if (bo == NULL)
 		return -ENOMEM;
+#ifdef __illumos__
+	/*
+	 * The DRM core registers the object here: it needs the callbacks
+	 * first, and it can refuse the object (the facade's
+	 * drm_gem_private_object_init() returns an error). A refused
+	 * object is not the core's: free it as it is.
+	 */
+	bo->tbo.base.funcs = &amdgpu_gem_object_funcs;
+	r = drm_gem_private_object_init(adev_to_drm(adev), &bo->tbo.base, size);
+	if (unlikely(r != 0)) {
+		kvfree(bo);
+		return r;
+	}
+#else
 	drm_gem_private_object_init(adev_to_drm(adev), &bo->tbo.base, size);
 	bo->tbo.base.funcs = &amdgpu_gem_object_funcs;
+#endif
 	bo->vm_bo = NULL;
 	bo->preferred_domains = bp->preferred_domain ? bp->preferred_domain :
 		bp->domain;
