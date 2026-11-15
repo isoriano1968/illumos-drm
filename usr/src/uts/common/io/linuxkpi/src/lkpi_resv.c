@@ -80,6 +80,27 @@ resv_lock(struct dma_resv *obj, struct ww_acquire_ctx *ctx, bool slow,
 	return (ret);
 }
 
+void
+lkpi_dma_resv_init(struct dma_resv *obj)
+{
+	(dma_resv_init)(obj);
+	/*
+	 * A fresh reservation has no transaction; one the facade kept (a
+	 * second init of a live one) keeps its holder's record.
+	 */
+	if (!drm_illumos_resv_is_locked(obj))
+		obj->lock.ctx = NULL;
+}
+
+bool
+lkpi_dma_resv_trylock(struct dma_resv *obj)
+{
+	if (!(dma_resv_trylock)(obj))
+		return (false);
+	obj->lock.ctx = NULL;
+	return (true);
+}
+
 int
 lkpi_dma_resv_lock(struct dma_resv *obj, struct ww_acquire_ctx *ctx,
     bool intr)
@@ -110,6 +131,20 @@ lkpi_dma_resv_unlock(struct dma_resv *obj)
 		 */
 		obj->lock.ctx = NULL;
 		if (drm_illumos_resv_unlock_ctx(obj, ctx->stamp) != 0) {
+			/*
+			 * Not this transaction's: a stale record over a lock
+			 * this thread took without one is released as such
+			 * (the core refuses, with a warning, if this thread
+			 * does not hold it either), never left locked behind
+			 * a thread returning to user space.
+			 */
+			if (drm_illumos_resv_is_locked(obj)) {
+				WARN_ONCE(1, "dma_resv_unlock: stale "
+				    "transaction record; plain unlock");
+				(dma_resv_unlock)(obj);
+				if (!drm_illumos_resv_is_locked(obj))
+					return;
+			}
 			obj->lock.ctx = ctx;
 			return;
 		}

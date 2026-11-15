@@ -26,6 +26,18 @@
 
 extern struct ww_class reservation_ww_class;
 
+/*
+ * The facade's dma_resv_init() and dma_resv_trylock(), plus the layer's
+ * transaction record (dma_resv.lock.ctx): Linux's ww_mutex_init() starts
+ * it empty, and a lock taken without a transaction has none. TTM's ghost
+ * objects copy a whole BO, record included, while a transaction holds
+ * the original (ttm_buffer_object_transfer()).
+ */
+extern void lkpi_dma_resv_init(struct dma_resv *obj);
+extern bool lkpi_dma_resv_trylock(struct dma_resv *obj);
+#define	dma_resv_init(obj)	lkpi_dma_resv_init(obj)
+#define	dma_resv_trylock(obj)	lkpi_dma_resv_trylock(obj)
+
 #define	DMA_RESV_LIST_MASK	0x3
 
 static inline enum dma_resv_usage
