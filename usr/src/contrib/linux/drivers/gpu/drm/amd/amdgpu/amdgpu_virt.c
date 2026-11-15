@@ -677,7 +677,7 @@ static int amdgpu_virt_write_vf2pf_data(struct amdgpu_device *adev)
 	vf2pf_info->header.size = sizeof(struct amd_sriov_msg_vf2pf_info);
 	vf2pf_info->header.version = AMD_SRIOV_MSG_FW_VRAM_VF2PF_VER;
 
-#ifdef MODULE
+#if defined(MODULE) && !defined(__illumos__)	/* THIS_MODULE is NULL on illumos */
 	if (THIS_MODULE->version != NULL)
 		strscpy(vf2pf_info->driver_version, THIS_MODULE->version);
 	else
