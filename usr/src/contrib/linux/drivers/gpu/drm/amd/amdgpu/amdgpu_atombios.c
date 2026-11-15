@@ -706,6 +706,7 @@ int amdgpu_atombios_get_clock_info(struct amdgpu_device *adev)
 		/* disp clock */
 		adev->clock.default_dispclk =
 			le32_to_cpu(firmware_info->info_21.ulDefaultDispEngineClkFreq);
+		adev->clock.vbios_dispclk = adev->clock.default_dispclk;
 		/* set a reasonable default for DP */
 		if (adev->clock.default_dispclk < 53900) {
 			DRM_DEBUG("Changing default dispclk from %dMhz to 600Mhz\n",

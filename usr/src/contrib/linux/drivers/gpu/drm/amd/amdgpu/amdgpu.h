@@ -383,6 +383,8 @@ struct amdgpu_clock {
 	uint32_t default_mclk;
 	uint32_t default_sclk;
 	uint32_t default_dispclk;
+	/* the VBIOS's own default dispclk, before the DP override below */
+	uint32_t vbios_dispclk;
 	uint32_t dp_extclk;
 	uint32_t max_pixel_clock;
 };

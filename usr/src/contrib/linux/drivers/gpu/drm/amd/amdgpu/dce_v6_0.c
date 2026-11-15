@@ -1584,8 +1584,26 @@ static void dce_v6_0_audio_set_dto(struct drm_encoder *encoder, u32 clock)
 		WREG32(mmDCCG_AUDIO_DTO0_PHASE, 24000);
 		WREG32(mmDCCG_AUDIO_DTO0_MODULE, clock);
 	} else if (ENCODER_MODE_IS_DP(em)) {
+		/*
+		 * The DP audio DTO divides the display engine reference.  The
+		 * caller passes default_dispclk, which amdgpu raises to 600 MHz
+		 * and programs at hw_init; on DCE6 that request goes to PPLL0
+		 * (amdgpu_atombios_crtc_set_disp_eng_pll()) and the DTO
+		 * reference stays at the VBIOS's own default.  Seen on the Mac
+		 * Pro (Late 2013): VBIOS 500 MHz, DP audio at 48000 * 500/600 =
+		 * 40 kHz.  Use the VBIOS value when the override raised it.
+		 */
+		u32 dto = clock;
+
+		if (adev->clock.vbios_dispclk != 0 &&
+		    adev->clock.vbios_dispclk < adev->clock.default_dispclk &&
+		    clock == adev->clock.default_dispclk * 10)
+			dto = adev->clock.vbios_dispclk * 10;
+		dev_info_once(adev->dev, "DP audio DTO: module %u "
+		    "(dispclk %u kHz, VBIOS default %u kHz)\n",
+		    dto, clock, adev->clock.vbios_dispclk * 10);
 		WREG32(mmDCCG_AUDIO_DTO1_PHASE, 24000);
-		WREG32(mmDCCG_AUDIO_DTO1_MODULE, clock);
+		WREG32(mmDCCG_AUDIO_DTO1_MODULE, dto);
 	}
 }
 
