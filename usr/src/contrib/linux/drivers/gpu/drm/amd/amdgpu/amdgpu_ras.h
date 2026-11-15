@@ -27,6 +27,7 @@
 #include <linux/debugfs.h>
 #include <linux/list.h>
 #include <linux/kfifo.h>
+#include <linux/workqueue.h>
 #include <linux/radix-tree.h>
 #include "ta_ras_if.h"
 #include "amdgpu_ras_eeprom.h"
