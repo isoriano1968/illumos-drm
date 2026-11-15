@@ -39,6 +39,9 @@ struct ttm_resource;
 struct ttm_buffer_object;
 struct ttm_operation_ctx;
 struct ttm_pool_tt_restore;
+#ifdef __illumos__
+struct lkpi_dma_pages;
+#endif
 
 /**
  * struct ttm_tt - This is a structure holding the pages, caching- and aperture
@@ -126,6 +129,13 @@ struct ttm_tt {
 	enum ttm_caching caching;
 	/** @restore: Partial restoration from backup state. TTM private */
 	struct ttm_pool_tt_restore *restore;
+#ifdef __illumos__
+	/**
+	 * @illumos_dma: the one DMA binding of @pages behind @dma_address
+	 * (LinuxKPI's lkpi_dma_map_pages(); ttm_pool.c).
+	 */
+	struct lkpi_dma_pages *illumos_dma;
+#endif
 };
 
 /**

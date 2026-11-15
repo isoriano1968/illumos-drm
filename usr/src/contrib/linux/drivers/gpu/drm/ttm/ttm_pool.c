@@ -50,6 +50,34 @@
 #include "ttm_module.h"
 #include "ttm_pool_internal.h"
 
+#ifdef __illumos__
+#include <lkpi/dma_pages.h>
+
+/*
+ * On illumos every DMA mapping is a DDI handle of its own (2600 bytes on
+ * rootnex), so a dma_map_page() per page would cost most of the memory
+ * it maps. The pool maps no page by itself: once a tt is fully
+ * allocated, ttm_pool_illumos_map_tt() binds all its pages with one
+ * handle and fills its dma_address array; the tt's pages are unmapped
+ * together, before any of them is freed.
+ */
+static int ttm_pool_illumos_map_tt(struct ttm_pool *pool, struct ttm_tt *tt)
+{
+	if (!tt->dma_address || ttm_pool_uses_dma_alloc(pool))
+		return 0;
+	if (WARN_ON(tt->illumos_dma))
+		return -EINVAL;
+	return lkpi_dma_map_pages(pool->dev, tt->pages, tt->num_pages,
+				  tt->dma_address, &tt->illumos_dma);
+}
+
+static void ttm_pool_illumos_unmap_tt(struct ttm_tt *tt)
+{
+	lkpi_dma_unmap_pages(tt->illumos_dma);
+	tt->illumos_dma = NULL;
+}
+#endif
+
 #ifdef CONFIG_FAULT_INJECTION
 #include <linux/fault-inject.h>
 static DECLARE_FAULT_ATTR(backup_fault_inject);
@@ -312,6 +340,10 @@ static void ttm_pool_unmap(struct ttm_pool *pool, dma_addr_t dma_addr,
 	/* Unmapped while freeing the page */
 	if (ttm_pool_uses_dma_alloc(pool))
 		return;
+#ifdef __illumos__
+	/* The whole tt is unmapped at once (ttm_pool_illumos_unmap_tt()). */
+	return;
+#endif
 
 	dma_unmap_page(pool->dev, dma_addr, (long)num_pages << PAGE_SHIFT,
 		       DMA_BIDIRECTIONAL);
@@ -697,7 +729,13 @@ static int ttm_pool_page_allocated(struct ttm_pool *pool, unsigned int order,
 			return r;
 	}
 
+#ifdef __illumos__
+	/* Mapped with the whole tt (ttm_pool_illumos_map_tt()). */
+	first_dma = 0;
+	if (alloc->dma_addr && ttm_pool_uses_dma_alloc(pool)) {
+#else
 	if (alloc->dma_addr) {
+#endif
 		r = ttm_pool_map(pool, order, p, &first_dma);
 		if (r)
 			return r;
@@ -853,6 +891,12 @@ static int __ttm_pool_alloc(struct ttm_pool *pool, struct ttm_tt *tt,
 	if (r)
 		goto error_free_all;
 
+#ifdef __illumos__
+	r = ttm_pool_illumos_map_tt(pool, tt);
+	if (r)
+		goto error_free_all;
+#endif
+
 	kfree(tt->restore);
 	tt->restore = NULL;
 
@@ -965,6 +1009,9 @@ void ttm_pool_free(struct ttm_pool *pool, struct ttm_tt *tt)
 {
 	int nid = ttm_pool_nid(pool);
 
+#ifdef __illumos__
+	ttm_pool_illumos_unmap_tt(tt);
+#endif
 	ttm_pool_free_range(pool, tt, tt->caching, 0, tt->num_pages);
 
 	while (atomic_long_read(&allocated_pages[nid]) > pool_node_limit[nid]) {
@@ -1093,6 +1140,10 @@ long ttm_pool_backup(struct ttm_pool *pool, struct ttm_tt *tt,
 	}
 #endif
 
+#ifdef __illumos__
+	if (tt->dma_address)
+		ttm_pool_illumos_unmap_tt(tt);
+#endif
 	if (tt->dma_address || flags->purge) {
 		for (i = 0; i < tt->num_pages; i += num_pages) {
 			unsigned int order;
