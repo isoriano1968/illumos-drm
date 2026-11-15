@@ -450,6 +450,19 @@ static int vce_v1_0_stop(struct amdgpu_device *adev)
 	if (vce_v1_0_lmi_clean(adev))
 		dev_warn(adev->dev, "VCE not idle\n");
 
+#ifdef __illumos__
+	/*
+	 * illumos: VCE_STATUS's VCPU_REPORT bits (0xfe; the firmware sets
+	 * FW_LOADED, 0x2, again after vce_v1_0_start() cleared it) make
+	 * SRBM_STATUS2.VCE_BUSY read busy (see vce_v1_0_is_idle()), so the
+	 * wait below timed out and warned "VCE busy: VCE_STATUS=0x2,
+	 * SRBM_STATUS2=0x80" with no job running (the idle work only gates
+	 * VCE when no fence is outstanding). Clear them, as vce_v1_0_start()
+	 * does after the firmware load; JOB_BUSY and UENC_BUSY stay, and the
+	 * VCPU is reset below anyway.
+	 */
+	WREG32_P(mmVCE_STATUS, 0, ~VCE_STATUS__VCPU_REPORT_MASK);
+#endif
 	if (vce_v1_0_wait_for_idle(ip_block))
 		dev_warn(adev->dev, "VCE busy: VCE_STATUS=0x%x, SRBM_STATUS2=0x%x\n",
 			RREG32(mmVCE_STATUS), RREG32(mmSRBM_STATUS2));
