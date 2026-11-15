@@ -3112,9 +3112,19 @@ const struct drm_ioctl_desc amdgpu_ioctls_kms[] = {
 	DRM_IOCTL_DEF_DRV(AMDGPU_GEM_LIST_HANDLES, amdgpu_gem_list_handles_ioctl, DRM_AUTH|DRM_RENDER_ALLOW),
 };
 
+#ifdef __illumos__
+/*
+ * misc/drm_kms: Linux's KMS code behind the DRM core (facade 2.0,
+ * drm_lkms.h). The core forwards the mode-setting ioctls of this device
+ * to it once the LinuxKPI layer's drm_dev_register() starts mode setting.
+ */
+extern const struct drm_illumos_lkms_funcs drm_kms_illumos_funcs;
+#endif
+
 static const struct drm_driver amdgpu_kms_driver = {
 #ifdef __illumos__
 	DRM_FACADE_DRIVER_VERSION,
+	.illumos_lkms = &drm_kms_illumos_funcs,
 	/*
 	 * No DRM core object size limit (256 MiB by default):
 	 * amdgpu_bo_validate_size() limits an object to the size of its
