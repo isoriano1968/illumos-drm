@@ -1293,6 +1293,22 @@ static int amdgpu_display_framebuffer_init(struct drm_device *dev,
 	return 0;
 }
 
+#ifdef __illumos__
+/*
+ * illumos: a framebuffer on a kernel BO (the illumos console's loader
+ * framebuffer, illumos/amdgpu_illumos_con_kms.c), as for a user GEM object.
+ */
+int amdgpu_illumos_gem_fb_init(struct drm_device *dev,
+			       struct amdgpu_framebuffer *rfb,
+			       const struct drm_format_info *info,
+			       const struct drm_mode_fb_cmd2 *mode_cmd,
+			       struct drm_gem_object *obj)
+{
+	return amdgpu_display_gem_fb_verify_and_init(dev, rfb, NULL, info,
+						     mode_cmd, obj);
+}
+#endif
+
 struct drm_framebuffer *
 amdgpu_display_user_framebuffer_create(struct drm_device *dev,
 				       struct drm_file *file_priv,

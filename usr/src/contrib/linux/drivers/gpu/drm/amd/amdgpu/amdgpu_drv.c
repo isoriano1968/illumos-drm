@@ -3153,12 +3153,14 @@ const struct drm_ioctl_desc amdgpu_ioctls_kms[] = {
  * to it once the LinuxKPI layer's drm_dev_register() starts mode setting.
  */
 extern const struct drm_illumos_lkms_funcs drm_kms_illumos_funcs;
+/* drm_kms's hooks, with the illumos console restore (amdgpu_illumos_con_kms.c) */
+extern struct drm_illumos_lkms_funcs amdgpu_illumos_lkms_funcs;
 #endif
 
 static const struct drm_driver amdgpu_kms_driver = {
 #ifdef __illumos__
 	DRM_FACADE_DRIVER_VERSION,
-	.illumos_lkms = &drm_kms_illumos_funcs,
+	.illumos_lkms = &amdgpu_illumos_lkms_funcs,
 	/*
 	 * No DRM core object size limit (256 MiB by default):
 	 * amdgpu_bo_validate_size() limits an object to the size of its
