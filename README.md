@@ -2764,6 +2764,61 @@ dependencies, licences and aliases, runs the host and shell tests, and
 publishes seven packages to a workspace file repository. Neither job loads a
 module or installs a package into a running image.
 
+## amdgpu (Southern Islands) on illumos
+
+`usr/src/uts/intel/amdgpu` builds Linux v7.2's amdgpu (with TTM, the
+scheduler and SI support; no DC) on this core, LinuxKPI and `misc/drm_kms`.
+Tested on a Mac Pro 2013 with two FirePro D500 (Tahiti LE, Southern
+Islands, 1002:679e): both GPUs attach, KMS drives a 3840x2160@60
+DisplayPort monitor, the illumos console and VTs run on the display GPU,
+and GNOME 45 runs on Xorg 21.1.25 (modesetting + glamor) with Mesa 26.2.6
+radeonsi (glxinfo: direct rendering, "AMD Radeon Graphics (radeonsi,
+tahiti, ACO, DRM 3.64)", OpenGL 4.6). EGL offscreen rendering also works
+on the second GPU.
+
+Layout, as i915n: the Linux inputs (1387 files, imported on
+`linux-pristine-amdgpu` and merged) and their port commits are in
+`usr/src/contrib/linux`; `usr/src/uts/intel/io/amdgpu` holds the illumos
+glue (`illumos/`), `config.h`, `flags.sh`, `private.mapfile` and
+`tus.txt`. `gen-tus.sh` (a maintainer tool) regenerates `tus.txt` from
+Linux's Kbuild Makefiles in a full Linux checkout; it lists every IP block
+Linux builds (GFX6 to GFX12), so only the display side is limited to DCE.
+`amdgpu_vkms.h` is an MIT stand-in (the original is GPL-only).
+
+What it took:
+
+| Layer | Change |
+|---|---|
+| LinuxKPI | dma-buf attachments and PRIME trampolines, task reference counts, XArray readers that may run with `xa_lock` held, `dma_resv_copy_fences()` and `dma_resv_replace_fences()`, `pci_save_state()`/`pci_restore_state()` |
+| DRM core | facade 2.2 (on 2.1): a GEM object's reservation lives until the driver's `drm_gem_object_release()` as in Linux (TTM's delayed delete used it after the core freed it); the `_resv` pair is bound to its address, so TTM's ghost BOs get their own reservation; `drm_illumos_resv_replace_fences`; PRIME exports to other devices |
+| amdgpu port commits | the core owns the device file, GEM, fences, offsets and user mappings; VBIOS from ACPI VFCT (Apple's GPUs serve none through the ROM BAR); TTM with one DMA binding per tt; mode setting through `misc/drm_kms`; the console framebuffer kept in VRAM; DCE6 DP audio (DTO from the VBIOS display clock, ELD sink info); `amdgpu_illumos_dpm_level` in `/etc/system` instead of sysfs; VCE1 stop; SI dpm diagnostics (off by default) |
+| Firmware | Tahiti `ce`, `me`, `pfp`, `rlc`, `mc`, `smc`, `uvd` and `vce_1_0_0` from linux-firmware into `usr/src/data/firmware/amdgpu/` (not committed; checksums in `usr/src/data/firmware/README.md`; `stage.sh` refuses to stage without them) |
+| libdrm, Mesa, Xorg | see `userland/`: libdrm import size fallback and `libsync.h` include, Mesa's dma-buf capability on illumos, Xorg 21.1.25 with glamor and `39-no-console-fb` |
+
+Build and install: `dmake setup && dmake install && dmake package` builds
+`driver/graphics/amdgpu` with the other packages. Install it into a new
+boot environment and bind the GPUs by alias there (`update_drv -b <root>
+-a -i '"pciex1002,679e.106b.126"' amdgpu`, and so on for each GPU); the
+package ships no aliases while the port is young. `amdgpu.conf` sets
+`ddi-no-autodetach=1` (amdgpu's teardown is not safe yet).
+
+Status:
+
+| Area | State |
+|---|---|
+| Attach, VRAM/GTT, rings, firmware | works (both GPUs) |
+| Open/close, queries, render nodes | works |
+| radeonsi (GL 4.6, EGL, GBM), glamor, DRI3 | works |
+| KMS on DCE6, EDID over DP AUX | works |
+| Kernel console (tem), VTs | works on the loader framebuffer; restored after X and at panic |
+| DisplayPort audio | works at the right rate; monitor name in the ELD |
+| Power management (si_dpm) | stable at the lowest level; the SMC never leaves level 0 (`SetForcedLevels` 0xFF) |
+| DC (DCN display: Navi and later) | not built; Polaris and older use DCE |
+| dma-buf `lseek(SEEK_END)` | returns 0 (libdrm falls back); to return the size as Linux does |
+| UVD (video decode) | works through VA-API (libva 2.22, radeonsi): H.264 1080p; 4K and HEVC are beyond UVD 3.1 |
+| VCE (encode), quiesce(9E) | not used / missing |
+| Detach | not safe (powers the Mac Pro off) |
+
 ## Licence
 
 MPL-2.0, see `LICENSE`. The generated uAPI bindings in `usr/src/uts/common/io/drm/drm-uapi`
@@ -2771,7 +2826,7 @@ and the patch in `usr/src/tools/uapi/patches` are derived from MIT-licensed
 headers and keep that licence; the notice is in `usr/src/uts/common/io/drm/drm-uapi/src/lib.rs`
 and in the patch. The Linux files in `usr/src/contrib/linux/` keep their
 MIT, dual-MIT or HPND/X11 notices; `SOURCES` records the pristine upstream
-digests and licence classes. Six MIT stand-ins replace excluded GPL-only
+digests and licence classes. Seven MIT stand-ins replace excluded GPL-only
 headers. `verify-vendored.sh -n` checks every vendored source with the
 existing licence gate and requires provenance for each upstream file.
 The helpers' notices are also in `usr/src/uts/common/io/drm_helpers/drm_mm/LICENSE` and

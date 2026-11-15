@@ -1,0 +1,18 @@
+illumos: take the dma-buf (PRIME) capability from the kernel, as on Linux and
+the BSDs. Without it every gallium driver reports no dma-buf import/export
+on illumos; GBM then falls back to dumb buffers (XRGB scanout and ARGB
+cursors only), so Xorg modesetting with glamor cannot create its ARGB8888
+front buffer (ScreenInit fails) and DRI3 has nothing to share. Found with
+radeonsi on amdgpu (Mac Pro 2013, illumos-drm, 2026-11-13). Upstream candidate.
+
+--- src/gallium/auxiliary/util/u_screen.c.orig
++++ src/gallium/auxiliary/util/u_screen.c
+@@ -132,7 +132,7 @@
+ 
+    caps->throttle = true;
+ 
+-#if defined(HAVE_LIBDRM) && (DETECT_OS_LINUX || DETECT_OS_BSD || DETECT_OS_MANAGARM)
++#if defined(HAVE_LIBDRM) && (DETECT_OS_LINUX || DETECT_OS_BSD || DETECT_OS_MANAGARM || DETECT_OS_SOLARIS)
+    if (pscreen->get_screen_fd) {
+       uint64_t cap;
+       int fd = pscreen->get_screen_fd(pscreen);

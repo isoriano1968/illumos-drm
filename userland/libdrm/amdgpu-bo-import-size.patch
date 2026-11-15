@@ -1,0 +1,34 @@
+amdgpu_bo_import(): if lseek(SEEK_END) on the dma-buf gives 0 (a dma-buf file
+that cannot report its size, as on illumos), take the size from the kernel
+(AMDGPU_GEM_OP_GET_GEM_CREATE_INFO on the imported handle). Without it the
+import has size 0 and the GPU mapping fails (GEM_VA map_size 0 -> EINVAL):
+Xorg glamor answered every DRI3 PixmapFromBuffers with BadAlloc and GNOME
+showed nothing (Mac Pro 2013, amdgpu, 2026-11-13).
+
+--- a/amdgpu/amdgpu_bo.c
++++ b/amdgpu/amdgpu_bo.c
+@@ -285,6 +285,24 @@
+ 		}
+ 		lseek(shared_handle, 0, SEEK_SET);
+ 
++		/*
++		 * A dma-buf file that cannot report its size (lseek() gives 0,
++		 * e.g. on illumos): ask the kernel for the BO's size instead.
++		 */
++		if (size == 0) {
++			struct drm_amdgpu_gem_create_in info = {};
++			struct drm_amdgpu_gem_op gem_op = {};
++
++			gem_op.handle = handle;
++			gem_op.op = AMDGPU_GEM_OP_GET_GEM_CREATE_INFO;
++			gem_op.value = (uintptr_t)&info;
++			r = drmCommandWriteRead(dev->fd, DRM_AMDGPU_GEM_OP,
++						&gem_op, sizeof(gem_op));
++			if (r)
++				goto free_bo_handle;
++			size = info.bo_size;
++		}
++
+ 		dma_buf_size = size;
+ 		shared_handle = handle;
+ 	}
