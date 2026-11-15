@@ -2893,11 +2893,35 @@ static int dce_v6_0_hw_init(struct amdgpu_ip_block *ip_block)
 	int i;
 	struct amdgpu_device *adev = ip_block->adev;
 
+#ifdef __illumos__
+	/*
+	 * illumos measurement: when the display steps of hw_init run, in ms
+	 * since boot, to place the console flash the user sees before gdm
+	 * (the loader's framebuffer is on screen here; DIG init and the
+	 * display engine PLL change act on the running display).
+	 */
+	drm_info(adev_to_drm(adev), "illumos: dce6 hw_init at %llu ms: vga "
+	    "render off\n", (unsigned long long)(ktime_get_ns() / 1000000));
+#endif
 	/* disable vga render */
 	dce_v6_0_set_vga_render_state(adev, false);
+#ifdef __illumos__
+	drm_info(adev_to_drm(adev), "illumos: dce6 hw_init at %llu ms: "
+	    "init dig\n", (unsigned long long)(ktime_get_ns() / 1000000));
+#endif
 	/* init dig PHYs, disp eng pll */
 	amdgpu_atombios_encoder_init_dig(adev);
+#ifdef __illumos__
+	drm_info(adev_to_drm(adev), "illumos: dce6 hw_init at %llu ms: "
+	    "disp eng pll %u kHz\n",
+	    (unsigned long long)(ktime_get_ns() / 1000000),
+	    adev->clock.default_dispclk * 10);
+#endif
 	amdgpu_atombios_crtc_set_disp_eng_pll(adev, adev->clock.default_dispclk);
+#ifdef __illumos__
+	drm_info(adev_to_drm(adev), "illumos: dce6 hw_init at %llu ms: "
+	    "done\n", (unsigned long long)(ktime_get_ns() / 1000000));
+#endif
 
 	/* initialize hpd */
 	dce_v6_0_hpd_init(adev);
