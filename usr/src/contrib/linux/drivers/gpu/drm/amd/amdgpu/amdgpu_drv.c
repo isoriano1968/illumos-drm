@@ -2374,6 +2374,11 @@ static bool amdgpu_support_enabled(struct device *dev,
 	return false;
 }
 
+#ifdef __illumos__
+/* illumos/amdgpu_dma_buf_illumos.c */
+extern void amdgpu_illumos_prime_init(struct drm_device *ddev);
+#endif
+
 static int amdgpu_pci_probe(struct pci_dev *pdev,
 			    const struct pci_device_id *ent)
 {
@@ -2428,6 +2433,10 @@ static int amdgpu_pci_probe(struct pci_dev *pdev,
 	adev->dev  = &pdev->dev;
 	adev->pdev = pdev;
 	ddev = adev_to_drm(adev);
+#ifdef __illumos__
+	/* Other devices map amdgpu's objects through the DRM core's PRIME. */
+	amdgpu_illumos_prime_init(ddev);
+#endif
 
 	if (!supports_atomic)
 		ddev->driver_features &= ~DRIVER_ATOMIC;
