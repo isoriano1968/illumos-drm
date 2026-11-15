@@ -1556,6 +1556,32 @@ void amdgpu_driver_postclose_kms(struct drm_device *dev,
 	if (!fpriv)
 		return;
 
+#ifdef __illumos__
+	/*
+	 * On Linux, close(2) first runs the file's flush (amdgpu_flush():
+	 * wait for the file's scheduler entities and VM to go idle) and
+	 * release (amdgpu_drm_release(): stop eviction fences and user
+	 * queues) before drm_release() calls this. The DRM core owns the
+	 * device file on illumos and calls only postclose, so both run here,
+	 * in Linux's order.
+	 */
+	{
+		long timeout = MAX_WAIT_SCHED_ENTITY_Q_EMPTY;
+		int idx;
+
+		timeout = amdgpu_ctx_mgr_entity_flush(&fpriv->ctx_mgr, timeout);
+		(void)amdgpu_vm_wait_idle(&fpriv->vm, timeout);
+		if (drm_dev_enter(dev, &idx)) {
+			amdgpu_evf_mgr_shutdown(&fpriv->evf_mgr);
+			amdgpu_userq_mgr_cancel_resume(&fpriv->userq_mgr);
+			amdgpu_evf_mgr_flush_suspend(&fpriv->evf_mgr);
+			amdgpu_userq_mgr_fini(&fpriv->userq_mgr);
+			amdgpu_evf_mgr_fini(&fpriv->evf_mgr);
+			drm_dev_exit(idx);
+		}
+	}
+#endif
+
 	pm_runtime_get_sync(dev->dev);
 
 	if (amdgpu_device_ip_get_ip_block(adev, AMD_IP_BLOCK_TYPE_UVD) != NULL)

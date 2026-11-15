@@ -2971,6 +2971,7 @@ static int amdgpu_pmops_runtime_resume(struct device *dev)
 	return 0;
 }
 
+#ifndef __illumos__	/* the DRM core owns the device file on illumos */
 static int amdgpu_drm_release(struct inode *inode, struct file *filp)
 {
 	struct drm_file *file_priv = filp->private_data;
@@ -3008,6 +3009,7 @@ out:
 	pm_runtime_put_autosuspend(dev->dev);
 	return ret;
 }
+#endif	/* !__illumos__ */
 
 static const struct dev_pm_ops amdgpu_pm_ops = {
 	.prepare = pm_sleep_ptr(amdgpu_pmops_prepare),
@@ -3024,6 +3026,7 @@ static const struct dev_pm_ops amdgpu_pm_ops = {
 	.runtime_idle = amdgpu_pmops_runtime_idle,
 };
 
+#ifndef __illumos__	/* close(2) runs amdgpu_driver_postclose_kms() */
 static int amdgpu_flush(struct file *f, fl_owner_t id)
 {
 	struct drm_file *file_priv = f->private_data;
@@ -3053,6 +3056,7 @@ static const struct file_operations amdgpu_driver_kms_fops = {
 #endif
 	.fop_flags = FOP_UNSIGNED_OFFSET,
 };
+#endif	/* !__illumos__ */
 
 int amdgpu_file_to_fpriv(struct file *filp, struct amdgpu_fpriv **fpriv)
 {
@@ -3060,13 +3064,19 @@ int amdgpu_file_to_fpriv(struct file *filp, struct amdgpu_fpriv **fpriv)
 
 	if (!filp)
 		return -EINVAL;
-
+#ifdef __illumos__
+	/* No Linux file has the driver's file operations on illumos. */
+	(void)file;
+	(void)fpriv;
+	return -EINVAL;
+#else
 	if (filp->f_op != &amdgpu_driver_kms_fops)
 		return -EINVAL;
 
 	file = filp->private_data;
 	*fpriv = file->driver_priv;
 	return 0;
+#endif
 }
 
 const struct drm_ioctl_desc amdgpu_ioctls_kms[] = {
@@ -3094,6 +3104,9 @@ const struct drm_ioctl_desc amdgpu_ioctls_kms[] = {
 };
 
 static const struct drm_driver amdgpu_kms_driver = {
+#ifdef __illumos__
+	DRM_FACADE_DRIVER_VERSION,
+#endif
 	.driver_features =
 	    DRIVER_ATOMIC |
 	    DRIVER_GEM |
@@ -3105,10 +3118,17 @@ static const struct drm_driver amdgpu_kms_driver = {
 	.num_ioctls = ARRAY_SIZE(amdgpu_ioctls_kms),
 	.dumb_create = amdgpu_mode_dumb_create,
 	.dumb_map_offset = amdgpu_mode_dumb_mmap,
+#ifndef __illumos__
+	/*
+	 * illumos: no fbdev emulation, no Linux file operations and no proc
+	 * fdinfo. PRIME exports are the DRM core's; it calls
+	 * gem_prime_import only for another device's dma-buf.
+	 */
 	DRM_FBDEV_TTM_DRIVER_OPS,
 	.fops = &amdgpu_driver_kms_fops,
+#endif
 	.release = &amdgpu_driver_release_kms,
-#ifdef CONFIG_PROC_FS
+#if defined(CONFIG_PROC_FS) && !defined(__illumos__)
 	.show_fdinfo = amdgpu_show_fdinfo,
 #endif
 
@@ -3122,6 +3142,9 @@ static const struct drm_driver amdgpu_kms_driver = {
 };
 
 const struct drm_driver amdgpu_partition_driver = {
+#ifdef __illumos__
+	DRM_FACADE_DRIVER_VERSION,
+#endif
 	.driver_features =
 	    DRIVER_GEM | DRIVER_RENDER | DRIVER_SYNCOBJ |
 	    DRIVER_SYNCOBJ_TIMELINE,
@@ -3131,8 +3154,10 @@ const struct drm_driver amdgpu_partition_driver = {
 	.num_ioctls = ARRAY_SIZE(amdgpu_ioctls_kms),
 	.dumb_create = amdgpu_mode_dumb_create,
 	.dumb_map_offset = amdgpu_mode_dumb_mmap,
+#ifndef __illumos__
 	DRM_FBDEV_TTM_DRIVER_OPS,
 	.fops = &amdgpu_driver_kms_fops,
+#endif
 	.release = &amdgpu_driver_release_kms,
 
 	.gem_prime_import = amdgpu_gem_prime_import,
