@@ -14,7 +14,7 @@
 # its own licence (usr/src/data/firmware/README.md); it is not in Git, and
 # usr/src/tools/build/stage.sh refuses to stage without it.
 #
-set name=pkg.fmri value=pkg://illumos-drm/driver/graphics/amdgpu@0.0.2.1,5.11-2026.0.0.0
+set name=pkg.fmri value=pkg://illumos-drm/driver/graphics/amdgpu@0.0.2.2,5.11-2026.0.0.0
 set name=pkg.summary value="AMD GPU driver from Linux amdgpu (bring-up)"
 set name=pkg.description value="amdgpu, the amdgpu driver of Linux v7.2 built for the illumos-drm DRM core and its Linux compatibility layer, for bring-up tests on Southern Islands GPUs (Tahiti). Untested. Includes the Tahiti firmware. Ships no PCI aliases."
 set name=info.classification value=org.opensolaris.category.2008:Drivers/Display
@@ -35,14 +35,14 @@ file usr/src/uts/intel/io/amdgpu/amdgpu.conf path=kernel/drv/amdgpu.conf owner=r
 # never match. type=ddi_display:drm keeps it to DRM minor nodes.
 driver name=amdgpu perms="* 0666 root sys" perms="gfx* 0600 root sys" \
     devlink=type=ddi_display:drm;name=display\tdri/\M0
-depend fmri=pkg:/driver/graphics/drm-core@0.0.2.1 type=require
-depend fmri=pkg:/driver/graphics/linuxkpi@0.0.2.1 type=require
-depend fmri=pkg:/driver/graphics/drm-helpers@0.0.2.1 type=require
-depend fmri=pkg:/driver/graphics/drm-kms@0.0.2.1 type=require
-depend fmri=pkg:/driver/graphics/drmadm@0.0.2.1 type=require
-depend fmri=pkg:/driver/graphics/drm-core@0.0.2.1 type=incorporate
-depend fmri=pkg:/driver/graphics/linuxkpi@0.0.2.1 type=incorporate
-depend fmri=pkg:/driver/graphics/drm-kms@0.0.2.1 type=incorporate
+depend fmri=pkg:/driver/graphics/drm-core@0.0.2.2 type=require
+depend fmri=pkg:/driver/graphics/linuxkpi@0.0.2.2 type=require
+depend fmri=pkg:/driver/graphics/drm-helpers@0.0.2.2 type=require
+depend fmri=pkg:/driver/graphics/drm-kms@0.0.2.2 type=require
+depend fmri=pkg:/driver/graphics/drmadm@0.0.2.2 type=require
+depend fmri=pkg:/driver/graphics/drm-core@0.0.2.2 type=incorporate
+depend fmri=pkg:/driver/graphics/linuxkpi@0.0.2.2 type=incorporate
+depend fmri=pkg:/driver/graphics/drm-kms@0.0.2.2 type=incorporate
 license LICENSE.amdgpu license=MIT-amdgpu
 
 # Unmodified AMD firmware (Tahiti); a separate licence from the driver.
