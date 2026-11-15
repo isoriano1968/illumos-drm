@@ -161,6 +161,15 @@ int amdgpu_pcie_gen2 = -1;
 int amdgpu_msi = -1;
 char amdgpu_lockup_timeout[AMDGPU_MAX_TIMEOUT_PARAM_LENGTH];
 int amdgpu_dpm = -1;
+#ifdef __illumos__
+/*
+ * illumos: the forced dpm performance level at probe, in place of Linux's
+ * sysfs power_dpm_force_performance_level (no sysfs here): 0 auto (the
+ * driver's default, nothing is forced), 1 low, 2 high. /etc/system:
+ * set amdgpu:amdgpu_illumos_dpm_level = 2
+ */
+int amdgpu_illumos_dpm_level = 0;
+#endif
 int amdgpu_fw_load_type = -1;
 int amdgpu_aspm = -1;
 int amdgpu_runtime_pm = -1;
@@ -2488,6 +2497,31 @@ retry_init:
 
 		drm_client_setup(adev_to_drm(adev), format);
 	}
+
+#ifdef __illumos__
+	/*
+	 * What writing power_dpm_force_performance_level does on Linux
+	 * (amdgpu_set_power_dpm_force_performance_level()), for the level
+	 * chosen in /etc/system; legacy and SMU dpm alike. Without dpm (or
+	 * with level 0) nothing changes.
+	 */
+	if (adev->pm.dpm_enabled && amdgpu_illumos_dpm_level != 0) {
+		enum amd_dpm_forced_level level =
+		    amdgpu_illumos_dpm_level == 1 ? AMD_DPM_FORCED_LEVEL_LOW :
+		    amdgpu_illumos_dpm_level == 2 ? AMD_DPM_FORCED_LEVEL_HIGH :
+		    AMD_DPM_FORCED_LEVEL_AUTO;
+		int r;
+
+		mutex_lock(&adev->pm.stable_pstate_ctx_lock);
+		r = amdgpu_dpm_force_performance_level(adev, level);
+		adev->pm.stable_pstate_ctx = NULL;
+		mutex_unlock(&adev->pm.stable_pstate_ctx_lock);
+		drm_info(adev_to_drm(adev),
+		    "illumos: dpm performance level %s (%d)\n",
+		    level == AMD_DPM_FORCED_LEVEL_LOW ? "low" :
+		    level == AMD_DPM_FORCED_LEVEL_HIGH ? "high" : "auto", r);
+	}
+#endif
 
 	ret = amdgpu_debugfs_init(adev);
 	if (ret)
