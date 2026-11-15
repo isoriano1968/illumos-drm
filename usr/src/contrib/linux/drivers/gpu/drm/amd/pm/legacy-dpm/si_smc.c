@@ -206,6 +206,14 @@ PPSMC_Result amdgpu_si_send_msg_to_smc(struct amdgpu_device *adev,
 			"%s timeout on message: %x (SMC_SCRATCH0: %x)\n",
 			__func__, msg, RREG32(mmSMC_SCRATCH0));
 	}
+#ifdef __illumos__
+	/* illumos: a refused message, with its parameter (no tracing here) */
+	else if (tmp != PPSMC_Result_OK) {
+		drm_info(adev_to_drm(adev),
+			"illumos: SMC message 0x%x (parameter 0x%x) answered 0x%x\n",
+			msg, RREG32(mmSMC_SCRATCH0), tmp);
+	}
+#endif
 
 	return (PPSMC_Result)tmp;
 }

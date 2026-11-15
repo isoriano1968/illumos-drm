@@ -41,6 +41,17 @@
 #include <linux/firmware.h>
 #include <legacy_dpm.h>
 
+#ifdef __illumos__
+/*
+ * illumos: switches for SI dpm in /etc/system (amdgpu has no sysfs or
+ * debugfs here), e.g. set amdgpu:amdgpu_illumos_si_dpm_quirks = 3
+ *   1  no PowerTune: power containment, CAC, DTE and SQ ramping off
+ *   2  no memory clock switching: every level at the state's top mclk
+ *      (what Linux does with several displays or a 4K60 one)
+ */
+int amdgpu_illumos_si_dpm_quirks = 0;
+#endif
+
 #include "bif/bif_3_0_d.h"
 #include "bif/bif_3_0_sh_mask.h"
 
@@ -2174,6 +2185,24 @@ static void si_initialize_powertune_defaults(struct amdgpu_device *adev)
 		ni_pi->enable_sq_ramping = true;
 	}
 
+#ifdef __illumos__
+	if (amdgpu_illumos_si_dpm_quirks & 1) {
+		ni_pi->enable_power_containment = false;
+		ni_pi->enable_cac = false;
+		ni_pi->enable_sq_ramping = false;
+		si_pi->enable_dte = false;
+	}
+	drm_info(adev_to_drm(adev),
+	    "illumos: si_dpm quirks 0x%x: PowerTune %d, CAC %d, DTE %d, "
+	    "SQ ramping %d; TDP %u W, near TDP %u W, TDP OD %u %%, "
+	    "CAC leakage %u, SQ ramping threshold %u\n",
+	    amdgpu_illumos_si_dpm_quirks, ni_pi->enable_power_containment,
+	    ni_pi->enable_cac, si_pi->enable_dte, ni_pi->enable_sq_ramping,
+	    adev->pm.dpm.tdp_limit, adev->pm.dpm.near_tdp_limit,
+	    adev->pm.dpm.tdp_od_limit, adev->pm.dpm.cac_leakage,
+	    adev->pm.dpm.sq_ramping_threshold);
+#endif
+
 	ni_pi->driver_calculate_cac_leakage = true;
 	ni_pi->cac_configuration_required = true;
 
@@ -3539,6 +3568,11 @@ static void si_apply_state_adjust_rules(struct amdgpu_device *adev,
 		disable_mclk_switching = true;
 		disable_sclk_switching = true;
 	}
+
+#ifdef __illumos__
+	if (amdgpu_illumos_si_dpm_quirks & 2)
+		disable_mclk_switching = true;
+#endif
 
 	if (adev->pm.ac_power)
 		max_limits = &adev->pm.dpm.dyn_state.max_clock_voltage_on_ac;
@@ -7029,6 +7063,24 @@ static int si_dpm_pre_set_power_state(void *handle)
 
 	ni_update_requested_ps(adev, new_ps);
 	si_apply_state_adjust_rules(adev, &eg_pi->requested_rps);
+
+#ifdef __illumos__
+	{
+		/* The levels the SMC gets (sclk/mclk in MHz, VDDC/VDDCI in mV). */
+		struct si_ps *ps = si_get_ps(&eg_pi->requested_rps);
+		int i;
+
+		for (i = 0; i < ps->performance_level_count; i++)
+			drm_info(adev_to_drm(adev),
+			    "illumos: si_dpm level %d: sclk %u mclk %u "
+			    "vddc %u vddci %u pcie gen %d\n", i,
+			    ps->performance_levels[i].sclk / 100,
+			    ps->performance_levels[i].mclk / 100,
+			    ps->performance_levels[i].vddc,
+			    ps->performance_levels[i].vddci,
+			    (int)ps->performance_levels[i].pcie_gen + 1);
+	}
+#endif
 
 	return 0;
 }
