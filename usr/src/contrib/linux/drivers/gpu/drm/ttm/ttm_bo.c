@@ -270,7 +270,10 @@ static void ttm_bo_release(struct kref *kref)
 		if (bdev->funcs->release_notify)
 			bdev->funcs->release_notify(bo);
 
+#ifndef __illumos__
+		/* On illumos the DRM core owns the offset and frees it. */
 		drm_vma_offset_remove(bdev->vma_manager, &bo->base.vma_node);
+#endif
 		ttm_mem_io_free(bdev, bo->resource);
 
 		if (!dma_resv_test_signaled(&bo->base._resv,
@@ -953,8 +956,16 @@ int ttm_bo_init_reserved(struct ttm_device *bdev, struct ttm_buffer_object *bo,
 	 * address space from the device.
 	 */
 	if (bo->type == ttm_bo_type_device || bo->type == ttm_bo_type_sg) {
+#ifdef __illumos__
+		/*
+		 * The DRM core gives each GEM object its one mmap offset and
+		 * serves it with its devmap(9E) entry point.
+		 */
+		ret = drm_gem_create_mmap_offset(&bo->base);
+#else
 		ret = drm_vma_offset_add(bdev->vma_manager, &bo->base.vma_node,
 					 PFN_UP(bo->base.size));
+#endif
 		if (ret)
 			goto err_put;
 	}
@@ -1049,11 +1060,20 @@ EXPORT_SYMBOL(ttm_bo_init_validate);
  *
  * @bo: tear down the virtual mappings for this BO
  */
+#ifdef __illumos__
+/* The driver's illumos glue: unloads the object's user mappings. */
+extern void ttm_bo_illumos_unmap_virtual(struct ttm_buffer_object *bo);
+#endif
+
 void ttm_bo_unmap_virtual(struct ttm_buffer_object *bo)
 {
 	struct ttm_device *bdev = bo->bdev;
 
+#ifdef __illumos__
+	ttm_bo_illumos_unmap_virtual(bo);
+#else
 	drm_vma_node_unmap(&bo->base.vma_node, bdev->dev_mapping);
+#endif
 	ttm_mem_io_free(bdev, bo->resource);
 }
 EXPORT_SYMBOL(ttm_bo_unmap_virtual);
