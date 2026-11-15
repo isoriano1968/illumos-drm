@@ -78,6 +78,7 @@
 #include "intel_memory_region.h"
 #include "gt/intel_gt.h"
 #include "gt/intel_gtt.h"
+#include "gt/intel_ggtt_fencing.h"
 #include "display/intel_de.h"
 #include "display/intel_display_core.h"
 #include "display/intel_display_types.h"
@@ -301,6 +302,34 @@ con_fb_matches(struct drm_device *drm, struct drm_framebuffer *fb,
 	return (true);
 }
 
+/*
+ * The end of attach without the console's fence pin (no console on this
+ * device, a linear framebuffer, or a failed takeover): the fences kept
+ * from the firmware through i915's init (intel_ggtt_fencing.c) are
+ * released and cleared. After a takeover that pinned one, nothing is
+ * left to do.
+ */
+void
+i915n_con_kms_fw_fences_done(dev_info_t *dip)
+{
+	struct pci_dev *pdev = lkpi_pci_dev_of(dip);
+	struct drm_device *drm = pdev != NULL ? pci_get_drvdata(pdev) : NULL;
+	struct drm_i915_private *i915;
+	intel_wakeref_t wf;
+	u32 fw;
+
+	if (drm == NULL)
+		return;
+	i915 = to_i915(drm);
+	fw = i915_illumos_fw_fences_release(to_gt(i915)->ggtt);
+	if (fw == 0)
+		return;
+	wf = intel_runtime_pm_get(&i915->runtime_pm);
+	i915_illumos_fw_fences_clear(to_gt(i915)->ggtt, fw);
+	intel_runtime_pm_put(&i915->runtime_pm, wf);
+	drm_info(drm, "console: the firmware's fences (0x%x) released\n", fw);
+}
+
 int
 i915n_con_kms_takeover(dev_info_t *dip, const struct i915n_con_fb *want)
 {
@@ -347,11 +376,19 @@ i915n_con_kms_takeover(dev_info_t *dip, const struct i915n_con_fb *want)
 	__i915_vma_pin(vma);
 	if (fb->modifier == I915_FORMAT_MOD_X_TILED) {
 		intel_wakeref_t wf = intel_runtime_pm_get(&i915->runtime_pm);
+		/*
+		 * The firmware's fence, kept through i915's init, goes back
+		 * to the head of the LRU list: the pin takes that register
+		 * and rewrites it for this VMA, so the console's linear view
+		 * never lapses. Any other kept fence is cleared after.
+		 */
+		u32 fw = i915_illumos_fw_fences_release(to_gt(i915)->ggtt);
 		int ret = i915_vma_pin_fence(vma);
 
 		if (ret != 0 || vma->fence == NULL) {
 			if (ret == 0)
 				i915_vma_unpin_fence(vma);
+			i915_illumos_fw_fences_clear(to_gt(i915)->ggtt, fw);
 			intel_runtime_pm_put(&i915->runtime_pm, wf);
 			__i915_vma_unpin(vma);
 			drm_modeset_unlock_all(drm);
@@ -360,6 +397,11 @@ i915n_con_kms_takeover(dev_info_t *dip, const struct i915n_con_fb *want)
 			    "device\n", ret);
 			return (ret != 0 ? ret : -ENOENT);
 		}
+		i915_illumos_fw_fences_clear(to_gt(i915)->ggtt,
+		    fw & ~BIT(vma->fence->id));
+		if (fw & BIT(vma->fence->id))
+			drm_info(drm, "console: the firmware's fence %d "
+			    "adopted\n", vma->fence->id);
 		/* Kept with the fence pin (struct i915n_con_kms). */
 		i915n_con.fence_wakeref = wf;
 		drm_info(drm, "console: X-tiled firmware framebuffer shown "

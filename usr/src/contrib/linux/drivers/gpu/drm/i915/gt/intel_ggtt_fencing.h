@@ -39,12 +39,20 @@ struct i915_fence_reg {
 	u32 size;
 	u32 tiling;
 	u32 stride;
+#ifdef __illumos__
+	/* The firmware's fence, kept as it is until the console adopts it. */
+	bool illumos_fw_kept;
+#endif
 };
 
 struct i915_fence_reg *i915_reserve_fence(struct i915_ggtt *ggtt);
 void i915_unreserve_fence(struct i915_fence_reg *fence);
 
 void intel_ggtt_restore_fences(struct i915_ggtt *ggtt);
+#ifdef __illumos__
+u32 i915_illumos_fw_fences_release(struct i915_ggtt *ggtt);
+void i915_illumos_fw_fences_clear(struct i915_ggtt *ggtt, u32 mask);
+#endif
 
 void i915_gem_object_do_bit_17_swizzle(struct drm_i915_gem_object *obj,
 				       struct sg_table *pages);

@@ -349,8 +349,10 @@ i915n_con_attach_late(dev_info_t *dip)
 {
 	struct i915n_con_fb fb;
 
-	if (i915n_con_st.dip != dip)
+	if (i915n_con_st.dip != dip) {
+		i915n_con_kms_fw_fences_done(dip);
 		return (DDI_SUCCESS);
+	}
 	fb.paddr = fb_info.paddr;
 	fb.size = fb_info.fb_size;
 	fb.pitch = fb_info.pitch;
@@ -358,12 +360,15 @@ i915n_con_attach_late(dev_info_t *dip)
 	fb.height = fb_info.screen.y;
 	fb.bpp = fb_info.bpp;
 	if (i915n_con_kms_takeover(dip, &fb) != 0) {
+		i915n_con_kms_fw_fences_done(dip);
 		/* Nothing has opened the minor yet: consconfig waits for us. */
 		i915n_con_attach_undo(dip);
 		(dev_err)(dip, CE_WARN, "console: the firmware framebuffer could "
 		    "not be kept; no console on this device");
 		return (DDI_SUCCESS);
 	}
+	/* A linear console framebuffer pinned no fence. */
+	i915n_con_kms_fw_fences_done(dip);
 	i915n_con_st.console = B_TRUE;
 	i915n_con_st.panic_cb = callb_add(i915n_con_panic, NULL,
 	    I915N_CB_CL_PANIC, "i915n console");

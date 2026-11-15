@@ -64,6 +64,7 @@ extern int i915n_con_getinfo(dev_info_t *dip, ddi_info_cmd_t cmd, void *arg,
  * life) and records the console's CRTC, connectors and mode. 0, or a
  * negative errno when there is none (then there is no console).
  */
+extern void i915n_con_kms_fw_fences_done(dev_info_t *dip);
 extern int i915n_con_kms_takeover(dev_info_t *dip,
     const struct i915n_con_fb *fb);
 /* Queues the restore of the console configuration (thread context). */

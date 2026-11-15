@@ -176,6 +176,12 @@ static void fence_write(struct i915_fence_reg *fence)
 {
 	struct drm_i915_private *i915 = fence_to_i915(fence);
 
+#ifdef __illumos__
+	/* The firmware's register stays as it is until it is released. */
+	if (fence->illumos_fw_kept)
+		return;
+#endif
+
 	/*
 	 * Previous access through the fence register is marshalled by
 	 * the mb() inside the fault handlers (i915_gem_release_mmaps)
@@ -839,6 +845,86 @@ i915_gem_object_save_bit_17_swizzle(struct drm_i915_gem_object *obj,
 	}
 }
 
+#ifdef __illumos__
+/*
+ * illumos: the firmware may leave a fence that the boot console depends on
+ * (Apple's EFI GOP draws an X-tiled framebuffer and shows it linearly at
+ * the aperture through a fence). Clearing it here, seconds before the
+ * console takes the framebuffer over and fences it again, scrambles every
+ * line the boot console writes or scrolls meanwhile. A fence the firmware
+ * left valid is kept: its register is not rewritten and it is off the LRU
+ * list, so that nothing else gets it, until the console's takeover
+ * releases it right before pinning its own fence (which then takes the
+ * same register) or, without a console, releases and clears it. Gen6 and
+ * later only (the register layout read here).
+ */
+static void illumos_keep_fw_fences(struct i915_ggtt *ggtt)
+{
+	struct drm_i915_private *i915 = ggtt->vm.i915;
+	struct intel_uncore *uncore = ggtt->vm.gt->uncore;
+	int i;
+
+	if (GRAPHICS_VER(i915) < 6)
+		return;
+	for (i = 0; i < ggtt->num_fences; i++) {
+		struct i915_fence_reg *fence = &ggtt->fence_regs[i];
+		u32 lo, hi;
+
+		lo = intel_uncore_read(uncore, FENCE_REG_GEN6_LO(i));
+		if (!(lo & I965_FENCE_REG_VALID))
+			continue;
+		hi = intel_uncore_read(uncore, FENCE_REG_GEN6_HI(i));
+		fence->illumos_fw_kept = true;
+		list_del(&fence->link);
+		drm_info(&i915->drm,
+			 "fence %d: kept from the firmware (0x%08x%08x) for the console\n",
+			 i, hi, lo);
+	}
+}
+
+/*
+ * Ends the keeping: every kept fence goes back to the head of the LRU list
+ * with its register as the firmware left it. Returns the kept fences, for
+ * i915_illumos_fw_fences_clear().
+ */
+u32 i915_illumos_fw_fences_release(struct i915_ggtt *ggtt)
+{
+	u32 mask = 0;
+	int i;
+
+	mutex_lock(&ggtt->vm.mutex);
+	for (i = 0; i < ggtt->num_fences && i < 32; i++) {
+		struct i915_fence_reg *fence = &ggtt->fence_regs[i];
+
+		if (!fence->illumos_fw_kept)
+			continue;
+		fence->illumos_fw_kept = false;
+		list_add(&fence->link, &ggtt->fence_list);
+		mask |= BIT(i);
+	}
+	mutex_unlock(&ggtt->vm.mutex);
+	return mask;
+}
+
+/*
+ * Writes the software state (no fence) to the released fences in mask that
+ * nothing has taken since; the device must be awake.
+ */
+void i915_illumos_fw_fences_clear(struct i915_ggtt *ggtt, u32 mask)
+{
+	int i;
+
+	mutex_lock(&ggtt->vm.mutex);
+	for (i = 0; i < ggtt->num_fences && i < 32; i++) {
+		struct i915_fence_reg *fence = &ggtt->fence_regs[i];
+
+		if ((mask & BIT(i)) && !fence->vma)
+			fence_write(fence);
+	}
+	mutex_unlock(&ggtt->vm.mutex);
+}
+#endif
+
 void intel_ggtt_init_fences(struct i915_ggtt *ggtt)
 {
 	struct drm_i915_private *i915 = ggtt->vm.i915;
@@ -881,6 +967,9 @@ void intel_ggtt_init_fences(struct i915_ggtt *ggtt)
 	}
 	ggtt->num_fences = num_fences;
 
+#ifdef __illumos__
+	illumos_keep_fw_fences(ggtt);
+#endif
 	intel_ggtt_restore_fences(ggtt);
 }
 
