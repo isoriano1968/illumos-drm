@@ -9,6 +9,7 @@
 #include <drm/drm_mm.h>
 
 #include <linux/dma-fence.h>
+#include <linux/wait.h>
 #include <linux/types.h>
 
 #define DRM_SUBALLOC_MAX_QUEUES 32
