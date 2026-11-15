@@ -664,14 +664,30 @@ bool amdgpu_bo_support_uswc(u64 bo_flags)
 	 * See https://bugs.freedesktop.org/show_bug.cgi?id=88758
 	 */
 
-#ifndef CONFIG_COMPILE_TEST
+#if !defined(CONFIG_COMPILE_TEST) && !defined(__illumos__)
 #warning Please enable CONFIG_MTRR and CONFIG_X86_PAT for better performance \
 	 thanks to write-combining
 #endif
 
+#ifdef __illumos__
+	/*
+	 * illumos: what this build does instead (the Linux text asks for
+	 * kernel options that do not exist here). GTT stays cached and
+	 * snooped, which is coherent; a write-combined CPU mapping of RAM
+	 * would also need the kernel's own (segkpm) alias of each page made
+	 * write-combined, and illumos has no interface for that yet. CPU-
+	 * visible VRAM is mapped write-combined through the BAR.
+	 */
+	if (bo_flags & AMDGPU_GEM_CREATE_CPU_GTT_USWC)
+		DRM_INFO_ONCE("illumos: GTT buffers are mapped cached and "
+			      "snooped, not write-combined (no write-combining "
+			      "kernel mappings of RAM yet); VRAM is "
+			      "write-combined\n");
+#else
 	if (bo_flags & AMDGPU_GEM_CREATE_CPU_GTT_USWC)
 		DRM_INFO_ONCE("Please enable CONFIG_MTRR and CONFIG_X86_PAT for "
 			      "better performance thanks to write-combining\n");
+#endif
 	return false;
 #else
 	/* For architectures that don't support WC memory,
