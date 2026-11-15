@@ -371,7 +371,7 @@ static bool amdgpu_read_disabled_bios(struct amdgpu_device *adev)
 		false : amdgpu_asic_read_disabled_bios(adev);
 }
 
-#ifdef CONFIG_ACPI
+#if defined(CONFIG_ACPI) || defined(__illumos__)
 /**
  * amdgpu_acpi_vfct_match() - Check if a VFCT entry matches the device
  * @adev: AMDGPU device
@@ -385,10 +385,16 @@ static bool amdgpu_read_disabled_bios(struct amdgpu_device *adev)
  * the bus numbers disagree we accept the entry if the device identity
  * matches.
  *
+ * Two GPUs of the same model at the same slot and function on different
+ * buses (the Mac Pro 2013's two FirePro D500) match each other's entries
+ * by identity, so the caller first looks for an exact bus match in every
+ * entry (@exact_bus true) and accepts an identity match only if none
+ * matched exactly.
+ *
  * Returns: 0 on match, -ENODEV on no match
  */
 static int amdgpu_acpi_vfct_match(struct amdgpu_device *adev,
-				  VFCT_IMAGE_HEADER *vhdr)
+				  VFCT_IMAGE_HEADER *vhdr, bool exact_bus)
 {
 	/* Vendor and device IDs must always match */
 	if (vhdr->VendorID != adev->pdev->vendor ||
@@ -402,6 +408,8 @@ static int amdgpu_acpi_vfct_match(struct amdgpu_device *adev,
 	/* Exact bus number match - preferred */
 	if (vhdr->PCIBus == adev->pdev->bus->number)
 		return 0;
+	if (exact_bus)
+		return -ENODEV;
 
 	/* Bus mismatch but device identity matches (PCI renumbering case) */
 	dev_notice(adev->dev,
@@ -418,6 +426,7 @@ static bool amdgpu_acpi_vfct_bios(struct amdgpu_device *adev)
 	UEFI_ACPI_VFCT *vfct;
 	unsigned int offset;
 	bool r = false;
+	int pass;
 
 	if (!ACPI_SUCCESS(acpi_get_table("VFCT", 1, &hdr)))
 		return false;
@@ -428,37 +437,40 @@ static bool amdgpu_acpi_vfct_bios(struct amdgpu_device *adev)
 	}
 
 	vfct = (UEFI_ACPI_VFCT *)hdr;
-	offset = vfct->VBIOSImageOffset;
+	/* Pass 0: an entry on this device's bus; pass 1: by identity. */
+	for (pass = 0; pass < 2; pass++) {
+		offset = vfct->VBIOSImageOffset;
 
-	while (offset < tbl_size) {
-		GOP_VBIOS_CONTENT *vbios = (GOP_VBIOS_CONTENT *)((char *)hdr + offset);
-		VFCT_IMAGE_HEADER *vhdr = &vbios->VbiosHeader;
+		while (offset < tbl_size) {
+			GOP_VBIOS_CONTENT *vbios = (GOP_VBIOS_CONTENT *)((char *)hdr + offset);
+			VFCT_IMAGE_HEADER *vhdr = &vbios->VbiosHeader;
 
-		offset += sizeof(VFCT_IMAGE_HEADER);
-		if (offset > tbl_size) {
-			dev_info(adev->dev, "ACPI VFCT image header truncated,skipping\n");
-			goto out;
-		}
-
-		offset += vhdr->ImageLength;
-		if (offset > tbl_size) {
-			dev_info(adev->dev, "ACPI VFCT image truncated,skipping\n");
-			goto out;
-		}
-
-		if (vhdr->ImageLength &&
-		    !amdgpu_acpi_vfct_match(adev, vhdr)) {
-			adev->bios = kmemdup(&vbios->VbiosContent,
-					     vhdr->ImageLength,
-					     GFP_KERNEL);
-
-			if (!check_atom_bios(adev, vhdr->ImageLength)) {
-				amdgpu_bios_release(adev);
+			offset += sizeof(VFCT_IMAGE_HEADER);
+			if (offset > tbl_size) {
+				dev_info(adev->dev, "ACPI VFCT image header truncated,skipping\n");
 				goto out;
 			}
-			adev->bios_size = vhdr->ImageLength;
-			r = true;
-			goto out;
+
+			offset += vhdr->ImageLength;
+			if (offset > tbl_size) {
+				dev_info(adev->dev, "ACPI VFCT image truncated,skipping\n");
+				goto out;
+			}
+
+			if (vhdr->ImageLength &&
+			    !amdgpu_acpi_vfct_match(adev, vhdr, pass == 0)) {
+				adev->bios = kmemdup(&vbios->VbiosContent,
+						     vhdr->ImageLength,
+						     GFP_KERNEL);
+
+				if (!check_atom_bios(adev, vhdr->ImageLength)) {
+					amdgpu_bios_release(adev);
+					goto out;
+				}
+				adev->bios_size = vhdr->ImageLength;
+				r = true;
+				goto out;
+			}
 		}
 	}
 
