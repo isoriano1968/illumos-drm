@@ -275,6 +275,38 @@ int amdgpu_si_load_smc_ucode(struct amdgpu_device *adev, u32 limit)
 	WREG32_P(mmSMC_IND_ACCESS_CNTL, 0, ~SMC_IND_ACCESS_CNTL__AUTO_INCREMENT_IND_0_MASK);
 	spin_unlock_irqrestore(&adev->reg.smc.lock, flags);
 
+#ifdef __illumos__
+	/*
+	 * illumos: read the image back word by word, through the plain
+	 * (non-auto-increment) index/data path, before the SMC starts, to
+	 * prove the auto-increment upload stored what the file holds.
+	 */
+	{
+		const u8 *p = (const u8 *)(adev->pm.fw->data +
+		    le32_to_cpu(hdr->header.ucode_array_offset_bytes));
+		u32 n = le32_to_cpu(hdr->header.ucode_size_bytes) / 4, i, bad = 0;
+
+		for (i = 0; i < n; i++, p += 4) {
+			u32 want = (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
+			u32 got = 0;
+
+			if (amdgpu_si_read_smc_sram_dword(adev,
+			    ucode_start_address + i * 4, &got, limit) != 0 ||
+			    got != want) {
+				if (bad < 4)
+					drm_info(adev_to_drm(adev),
+					    "illumos: SMC ucode 0x%05x: 0x%08x, file 0x%08x\n",
+					    ucode_start_address + i * 4, got, want);
+				bad++;
+			}
+		}
+		drm_info(adev_to_drm(adev),
+		    "illumos: SMC ucode read back: %u of %u words differ "
+		    "(start 0x%x, version 0x%x)\n", bad, n,
+		    ucode_start_address, adev->pm.fw_version);
+	}
+#endif
+
 	return 0;
 }
 

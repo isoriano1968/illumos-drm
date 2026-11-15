@@ -5361,9 +5361,45 @@ static int si_init_smc_table(struct amdgpu_device *adev)
 		table->ULVState = table->initialState;
 	}
 
+#ifdef __illumos__
+	{
+		/*
+		 * illumos: upload, then read the state table back from SMC SRAM
+		 * and compare (the SMC is not running yet, nothing else writes
+		 * it), to prove the table the SMC uses is the one built here.
+		 */
+		const u32 *w = (const u32 *)table;
+		u32 n = sizeof(SISLANDS_SMC_STATETABLE) / 4, i, bad = 0, got;
+		int r = amdgpu_si_copy_bytes_to_smc(adev, si_pi->state_table_start,
+		    (u8 *)table, sizeof(SISLANDS_SMC_STATETABLE), si_pi->sram_end);
+
+		if (r != 0)
+			return r;
+		for (i = 0; i < n; i++) {
+			if (amdgpu_si_read_smc_sram_dword(adev,
+			    si_pi->state_table_start + i * 4, &got,
+			    si_pi->sram_end) != 0 || got != be32_to_cpu(w[i])) {
+				if (bad < 4)
+					drm_info(adev_to_drm(adev),
+					    "illumos: SMC state table +0x%x: 0x%08x, built 0x%08x\n",
+					    i * 4, got, be32_to_cpu(w[i]));
+				bad++;
+			}
+		}
+		drm_info(adev_to_drm(adev),
+		    "illumos: SMC state table at 0x%x read back: %u of %u words differ; "
+		    "soft regs 0x%x, sram end 0x%x; systemFlags 0x%x extraFlags 0x%x "
+		    "thermalProtectType %u\n",
+		    si_pi->state_table_start, bad, n, si_pi->soft_regs_start,
+		    si_pi->sram_end, table->systemFlags, table->extraFlags,
+		    table->thermalProtectType);
+		return 0;
+	}
+#else
 	return amdgpu_si_copy_bytes_to_smc(adev, si_pi->state_table_start,
 					   (u8 *)table, sizeof(SISLANDS_SMC_STATETABLE),
 					   si_pi->sram_end);
+#endif
 }
 
 static int si_calculate_sclk_params(struct amdgpu_device *adev,
