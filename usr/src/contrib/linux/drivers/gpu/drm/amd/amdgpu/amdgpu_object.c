@@ -494,6 +494,73 @@ error:
 	return r;
 }
 
+#ifdef __illumos__
+/*
+ * illumos: a pinned VRAM BO of user type (amdgpu_bo_user) at a fixed
+ * offset, as amdgpu_bo_create_kernel_at() makes a kernel BO there: the
+ * illumos console's loader framebuffer (AMDGPU_RESV_ILLUMOS_CON), which
+ * the console restore scans out again; the display code reads a scanout
+ * BO's tiling flags, which kernel BOs do not have (BUG_ON in
+ * amdgpu_bo_get_tiling_flags()). Created while the VRAM reservations are
+ * made at init, so nothing else is placed there first.
+ */
+int amdgpu_illumos_con_bo_create_at(struct amdgpu_device *adev,
+				    uint64_t offset, uint64_t size,
+				    struct amdgpu_bo **bo_ptr)
+{
+	struct ttm_operation_ctx ctx = { false, false };
+	struct amdgpu_bo_param bp;
+	struct amdgpu_bo_user *ubo;
+	unsigned int i;
+	int r;
+
+	offset &= PAGE_MASK;
+	size = ALIGN(size, PAGE_SIZE);
+
+	memset(&bp, 0, sizeof(bp));
+	bp.size = size;
+	bp.byte_align = PAGE_SIZE;
+	bp.domain = AMDGPU_GEM_DOMAIN_VRAM;
+	bp.flags = AMDGPU_GEM_CREATE_CPU_ACCESS_REQUIRED |
+		AMDGPU_GEM_CREATE_VRAM_CONTIGUOUS;
+	bp.type = ttm_bo_type_device;
+	bp.resv = NULL;
+	bp.bo_ptr_size = sizeof(struct amdgpu_bo_user);
+
+	r = amdgpu_bo_create_user(adev, &bp, &ubo);
+	if (r)
+		return r;
+	*bo_ptr = &ubo->bo;
+
+	r = amdgpu_bo_reserve(*bo_ptr, false);
+	if (r)
+		goto error_unref;
+
+	/* As amdgpu_bo_create_kernel_at(): move it to the requested range. */
+	ttm_resource_free(&(*bo_ptr)->tbo, &(*bo_ptr)->tbo.resource);
+	for (i = 0; i < (*bo_ptr)->placement.num_placement; ++i) {
+		(*bo_ptr)->placements[i].fpfn = offset >> PAGE_SHIFT;
+		(*bo_ptr)->placements[i].lpfn = (offset + size) >> PAGE_SHIFT;
+	}
+	r = ttm_bo_mem_space(&(*bo_ptr)->tbo, &(*bo_ptr)->placement,
+			     &(*bo_ptr)->tbo.resource, &ctx);
+	if (r)
+		goto error_unreserve;
+	r = amdgpu_bo_pin(*bo_ptr, AMDGPU_GEM_DOMAIN_VRAM);
+	if (r)
+		goto error_unreserve;
+
+	amdgpu_bo_unreserve(*bo_ptr);
+	return 0;
+
+error_unreserve:
+	amdgpu_bo_unreserve(*bo_ptr);
+error_unref:
+	amdgpu_bo_unref(bo_ptr);
+	return r;
+}
+#endif
+
 /**
  * amdgpu_bo_free_kernel - free BO for kernel use
  *

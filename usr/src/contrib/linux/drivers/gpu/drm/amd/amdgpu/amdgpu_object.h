@@ -286,6 +286,11 @@ int amdgpu_bo_create_isp_user(struct amdgpu_device *adev,
 			   struct dma_buf *dbuf, u32 domain,
 			   struct amdgpu_bo **bo,
 			   u64 *gpu_addr);
+#ifdef __illumos__
+int amdgpu_illumos_con_bo_create_at(struct amdgpu_device *adev,
+				    uint64_t offset, uint64_t size,
+				    struct amdgpu_bo **bo_ptr);
+#endif
 int amdgpu_bo_create_kernel_at(struct amdgpu_device *adev,
 			       uint64_t offset, uint64_t size,
 			       struct amdgpu_bo **bo_ptr, void **cpu_addr);

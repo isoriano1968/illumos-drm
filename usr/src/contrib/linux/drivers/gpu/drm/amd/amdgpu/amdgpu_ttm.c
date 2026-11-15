@@ -1806,6 +1806,12 @@ int amdgpu_ttm_mark_vram_reserved(struct amdgpu_device *adev,
 	if (!resv->size)
 		return 0;
 
+#ifdef __illumos__
+	if (id == AMDGPU_RESV_ILLUMOS_CON)
+		ret = amdgpu_illumos_con_bo_create_at(adev, resv->offset,
+						      resv->size, &resv->bo);
+	else
+#endif
 	ret = amdgpu_bo_create_kernel_at(adev, resv->offset, resv->size,
 					 &resv->bo,
 					 resv->needs_cpu_map ? &resv->cpu_ptr : NULL);

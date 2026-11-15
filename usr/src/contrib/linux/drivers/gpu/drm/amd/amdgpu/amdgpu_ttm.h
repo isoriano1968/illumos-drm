@@ -68,6 +68,14 @@ enum amdgpu_resv_region_id {
 	AMDGPU_RESV_FW_VRAM_USAGE,
 	AMDGPU_RESV_DRV_VRAM_USAGE,
 	AMDGPU_RESV_MEM_TRAIN,
+#ifdef __illumos__
+	/*
+	 * The loader framebuffer the illumos console draws into: a pinned
+	 * user-type BO (amdgpu_illumos_con_bo_create_at()), not a kernel BO,
+	 * so that it can be scanned out (tiling flags).
+	 */
+	AMDGPU_RESV_ILLUMOS_CON,
+#endif
 	AMDGPU_RESV_MAX
 };
 

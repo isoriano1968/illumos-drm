@@ -1118,6 +1118,32 @@ void amdgpu_gmc_init_vga_resv_regions(struct amdgpu_device *adev)
 	if ((adev->gmc.real_vram_size - size) < (8 * 1024 * 1024))
 		size = 0;
 
+#ifdef __illumos__
+	/*
+	 * illumos: the device that attaches as the illumos console
+	 * (illumos/amdgpu_illumos_con.c) keeps the loader framebuffer, which
+	 * gfx_private draws the console into and the console restore scans
+	 * out again after X, as a reservation of its own, exactly at its
+	 * offset and size (AMDGPU_RESV_ILLUMOS_CON). The VBIOS area sized
+	 * from CRTC0's viewport starts at 0 and may overlap it (the Mac Pro
+	 * (Late 2013): 1600x900 at 1.5 MB): it ends where the framebuffer
+	 * starts.
+	 */
+	{
+		extern uint64_t amdgpu_illumos_con_fb_off;
+		extern uint64_t amdgpu_illumos_con_fb_size;
+		uint64_t off = amdgpu_illumos_con_fb_off;
+		uint64_t len = amdgpu_illumos_con_fb_size;
+
+		if (len != 0 && off + len <= adev->gmc.real_vram_size) {
+			if (size > off)
+				size = (unsigned)off;
+			amdgpu_ttm_init_vram_resv(adev, AMDGPU_RESV_ILLUMOS_CON,
+						  off, len, false);
+		}
+	}
+#endif
+
 	if (size > AMDGPU_VBIOS_VGA_ALLOCATION) {
 		amdgpu_ttm_init_vram_resv(adev, AMDGPU_RESV_STOLEN_VGA,
 					  0, AMDGPU_VBIOS_VGA_ALLOCATION, false);
