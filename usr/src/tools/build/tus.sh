@@ -22,6 +22,9 @@ i915)
     END {for (i=1;i<=n;i++) if (!(base[i] in removed)) print base[i]
          for (i=1;i<=m;i++) print extra[i]}' "$here/tus.txt" "$here/display-tus.txt"
     ;;
+amdgpu)
+    grep -v '^#' "$repo/usr/src/uts/intel/io/amdgpu/tus.txt" | grep .
+    ;;
 *) exit 2 ;;
 esac
 }

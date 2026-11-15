@@ -23,5 +23,5 @@ CARGO_PACKAGES = $(PACKAGE_COMMAND:sh)
 CARGO_BUILD = $(CARGO) $(RUST_SELECT) build $(CARGO_FLAGS) --release -j $(DMAKE_MAX_JOBS)
 CARGO_TARGET = --target usr/src/tools/targets/x86_64-illumos-kmod.json -Zjson-target-spec -Zbuild-std=core,alloc -Zbuild-std-features=compiler-builtins-mem
 CARGO_KMOD = $(CARGO_BUILD) $(CARGO_PACKAGES) $(CARGO_TARGET)
-MODULES = drm_core virtio_gpu linuxkpi linuxkpi_selftest drm_helpers drm_helpers_test drm_kms i915n cdrmnull
-PACKAGES = drm-core drm-helpers drm-kms linuxkpi i915n virtio-gpu drmadm
+MODULES = drm_core virtio_gpu linuxkpi linuxkpi_selftest drm_helpers drm_helpers_test drm_kms i915n amdgpu cdrmnull
+PACKAGES = drm-core drm-helpers drm-kms linuxkpi i915n amdgpu virtio-gpu drmadm

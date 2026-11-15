@@ -1,0 +1,62 @@
+#
+# SPDX-License-Identifier: MIT
+# Copyright 2026 The illumos-drm authors
+#
+# The kernel symbols amdgpu uses that neither the gate's ddi.mapfile nor
+# the mapfiles of its dependencies (drm_facade.mapfile, linuxkpi.mapfile,
+# drm_helpers.mapfile, drm_kms.mapfile) declare, for its link with
+# -z defs (usr/src/uts/intel/amdgpu/Makefile). Declarations only (EXTERN): genunix
+# provides them. Each is reached through a LinuxKPI or facade inline or
+# macro expanded in amdgpu's own code, as for i915n
+# (usr/src/uts/intel/io/i915n/private.mapfile).
+#
+$mapfile_version 2
+
+SYMBOL_SCOPE {
+	global:
+		# PAGESHIFT of <sys/param.h>, a variable in the kernel: the
+		# facade's inline drm_vma_node_offset_addr() shifts by it.
+		_pageshift		{ FLAGS = EXTERN };
+		# memcmp() of <sys/systm.h> (genunix): <linux/string.h>
+		# leaves memcmp() to the kernel's.
+		memcmp			{ FLAGS = EXTERN };
+		# ncpus (<sys/cpuvar.h>): num_online_cpus() (<linux/cpumask.h>).
+		ncpus			{ FLAGS = EXTERN };
+		# documented 9F (rwlock(9F)): down_read_trylock() and
+		# down_write_trylock() of <linux/rwsem.h>.
+		rw_tryenter		{ FLAGS = EXTERN };
+		# documented 9F (devmap_devmem_remap(9F),
+		# devmap_umem_remap(9F)): illumos/amdgpu_illumos_mmap.c points
+		# user mapping pieces at BAR 0 (VRAM) or at the TT window.
+		devmap_devmem_remap	{ FLAGS = EXTERN };
+		devmap_umem_remap	{ FLAGS = EXTERN };
+		# documented 9F (servicing_interrupt(9F)): in_interrupt()
+		# and in_task() of <linux/preempt.h>.
+		servicing_interrupt	{ FLAGS = EXTERN };
+		#
+		# The illumos console (illumos/amdgpu_illumos_con.c, as i915n):
+		# gfx_private, the gate's contract-private interface for DRM
+		# drivers (misc/gfx_private, linked with -N misc/gfx_private):
+		# the console minor node's tem interface over the loader's
+		# framebuffer; unix's fb_info (that framebuffer); genunix's
+		# callb_add() (CB_CL_PANIC) and panicstr.
+		#
+		gfxp_fb_softc_alloc	{ FLAGS = EXTERN };
+		gfxp_fb_softc_free	{ FLAGS = EXTERN };
+		gfxp_fb_attach		{ FLAGS = EXTERN };
+		gfxp_fb_detach		{ FLAGS = EXTERN };
+		gfxp_fb_open		{ FLAGS = EXTERN };
+		gfxp_fb_close		{ FLAGS = EXTERN };
+		gfxp_fb_ioctl		{ FLAGS = EXTERN };
+		gfxp_fb_devmap		{ FLAGS = EXTERN };
+		gfxp_bm_register_fbops	{ FLAGS = EXTERN };
+		fb_info			{ FLAGS = EXTERN };
+		callb_add		{ FLAGS = EXTERN };
+		panicstr		{ FLAGS = EXTERN };
+		# documented DDI the console minor needs (getminor(9F),
+		# makedevice(9F), ddi_devmap_segmap(9F)) and kcred, as i915n.
+		ddi_devmap_segmap	{ FLAGS = EXTERN };
+		getminor		{ FLAGS = EXTERN };
+		kcred			{ FLAGS = EXTERN };
+		makedevice		{ FLAGS = EXTERN };
+};

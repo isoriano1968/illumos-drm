@@ -11,6 +11,7 @@ LINUX=$repo/usr/src/contrib/linux
 case $module in
 linuxkpi|drm_helpers|drm_kms) HERE=$repo/usr/src/uts/common/io/$module ;;
 i915n) HERE=$repo/usr/src/uts/intel/io/i915n ;;
+amdgpu) HERE=$repo/usr/src/uts/intel/io/amdgpu ;;
 *) HERE=$repo ;;
 esac
 die() { echo "gate: $*" >&2; exit 1; }
@@ -21,7 +22,7 @@ case $phase:$module in
 before:linuxkpi)
     sh "$HERE/gates.sh" private "$OUT"
     ;;
-before:drm_kms|before:i915n)
+before:drm_kms|before:i915n|before:amdgpu)
     if [ "$#" = 0 ]; then die 'missing current object inventory'; fi
     objects=$(printf '%s\n' "$@" | sort)
     for o do cat "${o%.o}.d"; done | tr ' \\' '\n\n' |
@@ -30,7 +31,7 @@ before:drm_kms|before:i915n)
     python3 "$repo/usr/src/uts/intel/io/i915n/check-licences.py" "$LINUX" "$OUT/linux-inputs.txt"
     if [ "$module" = drm_kms ]; then
         sh "$HERE/gates.sh" mapfiles "$OUT" "$@"
-    else
+    elif [ "$module" = i915n ]; then
         sh "$HERE/gen-aliases.sh" "$LINUX" > "$OUT/i915n.aliases"
         cmp "$OUT/i915n.aliases" "$HERE/i915n.aliases"
     fi

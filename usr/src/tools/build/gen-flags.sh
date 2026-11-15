@@ -17,6 +17,7 @@ linuxkpi|linuxkpi_selftest) HERE=$LKPI ;;
 drm_helpers|drm_helpers_test) HERE=$REPO/usr/src/uts/common/io/drm_helpers ;;
 drm_kms) HERE=$REPO/usr/src/uts/common/io/drm_kms ;;
 i915n) HERE=$I915; I915=$LINUX/drivers/gpu/drm/i915; I915_DISPLAY=${I915_DISPLAY:-1} ;;
+amdgpu) HERE=$REPO/usr/src/uts/intel/io/amdgpu ;;
 cdrmnull) HERE=$REPO/usr/src/uts/common/io/cdrmnull; PRIVATE_MAPFILE=$HERE/private.mapfile ;;
 drm_core) HERE=$REPO/usr/src/uts/common/io/drm/drm_core/ctf ;;
 *) echo "unknown flag module: $module" >&2; exit 2 ;;

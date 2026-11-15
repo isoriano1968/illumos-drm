@@ -21,7 +21,7 @@ lint:
 	    (cd $(INTEL)/$$m && $(MAKE) -n all); \
 	done
 	@cd $(INTEL)/i915n && $(MAKE) -n VARIANT=headless DISPLAY=0 all
-	@pkglint $(SRC)/pkg/manifests/drm-core.p5m $(SRC)/pkg/manifests/drm-helpers.p5m $(SRC)/pkg/manifests/drm-kms.p5m $(SRC)/pkg/manifests/linuxkpi.p5m $(SRC)/pkg/manifests/i915n.p5m $(SRC)/pkg/manifests/virtio-gpu.p5m $(SRC)/pkg/manifests/drmadm.p5m
+	@pkglint $(SRC)/pkg/manifests/drm-core.p5m $(SRC)/pkg/manifests/drm-helpers.p5m $(SRC)/pkg/manifests/drm-kms.p5m $(SRC)/pkg/manifests/linuxkpi.p5m $(SRC)/pkg/manifests/i915n.p5m $(SRC)/pkg/manifests/amdgpu.p5m $(SRC)/pkg/manifests/virtio-gpu.p5m $(SRC)/pkg/manifests/drmadm.p5m
 
 package:
 	@cd $(SRC)/pkg && $(MAKE) package
