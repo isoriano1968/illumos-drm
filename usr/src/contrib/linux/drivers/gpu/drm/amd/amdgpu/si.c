@@ -1265,6 +1265,32 @@ static int si_read_register(struct amdgpu_device *adev, u32 se_num,
 	uint32_t i;
 
 	*value = 0;
+#ifdef __illumos__
+	{
+		/*
+		 * illumos: the registers smu_6_0_d.h defines in the CG block
+		 * (clocks, power management, thermal), read-only, to compare
+		 * them with Linux radeon's on the same board (no debugfs here).
+		 * Only defined offsets: reading the undefined ones in between
+		 * (every dword of 0x180-0x27f, Mac Pro 2026-11-14) made the
+		 * whole block read 0 until the next boot.
+		 */
+		static const u16 si_illumos_cg_regs[] = {
+			0x180, 0x181, 0x182, 0x183, 0x185, 0x186, 0x188, 0x189,
+			0x18b, 0x197, 0x198, 0x199, 0x19b, 0x19c, 0x1c0, 0x1c1,
+			0x1c2, 0x1c4, 0x1c5, 0x1d5, 0x1d6, 0x1d7, 0x1dc, 0x1dd,
+			0x1e0, 0x1e1, 0x1e2, 0x1e6, 0x1ef, 0x1f0, 0x1ff, 0x200,
+			0x201, 0x203, 0x20a, 0x21e, 0x21f, 0x221, 0x22e,
+		};
+
+		for (i = 0; i < ARRAY_SIZE(si_illumos_cg_regs); i++) {
+			if (reg_offset == si_illumos_cg_regs[i]) {
+				*value = RREG32(reg_offset);
+				return 0;
+			}
+		}
+	}
+#endif
 	for (i = 0; i < ARRAY_SIZE(si_allowed_read_registers); i++) {
 		bool indexed = si_allowed_read_registers[i].grbm_indexed;
 
