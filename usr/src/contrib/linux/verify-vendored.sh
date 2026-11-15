@@ -49,7 +49,8 @@ is_standin() {
     drivers/gpu/drm/i915/display/intel_display_trace.h|\
     drivers/gpu/drm/drm_trace.h|\
     drivers/platform/x86/intel_ips.h|\
-    drivers/gpu/drm/display/drm_dp_mst_topology_internal.h) return 0 ;;
+    drivers/gpu/drm/display/drm_dp_mst_topology_internal.h|\
+    drivers/gpu/drm/amd/amdgpu/amdgpu_vkms.h) return 0 ;;
     *) return 1 ;;
     esac
 }
@@ -173,7 +174,7 @@ while IFS= read -r rel; do
 done <<END_FILES
 $files
 END_FILES
-[ "$standins" -eq 6 ] || fail "expected six MIT stand-ins, found $standins"
+[ "$standins" -eq 7 ] || fail "expected seven MIT stand-ins, found $standins"
 [ "$covered" -eq "$sources" ] || fail 'SOURCES and vendored inventory differ'
 lists=0
 input_count=0
