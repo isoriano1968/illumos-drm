@@ -24,6 +24,7 @@
 #include <linux/pci.h>
 
 #include <drm/drm_edid.h>
+#include <drm/drm_eld.h>
 #include <drm/drm_fourcc.h>
 #include <drm/drm_modeset_helper.h>
 #include <drm/drm_modeset_helper_vtables.h>
@@ -1299,6 +1300,56 @@ static void dce_v6_0_audio_write_speaker_allocation(struct drm_encoder *encoder)
 	kfree(sadb);
 }
 
+/*
+ * The sink's manufacturer, product and monitor name (from the connector's
+ * ELD, which DRM builds from the EDID) for the audio endpoint: the HDA codec
+ * (1002:aa01 revision 3 and later) gives them to the audio driver in the ELD
+ * it emulates (Linux sound/hda/codecs/hdmi/atihdmi.c, get_eld_ati()), as
+ * DC's dce_aud_az_configure() does on DCE8 and later.
+ */
+static void dce_v6_0_audio_write_sink_info(struct drm_encoder *encoder,
+					   struct drm_connector *connector)
+{
+	struct amdgpu_device *adev = drm_to_adev(encoder->dev);
+	struct amdgpu_encoder *amdgpu_encoder = to_amdgpu_encoder(encoder);
+	struct amdgpu_encoder_atom_dig *dig = amdgpu_encoder->enc_priv;
+	u8 desc[20] = { 0 };
+	u16 manufacturer, product;
+	u32 offset, tmp;
+	int len, i;
+
+	if (!dig || !dig->afmt || !dig->afmt->pin)
+		return;
+	offset = dig->afmt->pin->offset;
+
+	mutex_lock(&connector->eld_mutex);
+	len = min(drm_eld_mnl(connector->eld), 18);
+	memcpy(desc, &connector->eld[DRM_ELD_MONITOR_NAME_STRING], len);
+	manufacturer = connector->eld[DRM_ELD_MANUFACTURER_NAME0] |
+		connector->eld[DRM_ELD_MANUFACTURER_NAME0 + 1] << 8;
+	product = connector->eld[DRM_ELD_PRODUCT_CODE0] |
+		connector->eld[DRM_ELD_PRODUCT_CODE0 + 1] << 8;
+	mutex_unlock(&connector->eld_mutex);
+
+	tmp = REG_SET_FIELD(0, AZALIA_F0_CODEC_PIN_CONTROL_SINK_INFO0,
+			    MANUFACTURER_ID, manufacturer);
+	tmp = REG_SET_FIELD(tmp, AZALIA_F0_CODEC_PIN_CONTROL_SINK_INFO0,
+			    PRODUCT_ID, product);
+	WREG32_AUDIO_ENDPT(offset, ixAZALIA_F0_CODEC_PIN_CONTROL_SINK_INFO0, tmp);
+	WREG32_AUDIO_ENDPT(offset, ixAZALIA_F0_CODEC_PIN_CONTROL_SINK_INFO1,
+			   REG_SET_FIELD(0, AZALIA_F0_CODEC_PIN_CONTROL_SINK_INFO1,
+					 SINK_DESCRIPTION_LEN, len));
+	/* port ID: none (the ELD's port ID is optional) */
+	WREG32_AUDIO_ENDPT(offset, ixAZALIA_F0_CODEC_PIN_CONTROL_SINK_INFO2, 0);
+	WREG32_AUDIO_ENDPT(offset, ixAZALIA_F0_CODEC_PIN_CONTROL_SINK_INFO3, 0);
+	/* the description, 4 bytes per register from SINK_INFO4, LSB first */
+	for (i = 0; i < 5; i++)
+		WREG32_AUDIO_ENDPT(offset,
+				   ixAZALIA_F0_CODEC_PIN_CONTROL_SINK_INFO4 + i,
+				   desc[4 * i] | desc[4 * i + 1] << 8 |
+				   desc[4 * i + 2] << 16 | desc[4 * i + 3] << 24);
+}
+
 static void dce_v6_0_audio_write_sad_regs(struct drm_encoder *encoder)
 {
 	struct drm_device *dev = encoder->dev;
@@ -1778,6 +1829,7 @@ static void dce_v6_0_afmt_setmode(struct drm_encoder *encoder,
 	dce_v6_0_audio_write_speaker_allocation(encoder);
 	dce_v6_0_audio_write_sad_regs(encoder);
 	dce_v6_0_audio_write_latency_fields(encoder, mode);
+	dce_v6_0_audio_write_sink_info(encoder, &amdgpu_connector->base);
 	if (em == ATOM_ENCODER_MODE_HDMI) {
 		dce_v6_0_audio_set_dto(encoder, mode->clock);
 		dce_v6_0_audio_set_vbi_packet(encoder);
