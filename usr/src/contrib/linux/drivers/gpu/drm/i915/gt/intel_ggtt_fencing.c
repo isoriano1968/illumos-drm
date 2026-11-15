@@ -883,6 +883,38 @@ static void illumos_keep_fw_fences(struct i915_ggtt *ggtt)
 }
 
 /*
+ * illumos: with a fence kept from the firmware, its tiled framebuffer is
+ * on the display, laid out with the firmware's swizzling. Apple's EFI GOP
+ * leaves display swizzling off (DISP_TILE_SURFACE_SWIZZLING clear) on
+ * dual-channel memory, where i915 detects bit-6 swizzling and turns it on
+ * (intel_gt_init_swizzling()): the display engine then read the
+ * firmware's tiles swizzled, every line shifted in 16-pixel steps, until
+ * the console was drawn again (iMac14,1). Swizzling stays as the firmware
+ * left it: off, and so for GEM and user space (I915_BIT_6_SWIZZLE_NONE,
+ * as on single-channel memory).
+ */
+static void illumos_keep_fw_swizzling(struct i915_ggtt *ggtt)
+{
+	struct drm_i915_private *i915 = ggtt->vm.i915;
+	struct intel_uncore *uncore = ggtt->vm.gt->uncore;
+	bool kept = false;
+	int i;
+
+	if (GRAPHICS_VER(i915) < 6 ||
+	    ggtt->bit_6_swizzle_x == I915_BIT_6_SWIZZLE_NONE)
+		return;
+	for (i = 0; i < ggtt->num_fences; i++)
+		kept |= ggtt->fence_regs[i].illumos_fw_kept;
+	if (!kept || (intel_uncore_read(uncore, DISP_ARB_CTL) &
+	    DISP_TILE_SURFACE_SWIZZLING))
+		return;
+	drm_info(&i915->drm,
+		 "bit-6 swizzling off, as the firmware left it for its tiled framebuffer\n");
+	ggtt->bit_6_swizzle_x = I915_BIT_6_SWIZZLE_NONE;
+	ggtt->bit_6_swizzle_y = I915_BIT_6_SWIZZLE_NONE;
+}
+
+/*
  * Ends the keeping: every kept fence goes back to the head of the LRU list
  * with its register as the firmware left it. Returns the kept fences, for
  * i915_illumos_fw_fences_clear().
@@ -969,6 +1001,7 @@ void intel_ggtt_init_fences(struct i915_ggtt *ggtt)
 
 #ifdef __illumos__
 	illumos_keep_fw_fences(ggtt);
+	illumos_keep_fw_swizzling(ggtt);
 #endif
 	intel_ggtt_restore_fences(ggtt);
 }
