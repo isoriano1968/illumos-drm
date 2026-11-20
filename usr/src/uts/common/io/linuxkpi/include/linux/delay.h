@@ -27,6 +27,7 @@ extern unsigned long lkpi_msleep_interruptible(unsigned int msecs);
 #define	msleep_interruptible(n)	lkpi_msleep_interruptible(n)
 #define	usleep_range(min, max)	lkpi_usleep(min)
 #define	usleep_range_idle(min, max)	lkpi_usleep(min)
+#define	usleep_range_state(min, max, state)	lkpi_usleep(min)
 #define	fsleep(us)		lkpi_usleep(us)
 
 #endif

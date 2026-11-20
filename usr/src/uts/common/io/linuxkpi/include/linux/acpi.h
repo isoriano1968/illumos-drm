@@ -20,6 +20,8 @@
 #endif
 #define	acpi_disabled		1
 #define	ACPI_HANDLE(dev)	((void *)NULL)
+struct acpi_device;
+#define	ACPI_COMPANION(dev)	((struct acpi_device *)NULL)
 typedef void *acpi_handle;
 
 /* ACPICA's status and size types (Linux: <acpi/actypes.h>, <acpi/acexcep.h>). */

@@ -52,5 +52,6 @@
 #define	cpu_to_le32s(p)		((void)(p))
 #define	le32_to_cpus(p)		((void)(p))
 #define	le32_add_cpu(p, v)	(*(p) = cpu_to_le32(le32_to_cpu(*(p)) + (v)))
+#define	le16_add_cpu(p, v)	(*(p) = cpu_to_le16(le16_to_cpu(*(p)) + (v)))
 
 #endif

@@ -30,11 +30,25 @@ div_s64_rem(s64 dividend, s32 divisor, s32 *remainder)
 }
 
 static inline u64
-div64_u64_rem(u64 dividend, u64 divisor, u64 *remainder)
+lkpi_div64_u64_rem(u64 dividend, u64 divisor, u64 *remainder)
 {
 	*remainder = dividend % divisor;
 	return (dividend / divisor);
 }
+
+/*
+ * Linux's u64 is unsigned long long; ours is uint64_t (unsigned long), so
+ * callers that declare the remainder as unsigned long long * (DC's
+ * fixpt31_32.c) need the cast. Same size and representation on LP64; the
+ * check keeps a 32-bit remainder out.
+ */
+#define	div64_u64_rem(dividend, divisor, remainder)			\
+	({								\
+		_Static_assert(sizeof (*(remainder)) == sizeof (u64),	\
+		    "div64_u64_rem: 64-bit remainder");			\
+		lkpi_div64_u64_rem((dividend), (divisor),		\
+		    (u64 *)(remainder));				\
+	})
 
 static inline u64
 div_u64(u64 dividend, u32 divisor)

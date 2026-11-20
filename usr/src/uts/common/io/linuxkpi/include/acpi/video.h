@@ -25,6 +25,19 @@ enum acpi_backlight_type {
 	acpi_backlight_dell_uart
 };
 
+#define	ACPI_VIDEO_DISPLAY_CRT		1
+#define	ACPI_VIDEO_DISPLAY_TV		2
+#define	ACPI_VIDEO_DISPLAY_DVI		3
+#define	ACPI_VIDEO_DISPLAY_LCD		4
+
+/* No ACPI video device: no EDID from the firmware (_DDC). */
+static inline int
+acpi_video_get_edid(struct acpi_device *device, int type, int device_id,
+    void **edid)
+{
+	return (-ENODEV);
+}
+
 static inline int
 acpi_video_register(void)
 {
