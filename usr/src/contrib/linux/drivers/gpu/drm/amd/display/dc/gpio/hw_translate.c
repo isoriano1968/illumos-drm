@@ -119,9 +119,12 @@ bool dal_hw_translate_init(
 	case DCN_VERSION_3_6:
 		dal_hw_translate_dcn32_init(translate);
 		return true;
+#ifndef __illumos__
+	/* illumos: the DCN 4.01 GPIO tables are not built (see dmub_srv.c) */
 	case DCN_VERSION_4_01:
 		dal_hw_translate_dcn401_init(translate);
 		return true;
+#endif
 	case DCN_VERSION_4_2:
 		dal_hw_translate_dcn42_init(translate);
 		return true;

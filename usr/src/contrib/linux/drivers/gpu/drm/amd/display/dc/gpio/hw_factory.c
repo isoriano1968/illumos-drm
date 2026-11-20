@@ -118,9 +118,12 @@ bool dal_hw_factory_init(
 	case DCN_VERSION_3_6:
 		dal_hw_factory_dcn32_init(factory);
 		return true;
+#ifndef __illumos__
+	/* illumos: the DCN 4.01 GPIO tables are not built (see dmub_srv.c) */
 	case DCN_VERSION_4_01:
 		dal_hw_factory_dcn401_init(factory);
 		return true;
+#endif
 	case DCN_VERSION_4_2:
 		dal_hw_factory_dcn42_init(factory);
 		return true;

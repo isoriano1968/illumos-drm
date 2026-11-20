@@ -475,6 +475,12 @@ static bool dmub_srv_hw_setup(struct dmub_srv *dmub, enum dmub_asic asic)
 			funcs->should_detect = dmub_dcn42_should_detect;
 			break;
 
+#ifndef __illumos__
+	/*
+	 * illumos: dmub_dcn401.c is not built (its register masks,
+	 * dcn_4_1_0_sh_mask.h, carry no licence statement), so DCN 4.01's
+	 * DMUB is not supported: the default case refuses it.
+	 */
 	case DMUB_ASIC_DCN401:
 		dmub->regs_dcn401 = &dmub_srv_dcn401_regs;
 		funcs->configure_dmub_in_system_memory = dmub_dcn401_configure_dmub_in_system_memory;
@@ -526,6 +532,7 @@ static bool dmub_srv_hw_setup(struct dmub_srv *dmub, enum dmub_asic asic)
 		funcs->enable_reg_inbox0_rsp_int = dmub_dcn401_enable_reg_inbox0_rsp_int;
 		funcs->enable_reg_outbox0_rdy_int = dmub_dcn401_enable_reg_outbox0_rdy_int;
 		break;
+#endif
 	default:
 		return false;
 	}
