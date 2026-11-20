@@ -171,6 +171,27 @@ pub unsafe extern "C" fn drm_segmap(
     unsafe { table_glue::segmap::<Table>(dev, off, asp, addrp, len, prot, maxprot, flags, credp) }
 }
 
+/// The size of the dma-buf behind device number `dev` (an anonymous
+/// minor of a DRM device), for a driver's `prop_op(9E)` to answer
+/// specfs' "Size" with `ddi_prop_op_size(9F)`: `stat(2)` and
+/// `lseek(SEEK_END)` of a dma-buf descriptor then give its size, as
+/// Linux's `dma_buf_llseek` does. 0 and `*sizep` set, or `ENXIO` for any
+/// other device number.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn drm_dmabuf_size(dev: sys::dev_t, sizep: *mut u64) -> c_int {
+    let Some((m, d)) = device_of(dev) else { return ddi::Errno::ENXIO.get() };
+    // SAFETY: prop_op(9E) runs in thread context (specfs' getattr).
+    let ctx = unsafe { ddi::Sleepable::assume() };
+    match d.dmabuf_size(m, &ctx) {
+        Some(size) => {
+            // SAFETY: the caller's out-parameter.
+            unsafe { *sizep = size };
+            0
+        }
+        None => ddi::Errno::ENXIO.get(),
+    }
+}
+
 /// `getinfo(9E)` for a DRM driver.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn drm_getinfo(

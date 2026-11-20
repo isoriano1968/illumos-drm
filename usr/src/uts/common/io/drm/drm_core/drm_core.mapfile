@@ -79,6 +79,7 @@ SYMBOL_SCOPE {
 		drm_dev_set_unique;
 		drm_dev_unregister;
 		drm_devmap;
+		drm_dmabuf_size;
 		drm_facade_version;
 		drm_gem_create_mmap_offset;
 		drm_gem_dumb_map_offset;

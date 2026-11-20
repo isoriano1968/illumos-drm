@@ -517,6 +517,26 @@ mod imp {
             self.table.lock().get(id).map(AnonObj::clone_ref)
         }
 
+        /// The size in bytes of the dma-buf of anonymous minor `id`, for
+        /// the "Size" property specfs reads for `stat(2)` and
+        /// `lseek(SEEK_END)` (Linux's `dma_buf_llseek` returns the size;
+        /// GStreamer and GTK size an imported buffer that way). `None`
+        /// for a sync object, a sync file or a free minor.
+        pub(crate) fn dmabuf_size(&self, id: u32, ctx: &Sleepable) -> Option<u64> {
+            match self.get(id) {
+                Some(AnonObj::DmaBuf(g)) => {
+                    let size = g.size() as u64;
+                    g.put(ctx);
+                    Some(size)
+                }
+                Some(o) => {
+                    o.put(ctx);
+                    None
+                }
+                None => None,
+            }
+        }
+
         /// Drops every entry (detach, after every file has closed: nothing
         /// is left then; this only guards against a leak).
         pub(crate) fn clear(&self, stats: &SyncStats, ctx: &Sleepable) {

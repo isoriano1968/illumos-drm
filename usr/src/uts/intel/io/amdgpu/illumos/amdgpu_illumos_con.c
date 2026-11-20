@@ -481,6 +481,25 @@ amdgpu_con_chpoll(dev_t dev, short events, int anyyet, short *reventsp,
 	return (drm_chpoll(dev, events, anyyet, reventsp, phpp));
 }
 
+/*
+ * prop_op(9E): specfs asks for "Size" to answer stat(2) and lseek(SEEK_END)
+ * on a dma-buf descriptor (an anonymous minor of the DRM core); answer
+ * with the buffer's size, as Linux's dma_buf_llseek does. Everything else
+ * is ddi_prop_op's.
+ */
+int
+amdgpu_con_prop_op(dev_t dev, dev_info_t *dip, ddi_prop_op_t op, int flags,
+    char *name, caddr_t valuep, int *lengthp)
+{
+	uint64_t size;
+
+	if (dev != DDI_DEV_T_ANY && dev != DDI_DEV_T_NONE && !con_minor(dev) &&
+	    drm_dmabuf_size(dev, &size) == 0)
+		return (ddi_prop_op_size(dev, dip, op, flags, name, valuep,
+		    lengthp, size));
+	return (ddi_prop_op(dev, dip, op, flags, name, valuep, lengthp));
+}
+
 int
 amdgpu_con_devmap(dev_t dev, devmap_cookie_t dhp, offset_t off, size_t len,
     size_t *maplen, uint_t model)

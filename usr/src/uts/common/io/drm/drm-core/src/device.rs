@@ -145,6 +145,14 @@ impl Drop for Number {
 }
 
 impl<D: Driver> Device<D> {
+    /// The size in bytes of the dma-buf behind anonymous minor `minor`,
+    /// for the driver's `prop_op(9E)` ("Size"); `None` for any other
+    /// minor.
+    pub fn dmabuf_size(&self, minor: Minor, ctx: &Sleepable) -> Option<u64> {
+        let (_, id) = anon_fd::decode(minor.0)?;
+        self.sync.anon_dmabuf_size(id, ctx)
+    }
+
     /// Registers a device for the driver instance `node`, the capability for
     /// the driver's own node that `ddi::Driver::attach` received; the GEM
     /// state keeps it to allocate DMA handles. Takes the lowest free device

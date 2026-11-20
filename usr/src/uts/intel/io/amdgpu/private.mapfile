@@ -23,6 +23,10 @@ SYMBOL_SCOPE {
 		# memmove() (genunix): <linux/string.h> leaves it to the
 		# kernel's; Display Core's DP/HDCP code calls it.
 		memmove			{ FLAGS = EXTERN };
+		# ddi_prop_op_size(9F), documented but not in the gate's
+		# ddi.mapfile: amdgpu_con_prop_op answers "Size" for dma-buf
+		# minors (stat, lseek SEEK_END).
+		ddi_prop_op_size	{ FLAGS = EXTERN };
 		# ncpus (<sys/cpuvar.h>): num_online_cpus() (<linux/cpumask.h>).
 		ncpus			{ FLAGS = EXTERN };
 		# documented 9F (rwlock(9F)): down_read_trylock() and

@@ -469,6 +469,12 @@ impl<O: GemObject> SyncCore<O> {
         let gem = gem.ok_or(Errno::ENXIO)?;
         self.anon.devmap(id, gem, dhp, off, len, ctx)
     }
+
+    /// The size of the dma-buf of anonymous minor `id` (see
+    /// `AnonFiles::dmabuf_size`).
+    pub(crate) fn anon_dmabuf_size(&self, id: u32, ctx: &Sleepable) -> Option<u64> {
+        self.anon.dmabuf_size(id, ctx)
+    }
 }
 
 impl<O: GemObject> Drop for SyncCore<O> {

@@ -48,6 +48,8 @@ extern int amdgpu_con_close(dev_t dev, int flag, int otyp, cred_t *credp);
 extern int amdgpu_con_read(dev_t dev, struct uio *uiop, cred_t *credp);
 extern int amdgpu_con_ioctl(dev_t dev, int cmd, intptr_t arg, int mode,
     cred_t *credp, int *rvalp);
+extern int amdgpu_con_prop_op(dev_t dev, dev_info_t *dip, ddi_prop_op_t op,
+    int flags, char *name, caddr_t valuep, int *lengthp);
 extern int amdgpu_con_chpoll(dev_t dev, short events, int anyyet,
     short *reventsp, struct pollhead **phpp);
 extern int amdgpu_con_devmap(dev_t dev, devmap_cookie_t dhp, offset_t off,

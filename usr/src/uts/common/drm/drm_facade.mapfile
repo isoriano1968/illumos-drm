@@ -73,6 +73,7 @@ SYMBOL_SCOPE {
 		drm_dev_set_unique	{ FLAGS = EXTERN };
 		drm_dev_unregister	{ FLAGS = EXTERN };
 		drm_devmap	{ FLAGS = EXTERN };
+		drm_dmabuf_size	{ FLAGS = EXTERN };
 		drm_facade_version	{ FLAGS = EXTERN };
 		drm_gem_create_mmap_offset	{ FLAGS = EXTERN };
 		drm_gem_dumb_map_offset	{ FLAGS = EXTERN };

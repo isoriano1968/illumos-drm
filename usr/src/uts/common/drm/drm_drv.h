@@ -183,6 +183,11 @@ extern int drm_chpoll(dev_t dev, short events, int anyyet, short *reventsp,
     struct pollhead **phpp);
 extern int drm_devmap(dev_t dev, devmap_cookie_t dhp, offset_t off,
     size_t len, size_t *maplen, uint_t model);
+/*
+ * The size of the dma-buf behind an anonymous (dma-buf) minor, for a
+ * driver's prop_op(9E) "Size" (stat, lseek SEEK_END); ENXIO otherwise.
+ */
+extern int drm_dmabuf_size(dev_t dev, uint64_t *sizep);
 extern int drm_segmap(dev_t dev, off_t off, struct as *asp, caddr_t *addrp,
     off_t len, uint_t prot, uint_t maxprot, uint_t flags, cred_t *credp);
 
