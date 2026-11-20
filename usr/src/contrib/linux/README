@@ -23,10 +23,27 @@ A third pristine import added the 1387 files amdgpu builds from (its
 linux-inputs.txt list: drivers/gpu/drm/amd, ttm, the GPU scheduler,
 drm_buddy, drm_exec, drm_suballoc and their headers); amdgpu_vkms.h, GPL-2.0+,
 was refused and has a stand-in.
+A fourth pristine import (2026-11-17) added the 608 files Display Core
+needs for Polaris (DCE 11.x) with CONFIG_DRM_AMD_DC: drivers/gpu/drm/amd/
+display (224 TUs, DC_SI and DC_FP off) and the register headers they
+include. Four DC TUs are not built, see gen-tus.sh EXCLUDED: DCN 4.01's
+DMUB, IRQ and GPIO tables, whose dcn/dcn_4_1_0_sh_mask.h states no
+licence and is not imported; dmub_srv.c, gpio/hw_factory.c and
+gpio/hw_translate.c refuse DCN 4.01 on illumos instead (port commits).
 
-SOURCES has 2236 upstream paths with pristine SHA-256 and licence class,
+Recorded licence exception (decided by the project owner, 2026-11-17):
+  drivers/gpu/drm/amd/display/modules/inc/mod_power.h
+AMD Display Core's power module API. Every other file of
+drivers/gpu/drm/amd/display is MIT; this header only says "All rights
+reserved" without the MIT notice. It is carried as part of AMD's MIT DC
+code; its SOURCES class says so, and check-licences.py accepts exactly
+the reviewed bytes (SHA-256 pinned there), so any upstream change is
+checked again.
+
+SOURCES has 2844 upstream paths with pristine SHA-256 and licence class,
 separated by tabs. All are SPDX MIT, a dual licence offering MIT, or an
-MIT/HPND permission notice. Original notices remain. .gitattributes disables
+MIT/HPND permission notice, except the one recorded exception above.
+Original notices remain. .gitattributes disables
 Git text conversion throughout this directory to preserve source bytes.
 
 Seven port headers are separate MIT stand-ins, not imports of GPL originals:

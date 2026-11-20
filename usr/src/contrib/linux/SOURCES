@@ -585,35 +585,599 @@ drivers/gpu/drm/amd/amdkfd/kfd_crat.h	b696c77856caed96e2c1bf93618b0cd153d5ad3651
 drivers/gpu/drm/amd/amdkfd/kfd_svm.h	612df1d020723ff181897fb239642d51e4c20e28c42ec5257387a5696a4bfafd	GPL-2.0 OR MIT
 drivers/gpu/drm/amd/amdkfd/kfd_topology.h	0fdbfa25304ff4b79e7a092cec6027807e491f7fe021fb6711ab8b11c8a63180	GPL-2.0 OR MIT
 drivers/gpu/drm/amd/amdxcp/amdgpu_xcp_drv.h	44579c180599a36eee768e2df8065c1588eec1b6999127896d9e5aa0721f5ce7	MIT (permission notice)
+drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.c	30c21e688846cf9fcf25c158770a29df8cb4891d197ff9c4cc998185f69aa202	MIT
 drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm.h	c824953277ad99d25a864b89391920568d7d4548e95a7ed528b6ba336ca142b9	MIT
+drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.c	fe6380b300b2fdeeef9cbe27598a4873c996203fd2ca621ec3c94c37a9c0de71	MIT
+drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_color.h	94cb5856f9180927e10bb9360784366806c61c1e6d4da88d569f7e24384cfd96	MIT
+drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_colorop.c	6108a7919c10ed062c7b22025f885f3b970f806d54206aa6360bbdf3973718b1	MIT
+drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_colorop.h	60f6600f4ee879548a8c279b27310b18a236f8b842f9a2315ffdaff233103c44	MIT
 drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_crc.h	1fde69b05f8ba3ef5023f49f804acf29052ec98387577e16caeb410e6e302f19	MIT
+drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_crtc.c	2e467279b5be33ec25f2685e70e4a66923187300f65d05c442becf22e861adf8	MIT
+drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_crtc.h	d8cea380e02d371ecf733c54c215e532bf0ba6b854490b1bbe60cdc697567b6f	MIT
 drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_debugfs.h	aa1bce10e9620bc531a9648d71a309ae2d84676526b448c54547ede63e5ad1b5	MIT
+drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_hdcp.c	456f2329deffbdf620b99833efba23278c04b8e6f4702ceb03d49ba8a8e5eda1	MIT
+drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_hdcp.h	35c9c10f0fad0f54367b23a702a96ff9d44ea19130dbcf52e3a59951bfcb4120	MIT
+drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_helpers.c	04f054f65b1e0cc11e3fa57de9a10fe50cefd3e9fd464f8517e8dad438c1930d	MIT
+drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_irq.c	1db1936d8f7ed13ee16e73c018e88cc75865b10d9cee2275547573bae4d5a390	MIT
+drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_irq.h	5c0024b2993bb4cde29c8be39d35ce848c4d6aa6bd362663335422707fbe35d2	MIT
 drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_irq_params.h	163c5ed96b07c7b4118336f28a7a062ad508c1d4a13bb395199a3f46ce4f3acd	MIT
+drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_ism.c	8e134f4f40de37b617007d705da92b8fed3f3efca1179252c465dfa224f43b7e	MIT
 drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_ism.h	e0a581cd5fafb18b9ec9975a8fdf92394d20fa29af26f953998a932993cdea4f	MIT
+drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_kunit_helpers.h	416533c808ecacc56ceaeccc46952651e6cd6fe5dfdf5c34f4e0c69fbfedc177	MIT
+drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_mst_types.c	e4cf504e2042a280d543cbdbbbfb7fc94d8a9a2535727e7baaddb72118a639dd	MIT
+drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_mst_types.h	48a65ae0b95e7db64601b0d947f74bcb43b5aee835b596ff80992153ec799afa	MIT
+drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_plane.c	07ddc67351ad5347d71e488ed7657621a261a9488a02492bfd3efbce41c6204d	MIT
+drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_plane.h	4f1bc88f4cb79ee4fea6ea4aa76015eaf8e1ad3e40a3b75f74d0fdf6702e42d3	MIT
+drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_pp_smu.c	9528ab85f3923c9ffcf0128e726a1d62ea7eb7205e9a8088f40e663c7051724d	MIT
+drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_psr.c	abe7a762ba65f03d0d41bdee9ac927c337f84aa93832b8b2e13e9c25f8c04f86	MIT
+drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_psr.h	382e36c4eb0067f53655bc17ea929eca39b8b758492d50cb6718ebe8339b5853	MIT
+drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_quirks.c	73d19392ee5dabfea8d2f8d2cca8f5c21584ace2e72e6e15f64c39ee4f91ae43	MIT
+drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_replay.c	94057950a2f40155a3eb76dd2ae107d3ca813c08c99f2ffec71c83f420979b12	MIT
+drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_replay.h	b55cab1446333ccd97d3a36ad0b3b3e37496ab6d1a5385b6bcd5ac2571711a02	MIT
+drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_services.c	bfa08620856404e1c16312ce8a99d5be428af4b0fb1f56de880a85595f1ad04a	MIT
+drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_trace.h	f694e94b542aa47fe0fe7120eb8d4cb439ab775a644ce90a138e69b07d017171	MIT
+drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_wb.c	9993fda6d5c9712e22462d9fa3afc0ae32bc8bc2cde9b609e36cec2bf8d1629b	MIT
+drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_wb.h	7aafdd4d46763596eca3e5fe7c63005ce8692331d652d7789dd59ce2a18eda51	MIT
+drivers/gpu/drm/amd/display/amdgpu_dm/dc_fpu.h	2be244f5839889e0937d9d8da76434ca914de110c66fc42e2ca027d66ba95b5b	MIT
+drivers/gpu/drm/amd/display/dc/basics/bw_fixed.c	fc1264cd3820b0633ad0e0cc36c4d01f28f1d283ff91af1b6c7a92b094db09a6	MIT
+drivers/gpu/drm/amd/display/dc/basics/calcs_logger.h	b14771b3176e048cbbfcb9cbe1fbbfdf2e7639cb08757936ef5fe4d9f3f1b51e	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/basics/conversion.c	eb779486f03a097edc66d217c96f02898ab44771b9adef7071ffa75b6994f429	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/basics/conversion.h	d31a5e594072c59b57447c987752f267ad436dc7e4b085cb07bf608b094267a8	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/basics/custom_float.c	caaf2ea8de2b64a000e5b3ed32b71d4ece751ff8cde0887e16c71bdb8996b030	MIT
+drivers/gpu/drm/amd/display/dc/basics/dc_common.c	6e75d1911623a38f4db0dd5e9f8a6489b3c9359c6e4853d04c09641b7aaabe58	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/basics/dc_common.h	de4c3629e776d0310e51b93b4e7d89d5d693fddf4c7d8c21d481dd25d555e880	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/basics/dce_calcs.c	979e2f6d866b2f75a093bbe9074c2fe4853aef363ef0bcfd8348c35a673f2b3e	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/basics/fixpt31_32.c	fdc0f95c99b0bda544cfad16285430c1325d9fff896a9f9b3b83ae51a56fea8d	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/basics/vector.c	59de59332c7f49d8372e82abc3af7a5d8f7cf11333c9e536a9486f475b21d103	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/bios/bios_parser.c	8423338b638e05d75ea637f7ee77333ad21d32995a78388f5d4be44f0812345c	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/bios/bios_parser.h	d0e965ac0f1921fb82b68f5aa3910932db4b6f771f72a179213182ce1d46e1e8	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/bios/bios_parser2.c	e556865f43beb1d80d8de6a5f25df6164379b8e18881ee4455ffe50295267161	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/bios/bios_parser2.h	9ce4b271ff1a06cfbcd74d9afa9bd26b097fd9f6310f3ac83a3b909a7195fd64	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/bios/bios_parser_common.c	6d974b7fa9b97c4d8a0610a31875753f55e7352baf346b0fb20e8805a85e756f	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/bios/bios_parser_common.h	674bc1132e0ef841f2075c7da277c7c75856f09d19e0fcb5e5940abee839b8cc	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/bios/bios_parser_helper.c	2dbb5402c89ceab9f258b82cd18c3f8832ef893812f8668acee6dbd4c8279a25	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/bios/bios_parser_helper.h	6523460077539cba727a631bd44ccf23f6b36944fd875a3a04329b2cc13182af	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/bios/bios_parser_interface.c	13fe2c0d644aecb3cbffb7fd2b291d7c78276342061dfc3cc967c80d5456b966	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/bios/bios_parser_types_internal.h	efe44ea72227091fc3f574c8a67f21840787a060c8dbe2fc4c21ba22a16fba3d	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/bios/bios_parser_types_internal2.h	780d33074ff7d68a0037273bda37b3cc487af66ab1598758be2fbfe1713d692a	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/bios/command_table.c	002c9a0f69b82b254de6539583cb55622603ece182e2d681bc47c2ff991a6c42	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/bios/command_table.h	7e804e8a88e2bb146f0d927665c9c84bcf808046ee52955b38fc5e44eb3d3a23	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/bios/command_table2.c	4ef1ea20ed242ac4f44c699641572d413e6741b8ae029837ba48edcab4684eb2	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/bios/command_table2.h	6875207122f616224b34ea1b651e561d3e1973583f76868dc54f60417d7a6f1e	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/bios/command_table_helper.c	c156e2fffa99dec08672f63b46f82f35d4aaf80502dd79b8effb49cfd801f820	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/bios/command_table_helper.h	04caedeb7c4c0115f37af074ce607f4abcf3036a40be0c0429971213ce48fd6e	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/bios/command_table_helper2.c	dc9c1ef8dcb84b307f138240dea5b7c0c856175965f3c6e2e22c0348df50663f	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/bios/command_table_helper2.h	006d57563771263c15c74d0c80398be66f2f819c418cbdf5c2578e5b27d53945	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/bios/command_table_helper_struct.h	6d7ee204a6e1ada6db47a1fd931fde785d353a11c1d445c803f7bf5859a3fe50	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/bios/dce110/command_table_helper_dce110.c	0b717dbae71d7c9e7183a287019b7639bba25cbbb014f7fc69a44fd60613a93e	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/bios/dce110/command_table_helper_dce110.h	c429e90bae66a155fb81bdbe4b91c26555cdf09193e83b7270d51c04435747b7	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/bios/dce112/command_table_helper2_dce112.c	3b0b7c2c53b40bcf5356d216c6a1aae1ce0ea36b7fb2fc1d0ca3a3d3b70ac62a	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/bios/dce112/command_table_helper2_dce112.h	72c83fa23adbbd747f83be6feaa8f4195728c121f11e6f7be10fa7c978b580e4	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/bios/dce112/command_table_helper_dce112.c	a1ba02e4dd4605bc1708582a642da42bb1d0fb81363a73d97ba862952b974d65	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/bios/dce112/command_table_helper_dce112.h	c6516f99c85a0472a8c694f2a83b06b1517c60c517130ff40579e682dbd68685	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/bios/dce80/command_table_helper_dce80.c	1b80692a98b76717ace0a58a5b1221c734eb3c675b7cfbf1ea4692f6c0dc2688	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/bios/dce80/command_table_helper_dce80.h	4dc188565d1f380c4da09e4831b9686754376c89becf86ec2fd358e019c335ff	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/clk_mgr/clk_mgr.c	aa8142516e639ba8792ea22e805c6b020e06e52fb37b45f7061dd1f412a87021	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/clk_mgr/dce100/dce_clk_mgr.c	20c5ce509cd76227be961ba39cb7b9e37ef3b2a94b15de092cd3d1b80102bd1a	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/clk_mgr/dce100/dce_clk_mgr.h	0019bc35bc3c7804676ca96142704f7845feef64e3bcbce5b6c3fd2c352e4f93	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/clk_mgr/dce110/dce110_clk_mgr.c	4413df1b83f58ac262d39868e53306602f153e32155031b7e241270345275440	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/clk_mgr/dce110/dce110_clk_mgr.h	6daff29504d0ef71c2f392ca0f74c80b11115b16286348ae043ca2896b6e7399	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/clk_mgr/dce112/dce112_clk_mgr.c	1652c967fb26dea2d5592713c12bb4eba17ff662faba5af138dee900cfedaa8c	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/clk_mgr/dce112/dce112_clk_mgr.h	47bb60b2f602424649c4f13cb50484bde4de34ebdb15e3870cc3b4c0d6434151	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/clk_mgr/dce120/dce120_clk_mgr.c	3facc55086f11e35afc59a7213905328595033e712cb84fe3ef5c38008eb984f	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/clk_mgr/dce120/dce120_clk_mgr.h	4b7ac37df68e764d9b0843a7d47d3516ddc376b1df13567f7ab431d6224ca0a0	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/clk_mgr/dcn10/rv1_clk_mgr.h	3dc61716aa1842ecb1d613e4c3ba7e16170ad8420dadf9afd43e0dea4b5ed34a	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/clk_mgr/dcn10/rv2_clk_mgr.h	abd19c08654c905d8e6e7918dccfaad1f84fae39996f6ee6f39058201ff63637	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/clk_mgr/dcn20/dcn20_clk_mgr.h	d3371fa6940f42ec449fe3a1c07c3de8f9aeeba024402dafbb1f37f30bd2d009	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/clk_mgr/dcn201/dcn201_clk_mgr.h	8172705655e6e9062e3599cbde90b52170c9274e97309700c0360c07be98626c	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/clk_mgr/dcn21/rn_clk_mgr.h	86638d0e0048e43a880be73d0e3b9c912fbecefd4f9e63afef4b5f87b0fcd6a5	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/clk_mgr/dcn30/dcn30_clk_mgr.h	b12b3e81171be9092bdc4216aa316a5facda16fb01b200f3f7193a2655ee4456	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/clk_mgr/dcn301/vg_clk_mgr.h	282abdbbb83a3ee63fa66d60ea2d9909c600f805113e9093239681d6d818875d	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/clk_mgr/dcn31/dcn31_clk_mgr.h	53931f73e1756b0f9f7d4f015dfbcb73fdc3da73895d3a6d2a7e13b3ed5d3f51	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/clk_mgr/dcn314/dcn314_clk_mgr.h	c5be1f5489e2de201fe739b94a89e0794c02674d1cee61c72a2677015798cb50	MIT
+drivers/gpu/drm/amd/display/dc/clk_mgr/dcn315/dcn315_clk_mgr.h	a39583be06516979f53becadeeecdb0dfc360b68754543551bc2058da9abca52	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/clk_mgr/dcn316/dcn316_clk_mgr.h	922e056c6aab945d4c519a83b370957e8cd66f9922c4016c52fe1a3af73425fa	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/clk_mgr/dcn32/dcn32_clk_mgr.h	49b7b9e815edf6d5fc21669236063c1569508207bb942936d5eeeb439e516c10	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/clk_mgr/dcn35/dcn35_clk_mgr.h	34b693e99933d67e22e143302e3f94f51138c7394dea8c537941c61c484bc98c	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/clk_mgr/dcn401/dcn401_clk_mgr.h	e8d9a8b7d8e02861428dc81be37fb1f39ee101d853fa3a1f3714e83a2e2a707b	MIT
+drivers/gpu/drm/amd/display/dc/clk_mgr/dcn42/dcn42_clk_mgr.h	1117f609bd7a4b0ece68e8c2151ab93174025ad2a1b2644b85c2bfe75a7bd265	MIT
+drivers/gpu/drm/amd/display/dc/clk_mgr/dcn42b/dcn42b_clk_mgr.h	2e144c5d1f95122b6d50d1e8aa354b0ab56dc0863ddd8b5b8c76637e60293f70	MIT
+drivers/gpu/drm/amd/display/dc/core/dc.c	415c36392c0e8766d423b26759d154d72ea20dad6a9a6962130ca7ffdb38ff47	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/core/dc_debug.c	8e668b8a0575faa3de9954a469852e9ebba396c6eaaf4a79fbd9f4312fc24193	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/core/dc_hw_sequencer.c	2176bfcdf0b65f5bc135542dfa4fe1d1a5c0167d3fc07b5b268130074cd3ff3d	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/core/dc_link_enc_cfg.c	79648197b446edc1417f4a40871d22d08d9de38a29464c7bbfea6f8095bd917f	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/core/dc_link_exports.c	a7ba93842fa70819de1b1dfcc40bd31d0d8beaa3ca161c2a3d81d4a441bb35ee	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/core/dc_resource.c	d87199cee82854ff86f2ca83e9126ec88c2e4a298d49cd4e0b10b09dcedc86fd	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/core/dc_sink.c	2eceab4cfd485a70645b505befa6ed781ed695ddb00ecca4217323213b90796f	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/core/dc_stat.c	bd9a1cc0caf51bba53ae9f4842fcd4982cc44397212d25b164c063289cb59ed1	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/core/dc_state.c	8fafdbdbaec48fb8761454ef61b0f9daab26d2cc1e615c3469b082027ecc30a5	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/core/dc_stream.c	c5c658ba98b7c72c83fe5f38f09707018c858ba10832b2cb65eafde4b671ad41	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/core/dc_surface.c	365349d10fddab2154c7ff22f5b9271c23fb7a709b016551218ef59ad446b729	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/core/dc_vm_helper.c	5f01908fc47b0b94347310f5c8cc8e33f0e51d75e1476e1230c3b6167747fc10	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dc.h	c047bd5f12dce46e2cfd24ca27b67fd8914a0208705c298d48c3d4c8df43d406	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dc_bios_types.h	01a2b2b3a81db298937fc2afec535239ffce61bf473af9e4a1537c98547c5ea9	MIT (permission notice)
 drivers/gpu/drm/amd/display/dc/dc_ddc_types.h	4fbfe303430d9d2a08873c474efec99770c8185f9c4b6a7570029e18ce9f894d	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dc_dmub_srv.c	f7bfd15b1aa1bcbad33d0b082e98f08c9d9da90f2f2f871729b777efa413f078	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dc_dmub_srv.h	6647910df47937e9d53cf57dd9b1792b9bec00a19bdadc3bffd722ca1dc32b70	MIT (permission notice)
 drivers/gpu/drm/amd/display/dc/dc_dp_types.h	055474a8654ed43cbe5eb7d156001f2bc7f792200332d5f9cb9f206b421cfd97	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dc_dsc.h	e6d9bff0c67f6b903efa1afcf51da136632b329414b5f397f1aacb68545124a8	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dc_edid_parser.c	ca7dae22c271644f8f3daae7bf26a167a507baadd34b4e9c28bc1361ac790de3	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dc_edid_parser.h	b875c0fedbe24f870a675024b59033b0fab153c92b613cde42c4d4ca324bf02b	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dc_fused_io.c	b8e34f45d65a31bdb47a4fa6d84737a4036366c2ff9f95699fc4a77d0692408f	MIT
+drivers/gpu/drm/amd/display/dc/dc_fused_io.h	0725ceaf169061fd6b4f7852471a99db710f96bcf5d1f72e82c582b5d60165eb	MIT
 drivers/gpu/drm/amd/display/dc/dc_hdmi_types.h	0bab1eb048ad28c26641b1a4502d5449c625419ee19ff6fb1b4eb0ad3ca11a67	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dc_helper.c	0bd5b1df5fd8fe3d58d1a5a60c1306904f77f58e914d0a375a2978c68954bba3	MIT (permission notice)
 drivers/gpu/drm/amd/display/dc/dc_hw_types.h	f6c234ad5d262d8178d8aa9891fd7f5d6e4065812d421c383fb01445bea4d57f	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dc_plane.h	6fa3377278ff53d59eddf4a2ffb29c8a5dfafbde154ccee3532cb97b22e3339d	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dc_plane_priv.h	4a282ac1728c051d4efda6bad70d018baf1bdeea24488baf6bc825375f2fc5e5	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dc_stat.h	e1b8e59d78d87b02ac3c463097bc7fefe3e9b44f509f5953640ed46dc386e471	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dc_state.h	07a8a0e7fc2d6edd00d0fcd3ccdc760152c713b74ac4c4b9b1a320810b6faf13	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dc_state_priv.h	8475e747e6783f8cee0b228136952ae09f8fad4af1b7fdf2d409dc1456158144	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dc_stream.h	9c62ca72fb4744f567dc3ec4a8764f1d4dda1663b8a7067ecc9645bddfc3b8a9	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dc_stream_priv.h	83255ce5a10d8de0739a2db44eb3ec6441d3403d50049661c8562268f553f473	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dc_trace.h	cd1b58eadc3db78b166197b2602d9f8b75071014adc1b51bef869721f828f859	MIT (permission notice)
 drivers/gpu/drm/amd/display/dc/dc_types.h	f4c44f05e9abf3318ca2dd521b94ea7bf6f3cedac9b82791ec23d2ed60cc9812	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_abm.c	4e28814e5254f2b6f1e7604dd7b2f1abd110ec5e05a22c9c647857b26033b41c	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_abm.h	d0010e1e9da87b096e6f36968f9b6223f0c13fee7c1bb9f51bea4d6c7b4809f0	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_audio.c	0a8dc21adddfa77ddbc07748d6a40cd384531ec43aeae9210a1b4fbaddf93938	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_audio.h	6e765253026a6bdbe8c300fc294dd72770f8d5ac8a4886e0ef9275ee3e6ed4db	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_aux.c	ad50527a4c7e324fa5826a48dad72e9510e499b5af666384fc54eac1ebddfb9c	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_aux.h	c67e0af1209eeba981ca353ec82a262d371e824c2d672214372d6b6269f8f063	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_clock_source.c	1eeca5df20ea9de45a57eaef0cc3408f90748ae825050b5023c39b7024143185	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_clock_source.h	6480f365f28272bfbbc73010d2da36b24f79ccd36452a06d936b2847d5eaf38e	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_dmcu.c	9717660de3ee3bc2eb390aabae20ff29f5b543bdc2493736363479ebe98c0917	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_dmcu.h	732c9f4d42440363786afb18f78ff6caf68c129305afe83ef26bd2fee25a1830	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_i2c.c	edf2e94ae69ef8d8ae158d969b9b06e2aeca6f326377fba00166c3d151eede17	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_i2c.h	78d88bb1c3f374ba9597a6ff3335e6b84d3049e31e48f97bd768350fbcf91f04	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_i2c_hw.c	72ca9d289baf7f35f87b4969a2fc644afb25586eea7f83e2126b4f3237b3d775	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_i2c_hw.h	564cce137d26fa975dd83674984d9f8c10cf24d7431e081750cf1cd5561f5c5b	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_i2c_sw.c	c74b198ccd432006eeb998251d88936ffc81a511dfddee06c93f1d869d442665	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_i2c_sw.h	558bcaff24f7c6ae8fff017223f20cfaedaa1daf5f62fd970c4851ddb6b5a407	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_ipp.c	8841fded8508f606bcfa0e1069d14b2d9db98fbaa76ac36e774b0d249093dee4	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_ipp.h	625782f997052d8d27fc0a602d3a430d3de63ae6fe5e94c08a5a1ba71c2e3506	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_link_encoder.c	0952d9b84c844fc2400ea009d2b18e3315caa7d4df4ddf176e969bb7c0b0cc05	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_link_encoder.h	345203d5668c6abe8358817c4cfc4cf386bb41593d5b1842d809365553b62f40	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_mem_input.c	5f334ce366a468ed4148177d635305a447d7a08db9e1ff8921a4be10f8184f25	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_mem_input.h	846bdc6cb8e252c63ecf29ea932dbf5125ebdeb4303ee61b30af3ee7b0fceb52	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_opp.c	5abe5791023bfdc222e9b3b56a3c93bf5baccc12d244c7b5931745fc39b6544f	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_opp.h	c5420be81be3d92bbcb36df1c487767ddd425bcb62d1f5bf766161979c0821dd	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_panel_cntl.c	a2090016b9ec8fee93428d1d41e5c95527d06ce593a2be429b260572e5f80521	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_panel_cntl.h	69cf4373a1b4aa1353257b2e5501a66afc1606b5d3aee41f3a9511e0ff050da8	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_scl_filters.c	60fb97146a82421ff2e971e2c719a0eea2d8aa9f676e380da1be8f950601c892	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_stream_encoder.c	5e31dd7fe076797932ca6c15d6662a1c849efba88f8b0c6e379837059c852dd6	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_stream_encoder.h	1b812439ecd7f1731ece5fc17a288e888aea0d8a3f9acdd7c2a6aa37519f90bc	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_transform.c	f69a6f65bed8ad7a9910c5bc68048861a85a58d0f396742f017edad439db41ee	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dce_transform.h	3e1443df1f2dbc4b05dfdcd0ca853be96ce021e8f24109ebf28a31eba19be6d6	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dmub_abm.c	34896728fa3392474c1712f672df03253d5d32704066130085ca2c8a6c6bda93	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dmub_abm.h	9de79e307d3fa58333a45ac3ff4b7a106355b500626d9e7b6ce2b335f2c87cab	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dmub_abm_lcd.c	f496e290052d7278543fecb25dc6c7964d802db60fdeba0154a235ce0a2c19c1	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dmub_abm_lcd.h	a6fb41966953c9ed448f76d5561f4c4f2142553a723aec0001c84fe6431e073e	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dmub_hw_lock_mgr.c	7aceeef42897bbdb0780cc8c7531a8950dacf3072f79d016c120da4f4bb03a77	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dmub_hw_lock_mgr.h	f9640105849fee0e246ae554380cbc9e3c4bd14b9bc9424b1076acc4d606228b	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dmub_outbox.c	ce0b21fffa21dbe6a40ce32d900c4901658eb2b0c23bc8a8eb3bc29e1a9809d9	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dmub_outbox.h	47190876b63d91182d76e28e2c09cfaefe9ae7fff79e78017ea7feaba23739c2	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dmub_psr.c	48c2d0e1bf7008e09329a1dad8eb87b268dda02931b81756c6c0ea2d4687a980	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dmub_psr.h	518ad3df28ba8fd021831d8c847d23ac25323d0583547cd1881d583081034a36	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce/dmub_replay.c	1fcec8d9378cfb55129b86b3d0c876b39195c796f858a2f9a4d44ae7fc906fd6	MIT
+drivers/gpu/drm/amd/display/dc/dce/dmub_replay.h	347e6c3056357529d850cd3693f0fa6e5969f8e04fddbc4856008e2cb5b1e733	MIT
+drivers/gpu/drm/amd/display/dc/dce110/dce110_compressor.c	e9414af564f0601a94833b3ba751ec5b5768935c0e824342deb9003f12693606	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce110/dce110_compressor.h	0e55c37450560fcee58393f262f191b5030512be5b489625647e37ba63a72ed6	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce110/dce110_mem_input_v.c	b4e96b9349a0f73583e8771716f5b03b2a186bd6e48d42245cedc7b479309d12	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce110/dce110_mem_input_v.h	1dae3827e61bcf4dd619c3e13a4dff3e612f267574427cefa476180800bb2a72	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce110/dce110_opp_csc_v.c	12a6e1e9769b4fa5e3165c81d6007fd736ed26df4fb9ac1786d27545bbbd37e2	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce110/dce110_opp_regamma_v.c	e4e74ae707cf20659719f580f1d1bb63d4657f317e65174ee1017cf362a37996	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce110/dce110_opp_v.c	d2d3f9204a6571bb2b509b3adc84e8de06a74b094061cb109d528a4eeb6496ea	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce110/dce110_opp_v.h	0b736d3769c42e9d85a047c30a5370c78435f101c1baf4c362fc9097f894bc9f	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce110/dce110_timing_generator.c	c0bf215fb5b41b6e61fcd923260acc00267698090589c976fd347935b1c0adbf	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce110/dce110_timing_generator.h	89bd51f2c6a4fd20a30a4a1b45551aab6dd1b096516df7d284bc0fcc956b7298	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce110/dce110_timing_generator_v.c	c1f195c48d3df6431ac10d00b6476e0b7f946b4e8fc5fa7e981b17929a73e3f4	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce110/dce110_timing_generator_v.h	b44d747d55db6bced09dad95f209d0aff6d0794646fad9cac7b76ab330595bfa	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce110/dce110_transform_v.c	c0f6edf71eab314ee0c95d786e080fb0eb0723db3fda92cc28075150f2b08e97	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce110/dce110_transform_v.h	0a9c766ccd1766b050caf0ce57c858a3aba9dd7e36ce0a8b82f1ad737a794e58	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce112/dce112_compressor.c	bc61f6a61336bdff6a6631bd64c9e15df5f1d39bb213da05ce0be0319273304e	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce112/dce112_compressor.h	b43286cd3ff3d5323d6846c32daa752624b01bf650ff5aa4203dfe927c671bb0	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce120/dce120_timing_generator.c	4783733ce57d34b3258716fba97c2a3b30444fe72706d4d6b4e01e1c3789c8d6	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce120/dce120_timing_generator.h	49c56e44926b9f1c5c69c8258a6e12b4ff98d41219b53ff29346c7cdff20d2e5	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce80/dce80_timing_generator.c	d6d061cfa1e4c6bc7178c20795c680db31a9852832a3079f605ff856aa1870a1	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dce80/dce80_timing_generator.h	d4b9e41aa2bb202fbcefd6ff427d1899917ffbc305162956a0e1529bb5ae8631	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dcn30/dcn30_mmhubbub.h	c4cdd7839f88b18a90eff67938c9a6c8be51b82fa361cd2a8d79a73842d2f365	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dio/virtual/virtual_link_encoder.c	6afb55baa56e8a9e180668667cfcfca4de9b54b42a5ffcf49a53cfd27223cd87	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dio/virtual/virtual_link_encoder.h	e280f2ed977c4c5db6dfad0481f759511b958d6a9aaec5554f1919141cfb9e54	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dio/virtual/virtual_stream_encoder.c	73d925e0e1f522176d70e02cd0c27b964f68a712e72f9eaf5ec8a5ce55e3d7e5	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dio/virtual/virtual_stream_encoder.h	1037a12974224c228654de5f43add4120b1785e2984c68d2e97c611fc1412e7c	MIT (permission notice)
 drivers/gpu/drm/amd/display/dc/dm_cp_psp.h	38c73cfcab47f1ca0f11ca323c0901de9a605a06603c34c644ee6e0d6bb8de4a	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dm_event_log.h	bc3191943d9f3f6785a2d6c13f96b21a2e8525e88770c78a426c528e2e23cab7	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dm_helpers.h	d1059cc0afaf71cb26036149570ba919e0fe53bd99601d2f496c991dca6bfb21	MIT (permission notice)
 drivers/gpu/drm/amd/display/dc/dm_pp_smu.h	86299af17b4da6bb71ffb3d4179bafe4e8dfcf2a529c8cc1e07a9314fc3b9f23	MIT (permission notice)
 drivers/gpu/drm/amd/display/dc/dm_services.h	87fa28ee25494e32d737d210d0c535be48b72f67e57dfc1ab6dee558354a1044	MIT (permission notice)
 drivers/gpu/drm/amd/display/dc/dm_services_types.h	a7d6235b66871364ac1a7719fc119d3634eed17fae7f67e27ef958bd65eeed25	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dml/dc_features.h	b260a3372550dabc84827b5d0b4fd041ac8a86a46cca37caceba2714ce304e41	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dml/dcn10/dcn10_fpu.h	3f5f76c24012ac7d933efc0f9da6f7a831f85756ad2cf50e3bf53a4329a8e54d	MIT
+drivers/gpu/drm/amd/display/dc/dml/dcn20/dcn20_fpu.h	24da2f1eb8130f7f712d13c54c7d83a4dc33de8ae752610c826c691d004edf14	MIT
+drivers/gpu/drm/amd/display/dc/dml/display_mode_enums.h	df834baa143e1fb829f414d7db543d9b0fc1727c9865cf0b379781a5622bf546	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dml/display_mode_lib.h	8ed6ea62183b272c5d438fa7e554e6a287ec9f5a064222483df302348d8e6b77	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dml/display_mode_structs.h	ca9502b61904f9ac7595ba9d737ed6c3dc9b1bbb5eb7793e5cef51d2e2a2ac19	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dml/display_mode_vba.h	039150b43937233c993c2ae42fe675bd3be64d42075416345c6415bd5679d0a4	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dml/dml1_frl_cap_chk.h	8573be4484688c2d5a7168bd950734fb157fe158349c4ee3a3e939ba4b1fc751	MIT
+drivers/gpu/drm/amd/display/dc/dml/dsc/rc_calc_fpu.h	68f6f8c5f17d6a9564ba08fa7fb3e5f21fa958cf2afd38e7bd1ebd030c3bf84f	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dml2_0/dml21/inc/dml2_external_lib_deps.h	80875efd678d7b8c5606235a5bb0a01683442767560e5283bde61a7960bb9fd1	MIT
+drivers/gpu/drm/amd/display/dc/dml2_0/dml21/inc/dml_top_dchub_registers.h	1acd312562a4011836b56b84fcd9aa80a4afb796af4313075a2344bce9d9e403	MIT
+drivers/gpu/drm/amd/display/dc/dml2_0/dml21/inc/dml_top_display_cfg_types.h	1be6cd9e8d34b21eedbcd6cdcba77a500a414d841911a980bd090166dad2f78b	MIT
+drivers/gpu/drm/amd/display/dc/dml2_0/dml21/inc/dml_top_policy_types.h	2f2d5324f73e2d366d85d7cfd342104d966a2d01cd3fb26e94fa4aba06be9a27	MIT
+drivers/gpu/drm/amd/display/dc/dml2_0/dml21/inc/dml_top_soc_parameter_types.h	302c30a86b68375462fb28aadd6d84b3b04c50f96dd410f32dd03ab44d3c4ce5	MIT
+drivers/gpu/drm/amd/display/dc/dml2_0/dml21/inc/dml_top_types.h	117364eaa24313686925abd8331ce75168295a4ff7a0759b8aa3dda966321126	MIT
+drivers/gpu/drm/amd/display/dc/dml2_0/dml2_wrapper.h	22bf77a43d76c56001c5326186b14de4de5136c885d3dfa27bd7dbb00493693c	MIT
+drivers/gpu/drm/amd/display/dc/dsc/dc_dsc.c	6826a097d076c2a094278400427a2ae278cf895da3b78aeebaa8805cd624dcf4	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dsc/dsc.h	628d25d2ff68f059153d0ec32e82fcf8a293f5e03aed111bcfac50a5036f1c1d	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dsc/dscc_types.h	d77fcbe8fcb42050597314597e96ffba71569dba9d335105414936f8e1f05d96	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dsc/rc_calc.c	2614cca71b1cc7d0aabaafcb71d01ce3b1b53ce442bb34ffb3ba4865eaacca60	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dsc/rc_calc.h	272382ed437ef1c9d10bb79968d248afc5861c07be70be43dd0a8eb752fc0117	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/dsc/rc_calc_dpi.c	26883914fdf4203f592320088e7da7724b438d4453816092c7f576aab7cba2cf	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dce110/hw_factory_dce110.c	b694a9063066e9ccc3393999189f8a4cf2815687830e8cee8d1b44a96dfabf78	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dce110/hw_factory_dce110.h	b990d4f620d691225256fe2b53800741c3ba1b47789ea2abdb2cb0ae1d2b7c93	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dce110/hw_translate_dce110.c	544f90cc73d5beed5170f00ef8ba8e0b6362f09e0e83b35a383bd981601cb1ca	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dce110/hw_translate_dce110.h	b436554f2ac3c30fbd835c3067fb2a4b87305087bd3f2642bba4a4031d2a4f0d	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dce120/hw_factory_dce120.c	90b067eebb9af429ee2113d0901f582cf24305f9e7ddf226371604c5dca816eb	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dce120/hw_factory_dce120.h	d4fcfa929d71aa4bc2114d22ed66488b743aed46507c1488436f3d256c3eadb2	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dce120/hw_translate_dce120.c	9423478cf49367ca3c01a0a303a038b29a4c08e9679345ca60e7662f02451dbd	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dce120/hw_translate_dce120.h	b5ce0c65859a94cfa0b6918bd484146f295b9b0c5e6dc72243caaad99a96a52e	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dce80/hw_factory_dce80.c	26d09b24bf52ade586e70f5e2c9bfe5fa4c732e968627f654a653fe4a225008e	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dce80/hw_factory_dce80.h	fb645cca50be36bff010a9e5229ab91dbd51cf883fcc322186d9266df56c3ac1	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dce80/hw_translate_dce80.c	b92f093c2ff1dc6edb644fc1296f382eab01779dc3e9c31e2cf1eca7a90faab7	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dce80/hw_translate_dce80.h	96d669a57a45f2f7a8c6ed9f7fca78ca433d72d8bd08a554c35a52d720483acc	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dcn10/hw_factory_dcn10.c	cb2f997acacc316df5a07dcf9e43c285e9aa74c26892e399dae48eee26a98b4a	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dcn10/hw_factory_dcn10.h	d8144552ec3448392559275f8856be69cee9c245cc7ee52a6317c753ca3d3322	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dcn10/hw_translate_dcn10.c	05e6f7e9213d777b65992512bd75db84bc23a43e9c022337262210c584acadc5	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dcn10/hw_translate_dcn10.h	684b626577a8089355b3cd2c970aebbfcaf775fd58cf1853ef3eca8e5991480b	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dcn20/hw_factory_dcn20.c	b9d9da30d99bb7d1a563097385ef188447305ec49c24cf37f811529f5632bd58	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dcn20/hw_factory_dcn20.h	be6e6227523345b3d7900f0f9090ec84bbf1715d8794041ad31fea1922b2a370	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dcn20/hw_translate_dcn20.c	71b187c4b886cde1b7377e1661085845c2204911277329414ac74f995feb2af5	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dcn20/hw_translate_dcn20.h	4a4be70e7b03a4da3e8c117ae18b5a7d2edc922cc7a8a83d47a5f0b0d65b6263	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dcn21/hw_factory_dcn21.c	91c7d9551313dc559dc9b87545092d598f02e72a2f467a0efe2331aff0a0fe37	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dcn21/hw_factory_dcn21.h	fa8867e00bd7948021caa30cffa752fdf970e47a5d6cac0ef7a955e4e91d0c83	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dcn21/hw_translate_dcn21.c	a98d50bc5906a32104393ca7e0df4a937eba360f55acb5a5af7cc5a706447194	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dcn21/hw_translate_dcn21.h	97d938df3feb20036d07523246cca5693a04eee71e45223974ffe9fcbf278d4f	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dcn30/hw_factory_dcn30.c	e4c5c86f760e21a4e213efe30f233e3dc93755a698f30f72b3b4d33e1fc9523e	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dcn30/hw_factory_dcn30.h	73e1f803ca6028736b95d778e0642ff27d044d759d98cd176cd6d1010ce37b6d	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dcn30/hw_translate_dcn30.c	509c2e9fdaed612dbde288d8d322af126e57d436f04e638fc8c261c5adf56b5d	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dcn30/hw_translate_dcn30.h	2c2a68b741e9bc6c13674f60e20665b26533d7a62f1f5def416561a7667a2aef	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dcn315/hw_factory_dcn315.c	820153de4f3cd698172001ba409705014652e1d6ae0680d820b997210e6267f6	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dcn315/hw_factory_dcn315.h	1f56da3186e1dfb875de7724975bb5473478ceaa9fad1f2353d703a20054a68e	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dcn315/hw_translate_dcn315.c	de97a60d329e107b6c33d81dcbc920f9b0cd1e565cadc9b871d5965e5e3249e1	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dcn315/hw_translate_dcn315.h	abd5303e881e806fb69861ce85709909b7221874dcfa2928d5df22ab4e599f03	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dcn32/hw_factory_dcn32.c	adc6b6b4f476ab4370f71d9b2fa134bef0b658514234b74fc71a8c84fabae830	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dcn32/hw_factory_dcn32.h	973e8946606f4fdeffc383a965e5fa1b9bcf5d06f94283a36c6f4cbed40411d3	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dcn32/hw_translate_dcn32.c	38c8ed84e94279793400fdc478444862b6725272c4517430918df5d33e2dfa6a	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dcn32/hw_translate_dcn32.h	6d6ae2623b54a1ac64dd0be1f41dbed09a45328ffe846419f90bbd61a0707f6b	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/dcn401/hw_factory_dcn401.h	80c783041a1c4b3e9396e4f5b3b0000bf5f9e89aed29138255b8274fea6cfcad	MIT
+drivers/gpu/drm/amd/display/dc/gpio/dcn401/hw_translate_dcn401.h	04bb596514d85bf795dd07210dae8802d31d2403ba1912a8de56ad9c93a678ff	MIT
+drivers/gpu/drm/amd/display/dc/gpio/dcn42/hw_factory_dcn42.c	ac266d8e396598368257a75ec751443df0fc9b02f3b769df276245ac5a0d7034	MIT
+drivers/gpu/drm/amd/display/dc/gpio/dcn42/hw_factory_dcn42.h	29fc7ba2b7f15612e1f136f8a0682f872e19fdad452cabb3f52962e5969b9075	MIT
+drivers/gpu/drm/amd/display/dc/gpio/dcn42/hw_translate_dcn42.c	18c0664a02837172729d3a5cddc4051f08cd5e828072abed4d25545d23fc6c7f	MIT
+drivers/gpu/drm/amd/display/dc/gpio/dcn42/hw_translate_dcn42.h	67e9d167681c53bfb800f604f50d8a08a43a26b9c649b0ca3f80b4f2b7d407b8	MIT
+drivers/gpu/drm/amd/display/dc/gpio/dcn42b/hw_factory_dcn42b.c	488cc2d960817c0edab513a9d8cdb0a739306f1469face4d3fd648421cab3141	MIT
+drivers/gpu/drm/amd/display/dc/gpio/dcn42b/hw_factory_dcn42b.h	bb33f7f76a5526e275fa8be5e7e796639387af9b8ee38856bccc9dd8863b25eb	MIT
+drivers/gpu/drm/amd/display/dc/gpio/dcn42b/hw_translate_dcn42b.c	442a5f6aadd9b2697e4a2c538e26a3b9c99f2e93f91593297ebe6646d26b4c6f	MIT
+drivers/gpu/drm/amd/display/dc/gpio/dcn42b/hw_translate_dcn42b.h	2505bde38a48990d503af7555cd194e24fefab19a15af30272db1550564c95d7	MIT
+drivers/gpu/drm/amd/display/dc/gpio/ddc_regs.h	be557c14bd8ad92149cf307abb897898127652a5d39c786884e2a2e6eff06c05	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/generic_regs.h	e8f5b5fdcfd2dcff28342dc055d6ffc95b1d99b1f0ee92ccf19696a54b937330	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/gpio_base.c	9488e38a82e01b42978a8d5425ca77ce420eafde654d94a5c5d6261111199ded	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/gpio_regs.h	4f17af640a8c678cabdfe757199df08689669dc7367225167444be677902b3d8	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/gpio_service.c	db270060da67d2e17c481f33f2c05f475d2cfd50205b1a7b98c2791403cd5494	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/gpio_service.h	2b119d099bb3d4201d0f78006765c8506d701536937f4fcc089980078eec5d2b	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/hpd_regs.h	fadffb72c3cc8a1a9ec676abf4d785fb567f418c9784af1e15dc491d82d9fa12	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/hw_ddc.c	83b6a26f3617deacd521d5dc02790aa4f2dfddacce35cbaab6e406738307ab56	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/hw_ddc.h	83be15c2f197fdace89aacfcb11aa464a10b0e6b72ed8b74683e531787b947a3	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/hw_factory.c	16c2608ac495cc90931c77d741d1256a0423ba29a2c37a1ad0fc16de424d965a	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/hw_factory.h	4ef7a701f71f15e2dd8e5450341e0b16b410e5cd25478dba710ec480383f4e62	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/hw_generic.c	c07ce2c55c21c7fea5efc2743f2ecd8141df6072bf5440d097dc606191d8d013	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/hw_generic.h	4aad85af6eb7e3ed768daba5664d2061470898bf63d371d24c182d04efcb51ad	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/hw_gpio.c	6ae0a60a5e2ade42972d7fde7f7a3df5b29eaff79f897d034425195a14ba3a04	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/hw_gpio.h	b67c0c3bc0d428a9071b154da2153e42577326d8b8b76a0aabbb07de0d769741	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/hw_hpd.c	7ff262579af8e4a225751589e1dadabd332d7dc1f2efe31862ea1c4005f2616a	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/hw_hpd.h	2032883b62a5f7169b9f170d5ec9277d03d340d5445f20518b0f80e646d398e6	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/hw_translate.c	78140aeb9973e0b6b3c70b6c494f1a5ee0d33e439f1f241f4308c722cecedbee	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/gpio/hw_translate.h	1ca10da79615d30b822abad912526b8eef029aa135d1c0f59b246c21fb3a7765	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/hdcp/hdcp_msg.c	3c55ce731e72ec735a7e8cd29bbe9335aff125ef209db70c57f11e68505f7c5e	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/hubbub/dcn10/dcn10_hubbub.h	5f4f3c21880ba0876be6733469da9472ffcffd780ad02a7871f30fd1b60adb13	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/hubp/dcn10/dcn10_hubp.h	df6143398bc19afa76bfe204217bf0eb0894d04763b36e59717dd68d241aaa07	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/hubp/dcn20/dcn20_hubp.h	dbbc145cbc84aa626744bd55540c733beae448a3ad44b9f491cac357b734b36e	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/hubp/dcn21/dcn21_hubp.h	89074208bf6ad2d4505616504b1cf0ef6a7de92613fc41b887aac0a6795b33ce	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/hubp/dcn30/dcn30_hubp.h	6b8a753086649e33ecefa350d27db42e5b28eb98a4e89390dd772ea9f340c66f	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/hubp/dcn31/dcn31_hubp.h	7ac48bf3a42bd312cc3ebb11b7cf7f0e4cc2a14070ee6dc57d3ee55e642f0cf8	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/hubp/dcn32/dcn32_hubp.h	7b40b18289269516edb1bf3d9d7a8651fee3110a9fd3d6e9a9f174ab3f18ff20	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/hubp/dcn401/dcn401_hubp.h	b8c6b6c8aedd814071a952120b20adae4432f182faba252d49a4f74f52014b7a	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/hwss/dce/dce_hwseq.c	7c343bae926585e75aaac7590f23f8b3afa541052ed0537beccf172cd0c75a61	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/hwss/dce/dce_hwseq.h	fdeed91a19c8eb40cf5b37ad27a13730f54f298beb5b420f204d7e13dd4618e1	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/hwss/dce100/dce100_hwseq.c	c90a7a2747eeeaaa39def49b414170ea4779b50c90f7d8e7e935aa237d6b6eb2	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/hwss/dce100/dce100_hwseq.h	a1e55c424aaf08fafcf8f4483fedcad3373b431d36018316751e07f3cd394e0d	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/hwss/dce110/dce110_hwseq.c	d90ae0e585afb60fdb0fcdc67daf30a5ade65ba44ededc8672dfeb5e7833f1b0	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/hwss/dce110/dce110_hwseq.h	ebfc05204b49e64cade8f84808bfdb52bea3b5b68e8a7c7b8d737093bc0d35ea	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/hwss/dce112/dce112_hwseq.c	afd4f61b3686352f0f8441815d386435b908de5c8545c6fa7fc0e841290c709d	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/hwss/dce112/dce112_hwseq.h	2dca3bd1913f8119d2e46953b059f3bd5ea9dd36d6304bc8960a791f7fea847e	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/hwss/dce120/dce120_hwseq.c	989c0fce31f748e540898464b9e44af34fe6d0dea003ac943677269280c548eb	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/hwss/dce120/dce120_hwseq.h	ec337e382bcaed2a471e521c27416d8312e957cbb8afcf841cfb5178b0cce424	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/hwss/dce80/dce80_hwseq.c	37bc599653fb818faf97736eb38e80c01b34cc6253c58bf8fedfa179a6685da2	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/hwss/dce80/dce80_hwseq.h	6f36e0ff438fcc26520f5028a8a8672fc684357ee58e0127d7716e6fbf1ba3ff	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/hwss/dcn10/dcn10_hwseq.h	e7f21cd4b70c20c35d7c7590ade93995ae44d44171101f80a86e235176c6c356	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/hwss/hw_sequencer.h	90a239a477975c3c56f27d7390a7b38bd9cda3e42167707903768c2852da504a	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/hwss/hw_sequencer_private.h	6d8b5a3a5d8159c4014efc2b4378bcfd6717cbdf0ac56e7377ef689dbab41daa	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/bw_fixed.h	5bc1f4f3eb2e21c2c2477a6ab97391533bf5024dfc2945517326578553fb47ca	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/clock_source.h	df084481f122e352541b9a11e11d97b3ea077c92cf0905169b826b9d448a9994	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/compressor.h	48ad025d1237477ca12ae22e3adea189736306d760993edc5b404f64bddddf55	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/core_status.h	b0f26a87a468bbb1367be07cdec1640d2153d2af38336acfb0c0920b2acaf522	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/core_types.h	30f7a926cbbd2fb5901c4fb9fc2b89a4896250084219b6cec52e7e3eee843a0f	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/custom_float.h	1fac128352fe031e00eb495e03267ab06fa6f25e2eff3b4fb22e2ecffe09ca55	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/dce_calcs.h	721d38cc3b44e6d5d45b6010227b0752d1c5cdd4940f25e85c5fb48e3bb66823	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/dcn_calcs.h	94b048c3046f7d22b25ac548448c68a496afcfc820f2ca1f5fc5b9b7259a1aa1	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/hw/abm.h	a4c25f60e9b94d5d09a49dc4262b61119879acdede73ffb16394b4f8187bf79a	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/hw/audio.h	cac0af77c98175613d5a8a6cb2c504ae795387bdf00d5925d650d0f4eea3371f	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/hw/aux_engine.h	0e98e068fe783203ec4b6928a4d1e093515d1a6337aa1a4ab149c28acf56371c	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/hw/clk_mgr.h	c9d4be4b6462b5a83d7a393343a6d923f81da1b5270e72cf461f96e0b0f63070	MIT
+drivers/gpu/drm/amd/display/dc/inc/hw/clk_mgr_internal.h	fc66a1db033927a31d80b0ae629ae77f5a81c2b55b6834cc237146a728dbb7fc	MIT
+drivers/gpu/drm/amd/display/dc/inc/hw/cursor_reg_cache.h	f52f0adc20b73113e3eeadf1283439790364440d63376b836426f78fc8e3809b	MIT
+drivers/gpu/drm/amd/display/dc/inc/hw/dccg.h	9199b59dc39197ebe8ca0a5ec816e76cd0f8d3367616f4fe7914eff4a79bdc62	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/hw/dchubbub.h	139db9fbeba77833bb4331c61803549212b96f423f610058597544d5beb54e97	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/hw/dio.h	11ae610fa7d4dbdaf48b3d68dbbefaab894897dc017ba52275d7febe238ab50d	MIT
+drivers/gpu/drm/amd/display/dc/inc/hw/dmcu.h	92d387e9aa7d5bd69e67744a4693b5ec45f1b419bbd2663123deb528344f9973	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/hw/dpp.h	4288ee4c3c261727613b37e4abba3a9a9e30004ac28abdcbaeb29ab331fb3b46	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/hw/dwb.h	6a041286c9b09bf08b2488db3b66d4fd48604262b09a412a9c1ad5f472823aa6	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/hw/gpio.h	7f0a7c4637bae6468eda849b5384b06644b503172159e08cf88cacfb8c8f0392	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/hw/hubp.h	969f37bd676e203babf3ee7494eec0e50a81496ee5e33e177056ba41bce5bc38	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/hw/hw_shared.h	8ead91f074b705907ab32e95ce6eeb89d62553b0d613bb3b1489a1c6a9a72c7c	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/hw/ipp.h	e553dc7c3546bf81242087ade04d6a1a6a34719acaa3a5ce561f5b44d6c9f71c	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/hw/link_encoder.h	c5bffa3fc6a10c97e254c237f62d5787c097bab27117e8e4fa258c17d5021206	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/hw/mcif_wb.h	d01dc2e2ae0f6b81555d48a6cecdec66e80be7ed0773720f2723dc59a4cdddb0	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/hw/mem_input.h	dddbde00fd224127ddf02c306d2e575fa42996de489b09c8349cbbeda584f8b3	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/hw/mpc.h	87e4f3e6753666ac85141c1f38d610f6569c1fa023b96864519394659b31f77b	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/hw/opp.h	bb53c1f168706c0c47c8b2a929456343f12cc74fa43c2073c2bd453f714954b0	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/hw/optc.h	2fa8f99b22ee9a63e27a22b629fa7d219365916f7007409d5f80b49aec440bbf	MIT
+drivers/gpu/drm/amd/display/dc/inc/hw/panel_cntl.h	ffb1ada2dd86570e2e651a8fefdf165c0cbf521dd1c426955024a00be3ca7c16	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/hw/pg_cntl.h	d366c9aee24237c609e5e6e0253dbf77411e72c94d7ac0f3e2ef7e43973873a3	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/hw/stream_encoder.h	b9ed767f78554d4cb72facb3636d8f67176bea32416323e281f459134b89e40e	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/hw/timing_generator.h	f3eb812e400365565ea5f9175a00abc45f0b9273d7dd9cdd5095c8af509f1928	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/hw/transform.h	9463be5630f30108df82a48df1fb05dc1a264cb471a0e3b89403b8bfba25194d	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/hw/vpg.h	e3d15fc0bd9a52a3eba3221eed9f0f6e37e2f45795b73e9781427375f75f0bdf	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/link_enc_cfg.h	494238c4e0d6737500878f7fab0390002c55ac3ec5171db2807cf1ca9c433538	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/link_hwss.h	9f34e8ccf203d45ff20664c16617062b4e2f27a7c93f221b8a52d6dc88716900	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/link_service.h	dff7b646ee07e2059286be39c5243c2043c75e5f23ad73604b1f3a6473965ffa	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/reg_helper.h	6eed136b57ac8e8f9799818e7e9f7c4aa259896069cdf50b314d75060ac38d2d	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/resource.h	6db0e446ddb8562a3c12a6438187e542eda08d494df2a65127eb94d969eab6c0	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/inc/vm_helper.h	6a4c5bab3500e5bea3169cd7fdbd73953faeea4389a449f459f2768d6617c27a	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/irq/dce110/irq_service_dce110.c	90381f761944939c86a2642cff109bba3ae55861007e65a2d7a8b8f5f59c126c	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/irq/dce110/irq_service_dce110.h	b5d440e40d252a32955b0c237d93675cfd8ca8c8e76e5f31326c5f1c8594eae7	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/irq/dce120/irq_service_dce120.c	f9f0c8f8024d516c417c49707d488c6e593d2cb48fa9f376fdb39a8b6b12085a	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/irq/dce120/irq_service_dce120.h	94342a0ed8adce9e5853253d492e0dc4d55e972caceb1d3dbfa4a1ed758ede1a	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/irq/dce80/irq_service_dce80.c	a4ba239f4a0e9e549744c7f706c3cd6873a874020fe31cb0fb435e5dd5829f02	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/irq/dce80/irq_service_dce80.h	0e2908b99e970a67fd77c5124ac8c47d2e5a5971d4e6e96d11b2595fce5381d4	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/irq/dcn10/irq_service_dcn10.c	2a9bb73b0834f2d1f573f23644281fb6cd29a72072a1bb5eb0bec09f32ac6f73	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/irq/dcn10/irq_service_dcn10.h	1be8d99a5fa36e572f00744564365d6e677281f6165377afb07a56396483dcca	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/irq/dcn20/irq_service_dcn20.c	fbe4f1071aa5b91e6dbaf790047826332f8f16768a6815e1ed879d5e6f5e311b	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/irq/dcn20/irq_service_dcn20.h	819e8d50242daedb267b046a6adead25e518cb0ccb4ea1745ce694817ad0a2e3	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/irq/dcn201/irq_service_dcn201.c	5cf2f3110e41dd04a6f3d3a574fbb71681592e1d66adb9da4fe2407f175f2623	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/irq/dcn201/irq_service_dcn201.h	c83c39bb09d59ee95b0e8b805e461576c4f6947b9a927e38ad85ff4463564842	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/irq/dcn21/irq_service_dcn21.c	0c476b7256f656473fff12ff03a0be4d700ed9efc6187835c25d8e739e768d5b	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/irq/dcn21/irq_service_dcn21.h	ba474840d7792cc15ea76adfe7aecfc96f80e80793e029fb4fea8f569b461b54	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/irq/dcn30/irq_service_dcn30.c	c930bcfd948c02797217d762e7007a0f4ec9264227451e0fa95b7a21b08b82f4	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/irq/dcn30/irq_service_dcn30.h	02ec7eff8eaf48a38e92354dd98aa80252612e05de77d03bef69c05976ed0066	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/irq/dcn302/irq_service_dcn302.c	2176b69a76372e7dcb389c1dca6ba6601228e3dfe4c56af9d0366afe867ce938	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/irq/dcn302/irq_service_dcn302.h	7a75da78df308b594d8814cede7eabd3910f7f5c93715885510aa3ca29fa3ca5	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/irq/dcn303/irq_service_dcn303.c	f26e19284afe937216a7ceecc8b3b6a1635361bb933ca188b6533a286dbc95c8	MIT
+drivers/gpu/drm/amd/display/dc/irq/dcn303/irq_service_dcn303.h	f2acec7a3e28334b461a113b41fa73c9fda725241d0fddc750604db4997ca1a7	MIT
+drivers/gpu/drm/amd/display/dc/irq/dcn31/irq_service_dcn31.c	5ee1f668cfba41b0d3222cca1c67af3f820ce042f13d7a9a55839b518e5956bd	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/irq/dcn31/irq_service_dcn31.h	afa166ec4934f8141a2741f31836d37342d537570e6872322476e87d3595d3be	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/irq/dcn314/irq_service_dcn314.c	03f44287fd0e6c07c24166e67464fa6131364b6b9caed751d709032129f971d9	MIT
+drivers/gpu/drm/amd/display/dc/irq/dcn314/irq_service_dcn314.h	c8f8625343440c4df0d52c9b6a24e74deb4fae48e0c70d6bf5c7d2322290518c	MIT
+drivers/gpu/drm/amd/display/dc/irq/dcn315/irq_service_dcn315.c	15b82ed67fb5cf43e1fa9d4494e586da598fa5dfece35fae3cb6ae9f7baa7578	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/irq/dcn315/irq_service_dcn315.h	da30e0cedded4fe5b2353128b6c45d503d6609d07291167256b791a34270f700	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/irq/dcn32/irq_service_dcn32.c	4ae7ad2e0e7b7a47b4673a7bfedec6bfb19ce4af5d54ac3fc7e71ff8a69e15e3	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/irq/dcn32/irq_service_dcn32.h	96715f1045f2c2737b8f26cf4db5374d2c8ebac397ab17b3a8aeb4bf99516198	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/irq/dcn35/irq_service_dcn35.c	0acba64ad0f42474bbdc7ab95e32432b62ecebb1d9cbfaf12b1a78522bbd5f09	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/irq/dcn35/irq_service_dcn35.h	ac4d92aa67d7b5e6ca375b86b73d9115739e04b4e5b1111af99ff05f5ec3fc83	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/irq/dcn351/irq_service_dcn351.c	0d8304bfb757bd2c2b3a6f430222db2401f7e4f269297761368150b9b3832c86	MIT
+drivers/gpu/drm/amd/display/dc/irq/dcn351/irq_service_dcn351.h	c94b317d31d67d65819901e01f57a94f86b66934f33ae1622fd6a8bf768f5f74	MIT
+drivers/gpu/drm/amd/display/dc/irq/dcn36/irq_service_dcn36.c	bd47313ac539f5b0d9393b3175d0d00e00dac9d50a9fc012a132b0bfdef53659	MIT
+drivers/gpu/drm/amd/display/dc/irq/dcn36/irq_service_dcn36.h	b085fc8203595e677f9e76afb64f59a8ed6d20694764527cbbdd35754bd212d2	MIT
+drivers/gpu/drm/amd/display/dc/irq/dcn42/irq_service_dcn42.c	c8debc9787b487fb4b780a3f1dd8c5b4ad96d0dfb87b80f92bd124561d5a129f	MIT
+drivers/gpu/drm/amd/display/dc/irq/dcn42/irq_service_dcn42.h	4f9cb58307d21c89ceb7663b9c43f277cf5697a41a46ba8ea2ec58bef8878a85	MIT
+drivers/gpu/drm/amd/display/dc/irq/irq_service.c	e37299bd1079843ca6d484c19e71bc65e4400ea4e0f9e6cba78b9a973757fb25	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/irq/irq_service.h	20a419ca6d346d27610bcff06c342b870adec97f794e13d95244b8da50fc9f84	MIT (permission notice)
 drivers/gpu/drm/amd/display/dc/irq_types.h	10dd7afa49e6d5a697c0728c5bb835ac2abd1eb947c212c9b7450d725b483c7d	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/accessories/link_dp_cts.c	8f00d4fd5c7e8a9684247a917d34c762e803be3f0b59edd4c908cbbd1b97e6f4	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/accessories/link_dp_cts.h	5a122b56e42d16b7cc3c3c0d8ceba26244ba65f8ce8f49a43eb23f890841caf3	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/accessories/link_dp_trace.c	d103bb8ed3e3ee6c0d0280fe8deb1bc79e75bc1dec03541f25ef57b5f576c80d	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/accessories/link_dp_trace.h	7ad229104e0f76c40a3dde16278673c59e232530b9a9ee5351022016cd77cac1	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/hwss/link_hwss_dio.c	0eeb596b3349251d50fab816c3b5cc709317203ce49137d76a117109cf14c455	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/hwss/link_hwss_dio.h	bdcd572da7d8c9af4b00a1e790253c54e862f57bce0a82c9a0a3857ccffc99ad	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/hwss/link_hwss_dio_fixed_vs_pe_retimer.c	86aeca0b6fa7cefbb548d81dfd99f5ea03e61317087118e01c1e50f9f3b75fc3	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/hwss/link_hwss_dio_fixed_vs_pe_retimer.h	5e4ae06ffcc4424d0911abc5dfaea0aac37515e7f37d60e8a797c15741945e65	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/hwss/link_hwss_dpia.c	372b18d374eacaf7acee993efdc28182d774e28dfeb86c600e96626210a82f03	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/hwss/link_hwss_dpia.h	14bf580a19b117fbb57297282103f798ea28580000398f2695c9aab8d7ba8dbd	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/hwss/link_hwss_hpo_dp.c	9b7acc77c7a714d097c6e51485f83beb07241ff86bae244b0ec712ceb78406f8	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/hwss/link_hwss_hpo_dp.h	1e62a99c4243dee32ece82d51e19089bf1fcc7b459240225d4821467533505c8	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/hwss/link_hwss_hpo_fixed_vs_pe_retimer_dp.c	b715a81ea6e3274357e078c4924bbf65c31f43d68300dd8e9317a2713459d1c9	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/hwss/link_hwss_hpo_fixed_vs_pe_retimer_dp.h	fd58a32f1b955af6c55c75dc6080611e934627d31abd7d35b1edf68367a617c5	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/hwss/link_hwss_hpo_frl.c	a4d737dd4a5fcae775f67f16ed536860a18444ab7df20aa7020a8bdf44cb0e40	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/hwss/link_hwss_hpo_frl.h	ec5777918db9ce8f4d522ecebef870824eed826a6fec2e9825df2697da662334	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/hwss/link_hwss_virtual.c	f78c70cfd1563750b8ced4baa8d4c104c66710519e918760425b8f08b356827a	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/hwss/link_hwss_virtual.h	a15e7d9608f2241bf25d3686d66febc443c881ed33e6b6708da48d66c3305c71	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/link_detection.c	8ed21f72dc5df47b585cb08960de47cbfa00b39dabc0a5cf13be878345d5b428	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/link_detection.h	dda2c8044f1bdf85e95d10e9c4b24cde299382eec6ae7f78b98ea8abfe94deba	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/link_dpms.c	18c0f892516a5717bfdb6c63fca04f9906e2d5c06eeb0db2a4bde130531a9ec2	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/link_dpms.h	6aea42c9c665dd744973854f6d6bf1abb9dc8cd678404c96fe3941417dd4f78d	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/link_factory.c	1fd16f0ebdb50dc4c75574fb50412d5acc6fcab34c184347c5ed49b0663b13db	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/link_factory.h	00cf310d0a0af8687c4236900e7700afcd2a4ff977c6befdf0befcc841c216ab	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/link_resource.c	af3fc77dc403c32c0cb655ec26df9e8f12c46def0afa35e4c62fe2c590aec39b	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/link_resource.h	e1396632bdd0fd7e4c3022c91a3af820f8e4cb71ea703dbd76eb7a9371e746b8	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/link_validation.c	cd74c8af6821f7f48ac8654864f2654682e0ccd2fc790ad7f8d7944ff28ad9f6	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/link_validation.h	1307eb955312dc3460475bb69b40fb5f6be7da3788cc52fb21dc06688281cc4b	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_ddc.c	e53242e006ab1f4ed63180bf68a07f73a2fafcde6bbedda6716ebc48b84a8a55	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_ddc.h	96f1c31e3efad5d33102a0744c6b861303f79edd2fff51ca68766b5032be589b	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_dp_capability.c	7f31b30277f95f6d777260680a6b0ab6aa55b3394139755478cb94ced3911902	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_dp_capability.h	1730a70f2f13500a4ff691a59f8827156e331199d3badfd0990407599a985ad3	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_dp_dpia.c	02c12699c5c33a325f6ded965be08c7c9b47c6e2a665e230fcb2526589d629b3	MIT
+drivers/gpu/drm/amd/display/dc/link/protocols/link_dp_dpia.h	0158ff87637fdb32f25e2d7a43532d249d4310b3864457116dddd1e010fe652d	MIT
+drivers/gpu/drm/amd/display/dc/link/protocols/link_dp_dpia_bw.c	c43cf7f5b76c89f6f6b0cb99d26a809ba54b1d5c4372af7fc61e6a7680ab1cd5	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_dp_dpia_bw.h	6fa10cb71be7c3a7503143d706813bf5c10cc68d7030ba28477202401bb0e9a0	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_dp_irq_handler.c	369d247ad12997e9be04c3524d9ae06bfd3014d15ce74fd7fd99fe44f19cd870	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_dp_irq_handler.h	73f76ae9e1788b2d01a96f7e60beaa12fc433db9dd1ef0703be4a4633f17fffa	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_dp_panel_replay.c	42a24e882fbf6673724535a9f2f1237eb346de45ab14c22c2ab3565bf5da45d9	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_dp_panel_replay.h	3528bcad20c684a8850016c24e676195f56e970ddc96dc675e6777c70ad32583	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_dp_phy.c	1201d4af88367ca2145a65adc4b9859aa714ac7c39f01493928f4cdf30b27a33	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_dp_phy.h	5ad47129776280ec7213849dc0fb4a0b364773988889ebac877ddc5338251c36	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_dp_training.c	a016303a6c3c163a25081d22b1c5c716959fe1e2cdcc81d19dcf921098c085b3	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_dp_training.h	d39c2fb60bf490ef0c997e99187b68370236c23716f1979c64e6200b3aa94163	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_dp_training_128b_132b.c	bc6b91f26ca5a1b3ebde01f3d931f960218f57ba1436ba8a7fe0d6301da817f6	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_dp_training_128b_132b.h	cc387278684486c9c6980e39013b1aafd3a71381d6d85a2c418d7a1bdb6181cb	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_dp_training_8b_10b.c	58d89efce1705b7b04e9df7c07b9b52ba308c757e3d05f3f4dbc98334758b682	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_dp_training_8b_10b.h	e48954821adb318f9d122442776cd3b1c766ba517286275fa86e2c7052920e4c	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_dp_training_auxless.c	8d9d56a772e03f899c8c6ff58a6d9d278a7a9ca7c96d836b8965890684a0cd8a	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_dp_training_auxless.h	100287dd6ee2501067b235b2c51ca65ac5299389183f4402149e4335258a5b16	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_dp_training_dpia.c	29c07c005a625c76cc48dfe9ea47cdda97db28ffaa3dc8088f7574ba1ad8055e	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_dp_training_dpia.h	b3fed98751e8b366339a6fe554875265ff1e8b4d6e01cde3e5ee4b6ba751ffc3	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_dp_training_fixed_vs_pe_retimer.c	44307e466b198e96cbfbe60bf5f063422966b0be713ea01622b3923104b2631c	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_dp_training_fixed_vs_pe_retimer.h	718dd852dde5912b06931d07dbd441724e1c1bf85f073dcc0072bde3061129e7	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_dpcd.c	e27ac366d9e6b23bc1a8f42f58cdf1d71058a80586d54b0fcfd82a9276fbcd4b	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_dpcd.h	4def5c10fdbdc7ef63d6740bcccf38c80c8117fa6585216f4ac93d66a82094da	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_edp_panel_control.c	f7b1c81c95574bc45bc4d1b00cb9abda879bbf09962d9a315b1483c3f048f518	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_edp_panel_control.h	a0a71cffde2bd7c7578510a77a78af21d1ac3d6b07af102dcf59e488bccbf836	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_hdmi_frl.c	374010d1f1f4bbe7cc0f663e5772925e44d979140f367563232dc172e9bad030	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_hdmi_frl.h	f25ef4b49e370ea8a7df9271dc660518b152884ddf9f822b6250bb7573981735	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_hpd.c	660c319855d4bf0141953797dcba7dbd22129ee34da0706fa1a2debfdb5d282c	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/link/protocols/link_hpd.h	416b0275d5dcd748c5553fb72b7e14fe5f18d7241551ce58134641f1e1dd9532	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/mmhubbub/dcn20/dcn20_mmhubbub.h	37e254efdb3a9d5aef36c97900c2eb3b8b920c07cce0cd9a5775454afdfc98a5	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/mmhubbub/dcn32/dcn32_mmhubbub.h	ac25d0942f1d83a442a5f7ad56729f3807414d8c6eedf9cc87572e7e3b65be15	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/mmhubbub/dcn35/dcn35_mmhubbub.h	532afdc7938f7359a121022843c0e1338d389f2bc7041dac29b12248dbf74419	MIT
+drivers/gpu/drm/amd/display/dc/mmhubbub/dcn42/dcn42_mmhubbub.c	c8e5a3fe209b3dd22a3ceb0fa0cb1945cef2ad9e4617a2eff703844885d9ae7c	MIT
+drivers/gpu/drm/amd/display/dc/mmhubbub/dcn42/dcn42_mmhubbub.h	f3f04b2227e0b825f9b31a65710340f97de37bf4a7f2684e9829cb2f41bbe414	MIT
 drivers/gpu/drm/amd/display/dc/os_types.h	a7660826d2e576513a8e1a6fe137f10cafbb60ba7eb17087c12123b32e1198e6	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/resource/dce100/dce100_resource.c	1228ddebea19e3474576badee0d04d583ebd2606ee214be916a918190e086dd7	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/resource/dce100/dce100_resource.h	144ae7cd85793d15ca513ed575d0ceb4b8658653c1f67aa2a2e65ac1b5d456c9	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/resource/dce110/dce110_resource.c	bd9cec7bbc63edd4022eda29d5cb8b7edff780623949cfdec11de5b9eb56ddb4	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/resource/dce110/dce110_resource.h	6843a7591dc62d3c0f642b6be95f26ba801c0b0a5b4a4f04cf85aa400a2583e8	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/resource/dce112/dce112_resource.c	0827ab3f0e4c9ba27ab434c96a6e29a13fcd306422aebf23bb19561c145a7a09	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/resource/dce112/dce112_resource.h	f6ba035d2a158029f606acb501f912ecbfe9cd05561a61ec4f47a62ef32ec9ba	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/resource/dce120/dce120_resource.c	8d386806d1f332df540781019b4a468ce7cceb6a9b1c30d8241850f7690f39a4	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/resource/dce120/dce120_resource.h	90b628048b070dff4268f6af8e4abddd358ba7e051d69a8ec93806057c92b50e	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/resource/dce80/dce80_resource.c	72d03aac17275a9259563912fbc45088054cd41638591cf5af536dfb680b68e7	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/resource/dce80/dce80_resource.h	aaa987342e04aebd0c52e23df432c8d999a6a6e857a97d05b70e5d6026703f7d	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/resource/dcn10/dcn10_resource.h	e076e073a6443fbc35027cf86136c7f8e244887ea260a5ddddc748921a10397e	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/resource/dcn20/dcn20_resource.h	19800531632b3df8be1d7f176e958b5deeee4f9ddd3620095b406f44d6cc37a9	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/resource/dcn201/dcn201_resource.h	737a5ff254c93a08eb56d73c0e89ad4d4e4ac190e0ffee6fdaf60a3a840b9743	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/resource/dcn21/dcn21_resource.h	a6568bcf43a97119798080cd145342fec54f8a420f810abe86110c5db20ce59c	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/resource/dcn30/dcn30_resource.h	9a9199322eddb2135d461cd74363bba4dd13d0257b2b032743a66f202a069d40	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/resource/dcn301/dcn301_resource.h	af84e228fe8d237474f6f59c6190cffa927e4c46c76275ebdf4fb23a65bc4258	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/resource/dcn302/dcn302_resource.h	a9d86506a408b5b836fd9c2adf18bc48cfa256a5070ab0a0d3fd700181dd097d	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/resource/dcn303/dcn303_resource.h	f556a511d3f8962be265f35ad8ce5a216dba038ac51496f348ce0fa67d4a5f27	MIT
+drivers/gpu/drm/amd/display/dc/resource/dcn31/dcn31_resource.h	1ab1b7e5623fb20908920bf3a6cba2b8e3360c99200472edef076fd58620bbcb	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/resource/dcn314/dcn314_resource.h	93c9fbe6971fa583a14dcc48c3c74709c19ed096f018860f8aa414feb254f158	MIT
+drivers/gpu/drm/amd/display/dc/resource/dcn315/dcn315_resource.h	4d2bb0035f7965aadece62da3e78b6e00111f144110053cb7707e617e806a00b	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/resource/dcn316/dcn316_resource.h	1ee2e38c64393812b04eafe08d1f8729946bea10f32f5cc60704b7b5c0a069ba	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/resource/dcn32/dcn32_resource.h	822bcc6e96c7a9ee6b63361b8ff78a222c39036159653c5cda6c768a7cfd9412	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/resource/dcn321/dcn321_resource.h	0acde7e243e280b2f1ddac58b0c72edc4fa50bf6bc2360f0377d63c2f8de748f	MIT (permission notice)
+drivers/gpu/drm/amd/display/dc/resource/dcn35/dcn35_resource.h	29ded9508f342005621774ad2dabdd659f1cb912f64a735d9af330186733e545	MIT
+drivers/gpu/drm/amd/display/dc/resource/dcn351/dcn351_resource.h	ed20ebc5edf3afe006b9da8a28833b0793eec6c2a69c52499b100a9417bb6bad	MIT
+drivers/gpu/drm/amd/display/dc/resource/dcn36/dcn36_resource.h	53c99aa3f5ba769499a4e68b74ca1312d130ad4d106ad3471520e6ed012d857d	MIT
+drivers/gpu/drm/amd/display/dc/resource/dcn401/dcn401_resource.h	5c3def64428ccb91585390c09505039d894d27e7cc4b60d9f788b3c6fe0bd32e	MIT
+drivers/gpu/drm/amd/display/dc/resource/dcn42/dcn42_resource.h	a14019a5e8110ccc7b8e95b6857ce4ead97d0f681a2aded306d2d48d5c396be3	MIT
+drivers/gpu/drm/amd/display/dc/resource/dcn42b/dcn42b_resource.h	f9427b7d5daf7c20c17f6032d2f6fb7f0677d67c9435bec67857787f00c6d4c1	MIT
+drivers/gpu/drm/amd/display/dc/sspl/dc_spl.h	cfed79ce2da39eb9d20aa8fabb917cffbc1e1381f149ad96a9cd0d2157b0f440	MIT
+drivers/gpu/drm/amd/display/dc/sspl/dc_spl_types.h	8e9a8638f40414d9e27b3a229d107479fe176aaae0027d3e1cb9faf1c24a5d08	MIT
+drivers/gpu/drm/amd/display/dc/sspl/spl_custom_float.h	82b6865223430e75a68e7e03985fcfc2a669176860543b3d91b60eeeb0222442	MIT
+drivers/gpu/drm/amd/display/dc/sspl/spl_debug.h	44125ee962910e326a0e8ce12cd967d1aaae5411f55e56da377f2348e82468b5	MIT
+drivers/gpu/drm/amd/display/dc/sspl/spl_fixpt31_32.h	83686a92154d8393be0c70d83931e01e2ab1df34bb6b457383b588c512a1d2de	MIT
+drivers/gpu/drm/amd/display/dc/sspl/spl_os_types.h	a15937bdc3643371a0c25a387639c60157e8128e2e8aa718bf71edb71842c5c2	MIT
+drivers/gpu/drm/amd/display/dmub/dmub_srv.h	7c62a59410dcfb970ddf90c8f16b02e67c7519ed5581b245a051b5da0b052c37	MIT
+drivers/gpu/drm/amd/display/dmub/dmub_srv_stat.h	340accc6049e2b677edd342ecb6a1ca47756860c7b6bd2428832493327029940	MIT (permission notice)
+drivers/gpu/drm/amd/display/dmub/inc/dmub_cmd.h	344e9ad57ae5d6a9601d06a89a239899235e5677cda6642dd5512148a61345de	MIT (permission notice)
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn20.c	bb269012538d48ea646c1c530a719ea81d467f6beda210b4163707ec7935af6d	MIT (permission notice)
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn20.h	3e00d0698249cb96ab8938cf7f05f37422c723b8c45f4d7d83636d357a4ca0ed	MIT (permission notice)
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn21.c	e5da2b625c2e3955da43fbd2c16431ae2feacaf4981c2d730d2dd0e7297d89b2	MIT (permission notice)
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn21.h	43433e50be96f2c568391b5586f8d66132fb530c9893149a9fbf34ee355658b9	MIT (permission notice)
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn30.c	07c898fa5f08b15c8d84436b40e499adb33f9853a21bb3ba84d7ba342761f056	MIT (permission notice)
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn30.h	f330862c86dac1bbbbc4b7a7dc08bb54c18f458c5b6ae61c398dfe395461e30e	MIT (permission notice)
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn301.c	f5ee2793a2beebf5c7887502f995e7ffda23e93223d7b2fba91e136e9d2eeec3	MIT (permission notice)
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn301.h	c08ff7d7c31e7ed9d51a525e9e8eaa69357640f00e9dfb000d96f71897d3ea7f	MIT (permission notice)
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn302.c	aa291796b2d39b368eae48de6f9349e0d5a969b59da685dc6eec5bbfa867f9d2	MIT (permission notice)
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn302.h	8814e03a5f71ef811e345816d4d7456460ff5cea177974f2da85fefc4a62c29b	MIT (permission notice)
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn303.c	e355796426b32a4f489d5cf4ed168a7ae5dbc79fa569107566960eca274e98d5	MIT
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn303.h	0d08bdb560a49028075d70b1e1fd25de134210483313955081c1e38c0eb526d8	MIT
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn31.c	18fcb91f1a9a1955d6cc6a1bae60ffc1de01eb8112ed33e1314f19aaa000bebf	MIT (permission notice)
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn31.h	cb15ad2f4e02a1f276e78e8a786338139412875f67fe3f638217709333313401	MIT (permission notice)
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn314.c	65df687e77c042ce7a91731ff77b89b424ca544394563ea286cbf8edab6f65b0	MIT (permission notice)
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn314.h	7724cef77a8231f5d0e2d174fd3b399a77d201a9f6c16e93386d2254c6624091	MIT (permission notice)
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn315.c	9ed874a1ac5cff951781e590424b04a419afb9aebc7a2166b13dfb478a09d8d8	MIT (permission notice)
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn315.h	2ac45c7e0c2bf67383967414c79e0f7e65542a73609233fb35e6264d581b1265	MIT (permission notice)
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn316.c	c873cf144019c8c917aab9bb89ca5fb0155a7654acff010e4badcda470134847	MIT (permission notice)
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn316.h	3c90414a077862ecf4d691bc1d4219a05bbd2615488f6f2b633a2a6dd08e3443	MIT (permission notice)
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn32.c	e0864eb711217f69b37753cfb39001281479b48c0d6fc2c8e0061f7d21bba2df	MIT (permission notice)
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn32.h	b30e56ff4658851b481beea10047478b58760ecbc1639a454c3f0df7006f4fc4	MIT (permission notice)
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn35.c	d7126a4fafd2d5ae388e670089911eaea417dfb18f2490c933b4ee0668eb8519	MIT (permission notice)
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn35.h	8068da20bf96547d9a98596275c75eb4776e7b63dcb4e389e0c7234968db852a	MIT (permission notice)
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn351.c	b4e2cc71679135df95280b01043f3122c44482ea08dd3f4a6dee67e276e90155	MIT
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn351.h	23faf84a5399bf2436f9f5f7164984648102139392e9f4a512a44d33791ad622	MIT
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn36.c	8000baab0f658536b563c32e0ffed3b2bd000591f23e674922795c9b6034e3fe	MIT
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn36.h	25f2ff139d92f217b5ed792f5b37d1a1250c060a54c915b550c38374f2f340af	MIT
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn401.h	9fcd2e3fb8c8f180a39751c4a9150ae764abe99872aea84b7657612faac56c52	MIT
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn42.c	f66fb22ae99f2c1377016e7a6ead3fc59846339b96dbfded3d297785a955a486	MIT
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn42.h	c27f97e14c5bb81693e7d6c6de1b971b42534b14c3a814f52112f6a405210fb2	MIT
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn42b.c	88c479d7f73954d2645ef20db0fda5c6200dc59da3e43b0a04e73be95c7cc1bc	MIT
+drivers/gpu/drm/amd/display/dmub/src/dmub_dcn42b.h	8a69b1a304e8f01e8e8d8c03d1ba1697cffbe4ca0d6f0efaeef8dade8e8b1398	MIT
+drivers/gpu/drm/amd/display/dmub/src/dmub_reg.c	eb00110a2753b4cf0cecb6d3f12f92ed00b6c3d35853818fd9920f887b549cb0	MIT (permission notice)
+drivers/gpu/drm/amd/display/dmub/src/dmub_reg.h	8d06d2d6117c3107a80724b537b552b73ed21d71db282c53a9ee2b867385ef1f	MIT (permission notice)
+drivers/gpu/drm/amd/display/dmub/src/dmub_srv.c	63de7bb14e27a169abed9b9121c88adca60db82be7d16470bdeb1026dbf34171	MIT
+drivers/gpu/drm/amd/display/dmub/src/dmub_srv_stat.c	1dc3397f540b472f7117486704dc785bcdfbbc29d4814ddfc0bfc046c2a549bd	MIT (permission notice)
+drivers/gpu/drm/amd/display/include/audio_types.h	f288fa4229cccd4b29e8d17914f56da6bc8de6962617133dbc2c649dfa425845	MIT (permission notice)
+drivers/gpu/drm/amd/display/include/bios_parser_interface.h	02b92d4e99832dfba8f44f393388ef34afd21b3a5d9673b1b907baaef7645a5d	MIT (permission notice)
+drivers/gpu/drm/amd/display/include/bios_parser_types.h	59226b85edd0b772e6fb6af5fa69b4eca5c30c90ac5ce36939757a204dc9545b	MIT (permission notice)
+drivers/gpu/drm/amd/display/include/dal_asic_id.h	53b6de2a60b2e4bdb2b97219f7d53436971aaa8163469ef52b1b02d6cde688f0	MIT (permission notice)
 drivers/gpu/drm/amd/display/include/dal_types.h	e399e1fb63623a29269c035c221c5e7d7104feabcb83f8f8bdb2adf4849cf603	MIT (permission notice)
+drivers/gpu/drm/amd/display/include/ddc_service_types.h	36811dd667d36d66e256ca20a69cfd2fbe3bbb8ac8ef8155f2c07857b54f5bce	MIT (permission notice)
+drivers/gpu/drm/amd/display/include/dpcd_defs.h	1dd15cc16be6b0f179adfe781bd6b1e81d8681a40318ad172d9e39fc3ea81c18	MIT (permission notice)
 drivers/gpu/drm/amd/display/include/fixed31_32.h	dc33f8df7929cc8efad6e625700f12829a1be870d2ad50977e9d48fa9c5f24a0	MIT (permission notice)
+drivers/gpu/drm/amd/display/include/gpio_interface.h	9351c9f66d6a739d1d27d67f384e5200d14368d4d8a4073c9cff0c128c5ebd4f	MIT (permission notice)
+drivers/gpu/drm/amd/display/include/gpio_service_interface.h	1c779424a58a5726cedc94ad8b12a091eaf9b4083bfdf79923084c543da61022	MIT (permission notice)
+drivers/gpu/drm/amd/display/include/gpio_types.h	15428bf2748272ca635623e32c18370618f96d6baa5962b5733abf3bbdf142fa	MIT (permission notice)
 drivers/gpu/drm/amd/display/include/grph_object_ctrl_defs.h	e52eefcf7d642fef61a53b5e1f8817d25a9c36c949dbe46ef145f0c4372a679e	MIT (permission notice)
 drivers/gpu/drm/amd/display/include/grph_object_defs.h	ef112a3b1338225c65f1117a70e528ecb3367b85859244279e63807fbdba4ead	MIT (permission notice)
 drivers/gpu/drm/amd/display/include/grph_object_id.h	4b02583978ce86eb4022aa02c88ace41ce753bfe8a3456a77a9e8df7aab354ca	MIT (permission notice)
+drivers/gpu/drm/amd/display/include/hdcp_msg_types.h	db84990ee700c6528d1950e79183b11ea1b9e1276c0d9db577c5796710569111	MIT (permission notice)
+drivers/gpu/drm/amd/display/include/irq_service_interface.h	19417556265d4e369e238ffe4b4444f6ced84cabfd473d3e457ff90822a54c2f	MIT (permission notice)
 drivers/gpu/drm/amd/display/include/link_service_types.h	f1e138126b3933c8ab9581aa2604b57fde389cf9163e712fa1c38b3a553eaf61	MIT (permission notice)
 drivers/gpu/drm/amd/display/include/logger_interface.h	7b5ec0b1da71c597942ee21a63050401d89ca276660c0bc2803b546f348e4b5b	MIT (permission notice)
 drivers/gpu/drm/amd/display/include/logger_types.h	4703f67d96f59e420204bf7882b0f5c473bba37803cf93aac87ac56556fa6ee1	MIT (permission notice)
+drivers/gpu/drm/amd/display/include/set_mode_types.h	93e600df0d08537afd74efdef1700e847fedfd4fc02edd24941e4f6319c5a1da	MIT (permission notice)
 drivers/gpu/drm/amd/display/include/signal_types.h	df6c423456158ebf618188281fbc567f99957f3f3d3b65d76d6ad211903fbb1d	MIT (permission notice)
+drivers/gpu/drm/amd/display/include/vector.h	1f8934564931d466d9a24f3689861d58ffc1f912d0e4ba95df9ece672f4eafc4	MIT (permission notice)
+drivers/gpu/drm/amd/display/modules/color/color_gamma.c	dd21c998ac0e941b9506891c36ab853862013bc4e387e21009358cfee8fb23cf	MIT (permission notice)
+drivers/gpu/drm/amd/display/modules/color/color_gamma.h	922a761c1894bdbac41e0bfc50ccf46a9b39e30f896225daf643683d0ebb5e7c	MIT (permission notice)
+drivers/gpu/drm/amd/display/modules/color/color_table.c	cbb3299371d80d6e491f82af5c8ca11196facd90f984986e93f6c106fbbfe26c	MIT (permission notice)
+drivers/gpu/drm/amd/display/modules/color/color_table.h	04c2ef48bb213a58a4b98e0155b1b21e68a447abb5e1c31b80ec0a78593e636b	MIT (permission notice)
+drivers/gpu/drm/amd/display/modules/freesync/freesync.c	0f8545961812c69a85b7bd2243f6d89c68c4f8f0f1f10d5009daaa53689f9e3d	MIT (permission notice)
+drivers/gpu/drm/amd/display/modules/hdcp/hdcp.c	8d56826c0cf8171fc7c2e9112d3a03ac5539f48532d7a545aefdd431719f4edf	MIT (permission notice)
+drivers/gpu/drm/amd/display/modules/hdcp/hdcp.h	5a7603764897e077f99df015cb4e0ee188794ff0090f03d55449b0ece6797379	MIT (permission notice)
+drivers/gpu/drm/amd/display/modules/hdcp/hdcp1_execution.c	38b82942a22ad666873ec3b3b263ee5e2eec264290f5b297a23c5f0ca479ae91	MIT (permission notice)
+drivers/gpu/drm/amd/display/modules/hdcp/hdcp1_transition.c	b72624497e5d900caecf968805ad1c723d504e3d9ffc2d6977c4a0c595de08c5	MIT (permission notice)
+drivers/gpu/drm/amd/display/modules/hdcp/hdcp2_execution.c	6f6a8421ce3ce38f83451d2611bc025d8f347bb4075c91d2a77ddcff1975940a	MIT (permission notice)
+drivers/gpu/drm/amd/display/modules/hdcp/hdcp2_transition.c	062b4ebdf400a0ae439e823c4efe2632b4516ad0b3c02db098fac5ee2d133913	MIT (permission notice)
+drivers/gpu/drm/amd/display/modules/hdcp/hdcp_ddc.c	62bd86810d56d9a67e4e87e62e11aa5815d443c4b9a48a967f638ee0114ae6c2	MIT (permission notice)
+drivers/gpu/drm/amd/display/modules/hdcp/hdcp_log.c	8864fd67a744f8dd8968b2434c29275f2405c80a766f5230e73ee30586878cb7	MIT (permission notice)
+drivers/gpu/drm/amd/display/modules/hdcp/hdcp_log.h	6f8c49fb7ab1d1d12fd9746e1e3c00c56d9db54879fc51fa112323696d047f60	MIT (permission notice)
+drivers/gpu/drm/amd/display/modules/hdcp/hdcp_psp.c	2a1e0d1a1c577bf14000641f28c0294839bf534242906f6311193c26016a3237	MIT (permission notice)
+drivers/gpu/drm/amd/display/modules/hdcp/hdcp_psp.h	684213a47d01468dada6590b1edf94ed325e9a903fc435929832635863aeecb3	MIT (permission notice)
 drivers/gpu/drm/amd/display/modules/inc/mod_freesync.h	22eaa2c7ba848f87dfff083933e0da391a297b2ba7c75776843a2e3decbfeb87	MIT (permission notice)
+drivers/gpu/drm/amd/display/modules/inc/mod_hdcp.h	9a33c6ad262d7433e7553d8caa00c34c7a588a8c198d7dc16c1ebdd605673a73	MIT (permission notice)
 drivers/gpu/drm/amd/display/modules/inc/mod_info_packet.h	f1d27f4f37cb86fd165f113dd8bd0da468f4633ae7fb38a67cc80b80b5437d52	MIT (permission notice)
 drivers/gpu/drm/amd/display/modules/inc/mod_info_packet_types.h	047f16a32019e8996f6e43b8858f17a7ec889172244e95bd474feb774dfd0696	MIT (permission notice)
+drivers/gpu/drm/amd/display/modules/inc/mod_power.h	4f5f293c1730c3f98d5bc4923c464c5559de9b5b5df0d49c4b0e2a256cce3f03	none stated: recorded exception (README)
 drivers/gpu/drm/amd/display/modules/inc/mod_shared.h	12aab00b79139282a1c71057d97d43fcafa3b1fd641709d078e140baa3a2e624	MIT (permission notice)
+drivers/gpu/drm/amd/display/modules/info_packet/info_packet.c	52cf07bc82dd790d8ffc60bf86ce395e24ec744549be0419d0f652df466c1fec	MIT (permission notice)
+drivers/gpu/drm/amd/display/modules/power/power.c	ce4c0a2e8012b8fc677c66c7e4fd0a9d838b1d793eb026b7e31a9c6b254695c0	MIT (permission notice)
+drivers/gpu/drm/amd/display/modules/power/power_abm.c	ba11dbed7ca22ddfda23e8241a35d15cb1fdc3ce56568bd11c7fbaa3c9d1e2bc	MIT
+drivers/gpu/drm/amd/display/modules/power/power_helpers.c	5038527bbfd5f05a4efbeba5714affdc7ec0708bf1c4ee9b2e06504b0158c6e7	MIT (permission notice)
+drivers/gpu/drm/amd/display/modules/power/power_helpers.h	308cca5ee694b153bd6a3fe7b64a42730fbb6d466e2885cdf1b8a9fcbdc257c4	MIT (permission notice)
+drivers/gpu/drm/amd/display/modules/power/power_psr.c	1371afc81b124f4dbc6251146e887cb575de49bc32e93f99284c202eae71aaa6	MIT
+drivers/gpu/drm/amd/display/modules/power/power_replay.c	9a6ffc0daec5b0a7a21d04596eeaf1d7f79983b33b0980580e39d760639521cf	MIT
 drivers/gpu/drm/amd/include/aldebaran_ip_offset.h	c24cd4bdd90de4ab62eda2e01207327d34172dab48660ba0f67c16a8ba4be5c0	MIT (permission notice)
 drivers/gpu/drm/amd/include/amd_acpi.h	469b7ca785f1d585e879f9e48f8451f3c54eaabb4e22ffa7e2452f511e2b837d	MIT (permission notice)
 drivers/gpu/drm/amd/include/amd_cper.h	1306e2686501c56c9ae1d20e46e84fc6b1cde2b4d43e34938016642cc7867d0e	MIT
@@ -646,6 +1210,7 @@ drivers/gpu/drm/amd/include/asic_reg/dce/dce_10_0_d.h	8b6a1bc410ad88f433364bfe6b
 drivers/gpu/drm/amd/include/asic_reg/dce/dce_10_0_enum.h	ceb8ae35cf1949c70e40441f7ef20bb9f581eada5149e94ac30a1e640020d90e	MIT (permission notice)
 drivers/gpu/drm/amd/include/asic_reg/dce/dce_10_0_sh_mask.h	28956e1b5924d2c4af7d5540134e828eb666c640e7789603c834612943d0e177	MIT (permission notice)
 drivers/gpu/drm/amd/include/asic_reg/dce/dce_11_0_d.h	2481a7c7a22be120626b161284f9f0851d18b1493a55cbbe2707475020f91253	MIT (permission notice)
+drivers/gpu/drm/amd/include/asic_reg/dce/dce_11_0_enum.h	f9d5eace60c8f2dd9b35277fa55da4c6cb8dbeee962df478545066fb9007a2d4	MIT (permission notice)
 drivers/gpu/drm/amd/include/asic_reg/dce/dce_11_0_sh_mask.h	e42e3bd9d4f80347e63894b7876cbd3b6fb00a9dbe441ac3c71f91827984c3d5	MIT (permission notice)
 drivers/gpu/drm/amd/include/asic_reg/dce/dce_11_2_d.h	7f865912129ac67966827035d5a34b4362f8a3156a56e298cb995386ce77a644	MIT (permission notice)
 drivers/gpu/drm/amd/include/asic_reg/dce/dce_11_2_sh_mask.h	cd5dde10fcdf14c5355f54dc34c84b7fef30d8864045ae4f5172d7e66beab737	MIT (permission notice)
@@ -655,10 +1220,40 @@ drivers/gpu/drm/amd/include/asic_reg/dce/dce_6_0_d.h	8e0e829fa89c434d05a99837625
 drivers/gpu/drm/amd/include/asic_reg/dce/dce_6_0_sh_mask.h	eb0a59f8b0fbc9cc44e1f3959265d594213ce02fabca0c2e0b6d4d6f614c1b49	MIT (permission notice)
 drivers/gpu/drm/amd/include/asic_reg/dce/dce_8_0_d.h	b6d3099bd3c8561aaa989638067623db04b16cae97266ee7e591f86364f0d813	MIT (permission notice)
 drivers/gpu/drm/amd/include/asic_reg/dce/dce_8_0_sh_mask.h	4e1541dd834ddf11f56498d04ab0bb1ad0f935362693590e222623a075d81341	MIT (permission notice)
+drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_1_0_offset.h	7c650d2868b406d3a30eb71fd8c544ff68dcc64dcf6304e033f0c59de7c1d090	MIT (permission notice)
+drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_1_0_sh_mask.h	6490e16ac9ec0b73a2c617c6b109ff233e09e0308d8b2082c313d2def062ffb7	MIT (permission notice)
 drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_2_0_0_offset.h	b32d5cbbf34bb39a93ff7513314db9a44352c9ba7b68d66a265b8b78490360cf	MIT (permission notice)
 drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_2_0_0_sh_mask.h	ab89a83137abdb3ffa1ec22d4b813f2a653bfe3945586f8364a2fed3ef3194cd	MIT (permission notice)
+drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_2_0_1_offset.h	ce1e8f339369353d7f686fc7a5953d7297941505c93664c66ab56a64bcb8cf7d	MIT (permission notice)
+drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_2_0_1_sh_mask.h	3a20f8a96b95a6554e7ccdd0586ed00fea597b1593cfeefdb3e609e85bf5d120	MIT (permission notice)
+drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_2_1_0_offset.h	068e063f6801ccaba09275bdc64e09cef24045b04b6e7934000914116b4781e6	MIT (permission notice)
+drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_2_1_0_sh_mask.h	4d39f64a3d9f2ab2bfe7729685115787b0baa854bf92358e8e89a695f9436219	MIT (permission notice)
+drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_3_0_0_offset.h	285a961103ab7b6f5b470804e7f33abe32568e74efe4fe777098ac0a7ba8275f	MIT
+drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_3_0_0_sh_mask.h	518b5078c8811b6bc14f5564e1cc577bea5c2c94577e70ef8c1d714f3425f960	MIT
+drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_3_0_1_offset.h	767140f3316706005ab2c00c0f6f48dcf8f4c17e97d1a78576a030fa9d007e0d	MIT (permission notice)
+drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_3_0_1_sh_mask.h	36f3cdcf18fdceffa3d9f3d3b9804b9ee856dda6312046289f17046d82b162a1	MIT (permission notice)
+drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_3_0_3_offset.h	2fb4a672315098bbf214db3578197e88f5d0151e744b5ab8e0054b67d1e92d9f	MIT
+drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_3_0_3_sh_mask.h	7da889c79639d865170976e64d2f14d3376bca367893a9c950a32396f19e0234	MIT
+drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_3_1_2_offset.h	21fb6ec8c2613854e89d106c663e0ca32814eb22237ebe66cfd071b51cd651d7	MIT (permission notice)
+drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_3_1_2_sh_mask.h	bb820738319f87cc0460f95e36aea61292e88c07e6145dba0ff30011a6e9d6b5	MIT (permission notice)
+drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_3_1_4_offset.h	f885c9a23c919daa909b7c5ffcc427cb61d77fe486a0b9b33970e438947c6075	MIT
+drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_3_1_4_sh_mask.h	670abe60d9b5e16e4909552ae4f9bf3e5db31dcec38cd5a4e4d4cb058556da37	MIT
+drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_3_1_5_offset.h	4cad14579cf368eda79e951c25722c9b53af7b93032136c0628d765160e08d66	MIT (permission notice)
+drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_3_1_5_sh_mask.h	bc4f1c32980d23be6dda8d97c160b23538c2c182b0f8f71213d5766ce8deda64	MIT (permission notice)
+drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_3_1_6_offset.h	b1d95af0c22f9b41b95515a7448f1b1f2471d5b29f1bfe129c0acfa4e0dd083e	MIT (permission notice)
+drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_3_1_6_sh_mask.h	34b7838f95a9f82da0b4f69ad67e08c06ab25a96ae3303563df88427fe43309c	MIT (permission notice)
 drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_3_2_0_offset.h	cd1fac43f963988cb4c3a6daf908418d6fecb57cf2330b3dc24d155284a1e9a0	MIT (permission notice)
 drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_3_2_0_sh_mask.h	6138d7fd72cefa7caf67d07dedadd35db471bae1421bfa60be7cdca5e42266ac	MIT (permission notice)
+drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_3_5_0_offset.h	d7ea823f308589c40f606fdc25c91dff945274ed6ff2cdf3660450327edf13f2	MIT
+drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_3_5_0_sh_mask.h	f689800c941f5c44691b9be2be2888a8f1933d73ca4c4406b7202fa42739cbd1	MIT
+drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_3_5_1_offset.h	f055d9d89531ad0ba3f9df36b01d0c553c72520b4450119f1f56bdc5cc594047	MIT
+drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_3_5_1_sh_mask.h	30c6174d655f5aeda32f3fc706fb14553fc16337602f57699c38ec2439b44af4	MIT
+drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_3_6_0_offset.h	16391d1eef919df1bbcb4b088815caeaaa02f658418cbd03facb1189071668bc	MIT
+drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_3_6_0_sh_mask.h	ce4fabe8a42e039722b8a0e672f967a7743932da1e6628f2a89ddf0317b3116e	MIT
+drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_4_2_0_offset.h	c9f62a2bcdc8f4efb26aecb19f08be9751ba1dfe9f2e3608c5988e86fb5be24a	MIT
+drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_4_2_0_sh_mask.h	07b90696fb96d7b4f49d3e10a251a75c8ba9c2d4a1b92bd60b339e2fbe4fde4d	MIT
+drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_4_2_1_offset.h	a76d96a77afe3678645631333140f2f38adaa75b0f273db193619a5729aa2a0b	MIT
+drivers/gpu/drm/amd/include/asic_reg/dcn/dcn_4_2_1_sh_mask.h	56cc3ce7d707ef177971e0f3240b83cf281593dec74191bc2d0a80e649e83754	MIT
 drivers/gpu/drm/amd/include/asic_reg/df/df_1_7_default.h	a206e7f8ee4c1ee7980b39995526880c60109257e5512d0389ef73185d6bad58	MIT (permission notice)
 drivers/gpu/drm/amd/include/asic_reg/df/df_1_7_offset.h	78062bf6d925cab4e906f0d1bdb9a62e179716309cc3c98aff8026f0737a0ff7	MIT (permission notice)
 drivers/gpu/drm/amd/include/asic_reg/df/df_1_7_sh_mask.h	64fa02dee9e5f5f33f6ab2147c4a77a474e136a95d423d31533af1d11546aa7c	MIT (permission notice)
@@ -669,6 +1264,12 @@ drivers/gpu/drm/amd/include/asic_reg/df/df_4_15_offset.h	a8e47bedc811442b4a8d429
 drivers/gpu/drm/amd/include/asic_reg/df/df_4_15_sh_mask.h	7ed43bd98b4436844a8f68f31786bbe1bd0343a5a8f6e3c21b3a72ab2c8175a1	MIT (permission notice)
 drivers/gpu/drm/amd/include/asic_reg/df/df_4_3_offset.h	adb45ed4c1d308b89d30def9ded9b343ef71d5256989cd64127608dc4442be3a	MIT (permission notice)
 drivers/gpu/drm/amd/include/asic_reg/df/df_4_3_sh_mask.h	e23c8e827e86505d99f7533fc15a93f8f7e5d8bbb46bfcf1fa22f2480934d5e9	MIT (permission notice)
+drivers/gpu/drm/amd/include/asic_reg/dpcs/dpcs_3_0_0_offset.h	538c7ed83fbb7b9b97f0d1f67a1808e8c667f29390bdbed9cf2db7775751b1a2	MIT
+drivers/gpu/drm/amd/include/asic_reg/dpcs/dpcs_3_0_0_sh_mask.h	5620d5b0e0793405bc7159a65ff9c3e0f503056379d15ed6af03f2a3894f3dd8	MIT
+drivers/gpu/drm/amd/include/asic_reg/dpcs/dpcs_4_0_0_offset.h	e0d63336852a3b9739ff8a12fc278fed17965797da653039ebbbdc43a755721e	MIT
+drivers/gpu/drm/amd/include/asic_reg/dpcs/dpcs_4_0_0_sh_mask.h	4a590e519ceb96c82794b0f04b5ed263f1c424b6190a92a226f207acf2177dbb	MIT
+drivers/gpu/drm/amd/include/asic_reg/dpcs/dpcs_4_0_1_offset.h	2ee4fc35acdb576588f77284b391b2d98a0a3dab74a09e7ef86ef590ec7919a3	MIT
+drivers/gpu/drm/amd/include/asic_reg/dpcs/dpcs_4_0_1_sh_mask.h	f7a3c0d28620fd0a1289e502c55f6915042d474767f69e048fe03ec363627a66	MIT
 drivers/gpu/drm/amd/include/asic_reg/gc/gc_10_1_0_default.h	71591e59bdc749504017499be70483851534d8c17c76a724f48fdf1ecd0b9124	MIT (permission notice)
 drivers/gpu/drm/amd/include/asic_reg/gc/gc_10_1_0_offset.h	a0ad8bffb3c07ec3824d306aff49c77bc40057f8760aec7a76ee58a60cc8e6a2	MIT (permission notice)
 drivers/gpu/drm/amd/include/asic_reg/gc/gc_10_1_0_sh_mask.h	cba20414ecf02e91bafdcfbff7d4ba686326f0bdaf236d1a883364f08410c167	MIT (permission notice)
@@ -979,8 +1580,10 @@ drivers/gpu/drm/amd/include/atomfirmware.h	b389f8aed3dc383b9a3273bb7ea2c46234c48
 drivers/gpu/drm/amd/include/atomfirmwareid.h	9e6bd22e466b4b0d608a61ffb9a424c1b8fcf8b9430fefa2b8671ef356387817	MIT (permission notice)
 drivers/gpu/drm/amd/include/cgs_common.h	aa104e8465ca6a447315fd0658c6951ca019945af5b68d8aaee90e1b890a5bee	MIT (permission notice)
 drivers/gpu/drm/amd/include/cyan_skillfish_ip_offset.h	4e3e383d212924b1378a2225edaee8c42046ebf4b19475a128985941720492d3	MIT (permission notice)
+drivers/gpu/drm/amd/include/dimgrey_cavefish_ip_offset.h	cd6b042e6ec1e8f71549828fa225182b0bb00c7be6b556ad0d3591d200afedf2	MIT (permission notice)
 drivers/gpu/drm/amd/include/discovery.h	032d97c699c9378edb64b005ddc53ab08763b853f6b64fcdb0a71dd7999b98e5	MIT (permission notice)
 drivers/gpu/drm/amd/include/dm_pp_interface.h	e42241735b6b2dc06c0ec7565720a47a9ead041ef6fcb4401d31e59551ab8734	MIT (permission notice)
+drivers/gpu/drm/amd/include/ivsrcid/dcn/irqsrcs_dcn_1_0.h	33280f2e465708a3aefe4454fc145b96c4178a03e237d2549efe09cdb10ee7e9	MIT (permission notice)
 drivers/gpu/drm/amd/include/ivsrcid/gfx/irqsrcs_gfx_10_1.h	940eda0af423d130acb295e2262a3225e766bab994e167619b7238e9cd3bac05	MIT (permission notice)
 drivers/gpu/drm/amd/include/ivsrcid/gfx/irqsrcs_gfx_11_0_0.h	c1916f7b6f1d316dfec85f7b1e8fd5dd9a9a07ace348d50fe828ff41a4fa0678	MIT (permission notice)
 drivers/gpu/drm/amd/include/ivsrcid/gfx/irqsrcs_gfx_12_0_0.h	7fe639e1d1cc3e0808421413e011739411d6e00ac11cd3f84fdcd05393366a4d	MIT
@@ -1009,7 +1612,10 @@ drivers/gpu/drm/amd/include/kgd_pp_interface.h	1a9f13c25a0973e2e076edae8d1bd7fa4
 drivers/gpu/drm/amd/include/mes_v11_api_def.h	52cd5e0c66fffbf81dcdf3eb6f6bab49b3db82abcbd81c9e7a0a2ea2fd0b2da5	MIT (permission notice)
 drivers/gpu/drm/amd/include/mes_v12_api_def.h	118c1ac1fe7dfb5f02929a963e29789307cc7c99e99d89e50501988d02237ce1	MIT (permission notice)
 drivers/gpu/drm/amd/include/navi10_enum.h	26bf943bd92a5282814385cf80f3c7ced99ba0c534ae1b932d1bf4293fa2feed	MIT (permission notice)
+drivers/gpu/drm/amd/include/navi10_ip_offset.h	d9488ceab9b664db8a53b0bf6efcfe355e43a4c953100a7c53da705b5fcc1d03	MIT (permission notice)
 drivers/gpu/drm/amd/include/pptable.h	a3f907e51ad17ce79300ddb7498c0813e929f3fd1afad0817a558d83c3e4be90	MIT (permission notice)
+drivers/gpu/drm/amd/include/renoir_ip_offset.h	0be1f00100bfbb0e3c4a69941fa5efa2d0dd67f3b2130376dbea9aac66db441f	MIT (permission notice)
+drivers/gpu/drm/amd/include/sienna_cichlid_ip_offset.h	27ce382f43a5df3fffdfb5abdaafc85dc8beb940f68e6b10f52f5731068f3bbd	MIT (permission notice)
 drivers/gpu/drm/amd/include/soc15_hw_ip.h	3ea92d87bcd6bd9ad66397cda445308ea0908a5748536e30824f2abb11efe9de	MIT (permission notice)
 drivers/gpu/drm/amd/include/soc15_ih_clientid.h	9797586db00d3d6e0b080032a40b94e266f4290816164d2638602fbf12541ecd	MIT (permission notice)
 drivers/gpu/drm/amd/include/soc24_enum.h	e917c9330582f43b75e2965f2dc65b183ed01d111f54a07fa9f5fc85af5d890f	MIT (permission notice)
@@ -1020,10 +1626,12 @@ drivers/gpu/drm/amd/include/v10_structs.h	907f1822aae243e49cf1565c46262e0b6064be
 drivers/gpu/drm/amd/include/v11_structs.h	03ea40b254f02f054166b028b500c8b9e618daad24bb19ea85eaa8956ba2a38d	MIT (permission notice)
 drivers/gpu/drm/amd/include/v12_structs.h	81984f7972fb0ddd6aef19ea5fd4fcc45e48a20a9314cd42409a87a251709990	MIT (permission notice)
 drivers/gpu/drm/amd/include/v9_structs.h	18f8e59e4cab35d579d2e3f9fc4eadffd81d518d586065de4d9d0ab4fcc131d7	MIT (permission notice)
+drivers/gpu/drm/amd/include/vangogh_ip_offset.h	596b3964f6abb2a7d5218ab2f27149a38c5ec91e6615f0dffec9c5e5f759caff	MIT (permission notice)
 drivers/gpu/drm/amd/include/vega10_enum.h	cb4d03b3ee3fa28a240434f8742434facafb9b670f3dec9b49c1295a4d70a83d	MIT (permission notice)
 drivers/gpu/drm/amd/include/vega10_ip_offset.h	0eafce93ac395bf5d20fdb2a227fc320ec21d3d67be8c4f0d252cfe1ee9dbead	MIT (permission notice)
 drivers/gpu/drm/amd/include/vega20_ip_offset.h	ec84ddd3db7ed243e65365cfdff3daacdaa9de3a1b960f43223e2c5050fa1b22	MIT (permission notice)
 drivers/gpu/drm/amd/include/vi_structs.h	b76155a25e98f3788e12a784824c04aecfc654543c09bc07345e2c9e111d569a	MIT (permission notice)
+drivers/gpu/drm/amd/include/yellow_carp_offset.h	834b118791b2a696b53a3d4df2c6a1eb9c125403906ed267da8f6da22d7225d2	MIT
 drivers/gpu/drm/amd/pm/amdgpu_dpm.c	1cc2ba24b93c457709c742408e6dae0e28c59b791381c144a2fff5824b446e48	MIT (permission notice)
 drivers/gpu/drm/amd/pm/amdgpu_dpm_internal.c	8138852c9cd5115bd969ef422933308c6dd21333dbb08b861215b9718d8edd0e	MIT (permission notice)
 drivers/gpu/drm/amd/pm/amdgpu_pm.c	7b35f9fa1919017130fda9c9b17a4d8f672e57fe2010f53834fda5928ef70b78	MIT (permission notice)
