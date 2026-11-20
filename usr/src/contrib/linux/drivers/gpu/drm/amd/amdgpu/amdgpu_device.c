@@ -5046,6 +5046,25 @@ bool amdgpu_device_should_recover_gpu(struct amdgpu_device *adev)
 	if (amdgpu_gpu_recovery == 0)
 		goto disabled;
 
+#ifdef __illumos__
+	/*
+	 * illumos: a recovery that failed (MacBookPro14,3 2026-11-18: VCE
+	 * timeout, the SMU7 firmware reload after the reset returned -22)
+	 * leaves the device half down: DC's dm_suspend took dm->dc_lock for
+	 * the reset and only dm_resume, never reached, drops it. The next
+	 * job timeout then re-entered dm_suspend on the same taskq thread
+	 * (recursive mutex_enter panic). After one failed recovery the
+	 * device stays lost until the next boot, as Linux's wedged state
+	 * intends; jobs time out without another reset.
+	 */
+	if (atomic_read(&adev->reset_domain->reset_res) != 0) {
+		dev_err(adev->dev, "GPU recovery failed before (%d), "
+		    "device lost until reboot.\n",
+		    atomic_read(&adev->reset_domain->reset_res));
+		return false;
+	}
+#endif
+
 	/* Skip soft reset check in fatal error mode */
 	if (!amdgpu_ras_is_poison_mode_supported(adev))
 		return true;
@@ -5964,6 +5983,20 @@ end_reset:
 
 	if (r)
 		dev_info(adev->dev, "GPU reset end with ret = %d\n", r);
+#ifdef __illumos__
+	/*
+	 * illumos: dm_suspend took dm->dc_lock for this reset on this
+	 * thread; a failed reset never reaches dm_resume, which drops it.
+	 * Drop it here, or every later atomic commit (Xorg's setcrtc) blocks
+	 * on it forever (MacBookPro14,3 2026-11-18). The device is lost
+	 * after this (amdgpu_device_should_recover_gpu), commits only see
+	 * a dead GPU.
+	 */
+	if (r && mutex_owned(&adev->dm.dc_lock.m)) {
+		dev_err(adev->dev, "failed reset: releasing dc_lock\n");
+		mutex_unlock(&adev->dm.dc_lock);
+	}
+#endif
 
 	atomic_set(&adev->reset_domain->reset_res, r);
 
