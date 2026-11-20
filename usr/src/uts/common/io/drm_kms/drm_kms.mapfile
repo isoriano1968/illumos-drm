@@ -497,6 +497,7 @@ SYMBOL_SCOPE {
 		drm_get_edid	{ FLAGS = EXTERN };
 		drm_get_edid_switcheroo	{ FLAGS = EXTERN };
 		drm_get_format_info	{ FLAGS = EXTERN };
+		drm_get_panel_backlight_quirk	{ FLAGS = EXTERN };
 		drm_get_panel_orientation_quirk	{ FLAGS = EXTERN };
 		drm_get_subpixel_order_name	{ FLAGS = EXTERN };
 		drm_get_tv_mode_from_name	{ FLAGS = EXTERN };
@@ -689,9 +690,12 @@ SYMBOL_SCOPE {
 		drm_vblank_work_schedule	{ FLAGS = EXTERN };
 		drm_warn_on_modeset_not_all_locked	{ FLAGS = EXTERN };
 		drm_writeback_cleanup_job	{ FLAGS = EXTERN };
+		drm_writeback_connector_init	{ FLAGS = EXTERN };
 		drm_writeback_get_out_fence	{ FLAGS = EXTERN };
 		drm_writeback_prepare_job	{ FLAGS = EXTERN };
+		drm_writeback_queue_job	{ FLAGS = EXTERN };
 		drm_writeback_set_fb	{ FLAGS = EXTERN };
+		drm_writeback_signal_completion	{ FLAGS = EXTERN };
 		drmm_connector_hdmi_init	{ FLAGS = EXTERN };
 		drmm_connector_init	{ FLAGS = EXTERN };
 		drmm_crtc_init_with_planes	{ FLAGS = EXTERN };

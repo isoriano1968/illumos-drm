@@ -242,10 +242,37 @@ EXPORT_SYMBOL(drm_sysfs_connector_property_event);
 
 /*
  * --- Writeback connectors (drm_writeback.c) --------------------------------
- * None exist (drm_writeback_connector_init() is not provided), so the
- * atomic core never creates a writeback job; these are reached only
- * through a programming error and then fail safely.
+ * None exist: drm_writeback_connector_init() refuses to create one
+ * (-ENODEV; amdgpu's Display Core asks only on DCN GPUs with a DWB
+ * block, and then goes on without it), so the atomic core never creates a
+ * writeback job; the job functions are reached only through a programming
+ * error and then fail safely.
  */
+
+int
+drm_writeback_connector_init(struct drm_device *dev,
+    struct drm_writeback_connector *wb_connector,
+    const struct drm_connector_funcs *con_funcs,
+    const struct drm_encoder_helper_funcs *enc_helper_funcs,
+    const u32 *formats, int n_formats, u32 possible_crtcs)
+{
+	return (-ENODEV);
+}
+EXPORT_SYMBOL(drm_writeback_connector_init);
+
+void
+drm_writeback_queue_job(struct drm_writeback_connector *wb_connector,
+    struct drm_connector_state *conn_state)
+{
+}
+EXPORT_SYMBOL(drm_writeback_queue_job);
+
+void
+drm_writeback_signal_completion(struct drm_writeback_connector *wb_connector,
+    int status)
+{
+}
+EXPORT_SYMBOL(drm_writeback_signal_completion);
 
 int
 drm_writeback_set_fb(struct drm_connector_state *conn_state,
@@ -281,6 +308,22 @@ drm_writeback_get_out_fence(struct drm_writeback_connector *wb_connector)
 	return (NULL);
 }
 EXPORT_SYMBOL(drm_writeback_get_out_fence);
+
+/*
+ * --- Panel backlight quirks (drm_panel_backlight_quirks.c) -----------------
+ * Linux's table of panels whose backlight needs PWM or a minimum
+ * brightness, matched by EDID and DMI. Not carried: no quirk for any panel
+ * (Linux's answer for a panel it does not list).
+ */
+
+const struct drm_panel_backlight_quirk *
+drm_get_panel_backlight_quirk(const struct drm_edid *edid)
+{
+	if (edid == NULL)
+		return (ERR_PTR(-EINVAL));
+	return (ERR_PTR(-ENOENT));
+}
+EXPORT_SYMBOL(drm_get_panel_backlight_quirk);
 
 /*
  * --- Panels (drm_panel.c) ---------------------------------------------------
