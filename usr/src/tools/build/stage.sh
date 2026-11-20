@@ -29,6 +29,7 @@ for f in usr/src/data/drm/20-modesetting.conf \
     usr/src/uts/intel/io/i915n/i915n.aliases \
     usr/src/uts/intel/io/i915n/i915n.conf \
     usr/src/uts/intel/io/amdgpu/amdgpu.conf \
+    usr/src/uts/intel/io/amdgpu/amdgpu.system \
     usr/src/data/firmware/i915/skl_dmc_ver1_27.bin \
     usr/src/data/firmware/i915/kbl_dmc_ver1_04.bin; do
     copy "$f" "$f" 0444
