@@ -12,7 +12,15 @@ for d in include/asic_reg include amdgpu pm/inc pm/swsmu pm/swsmu/inc \
     pm/swsmu/smu14 pm/swsmu/smu15 pm/powerplay/inc pm/powerplay/smumgr \
     pm/powerplay/hwmgr pm/legacy-dpm acp/include display display/include \
     display/modules/inc display/dc display/amdgpu_dm amdkfd ras/ras_mgr \
-    ras/rascore; do
+    ras/rascore \
+    display/dc/inc display/dc/inc/hw display/dc/clk_mgr display/dc/hwss \
+    display/dc/resource display/dc/dsc display/dc/optc display/dc/dpp \
+    display/dc/hubbub display/dc/dccg display/dc/hubp display/dc/dio \
+    display/dc/dwb display/dc/hpo display/dc/mmhubbub display/dc/mpc \
+    display/dc/opp display/dc/pg display/dc/soc_and_ip_translator \
+    display/modules/freesync display/modules/color \
+    display/modules/info_packet display/modules/power display/dmub/inc \
+    display/modules/hdcp; do
 	CPPFLAGS="$CPPFLAGS -I$AMDDIR/$d"
 done
 CPPFLAGS="$CPPFLAGS -I$OUT/sysinc -I$HERE/illumos"

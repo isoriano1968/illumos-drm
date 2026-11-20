@@ -20,6 +20,8 @@
 
 #define	CONFIG_DRM_AMDGPU	1
 #define	CONFIG_DRM_AMDGPU_SI	1
+/* Display Core: DCE 11.x (Polaris) and later; not for SI (DC_SI), no DC_FP. */
+#define	CONFIG_DRM_AMD_DC	1
 #define	CONFIG_DRM_TTM	1
 #define	CONFIG_DRM_SCHED	1
 #define	CONFIG_DRM_EXEC	1

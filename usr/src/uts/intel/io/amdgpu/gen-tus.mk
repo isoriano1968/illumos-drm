@@ -10,7 +10,10 @@
 src := $(LINUX)/drivers/gpu/drm/amd/amdgpu
 # Southern Islands (GCN 1.0: Tahiti, Pitcairn, Cape Verde, Oland, Hainan)
 CONFIG_DRM_AMDGPU_SI := y
-# Left out for now: CIK, DC (SI display goes through dce_v6_0), KFD, ACP,
+# Display Core for DCE 11.x (Polaris, VI) and later; SI display stays on
+# dce_v6_0 (DC_SI off), DCN's floating-point parts off (DC_FP).
+CONFIG_DRM_AMD_DC := y
+# Left out for now: CIK, DC_SI, DC_FP, KFD, ACP,
 # ISP, HMM, compat ioctls, vga_switcheroo (ATPX is GPL-2.0), ACPI, procfs
 # fdinfo, perf PMU.
 include $(src)/Makefile

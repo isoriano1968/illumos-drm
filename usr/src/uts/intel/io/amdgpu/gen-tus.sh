@@ -31,6 +31,10 @@ amdgpu_dma_buf.c	amdgpu's own dma_buf_ops: PRIME is the DRM core's, illumos/amdg
 amdgpu_trace_points.c	tracepoints: lkpi has none (no-op trace headers)
 drivers/gpu/drm/ttm/ttm_bo_vm.c	Linux VM faults (vm_fault, vmf_insert_pfn): replaced by an illumos devmap path (to do)
 drivers/gpu/drm/ttm/ttm_backup.c	shmem swap-out of BOs: illumos/ttm_backup_illumos.c (none yet)
+../display/dmub/src/dmub_dcn401.c	DCN 4.01 (RDNA 4): dcn_4_1_0_sh_mask.h has no licence statement; dmub_srv.c reports the ASIC unsupported on illumos
+../display/dc/irq/dcn401/irq_service_dcn401.c	DCN 4.01: the same header; only DCN 4.01's resource pool (DC_FP, not built) calls it
+../display/dc/gpio/dcn401/hw_factory_dcn401.c	DCN 4.01: the same header; hw_factory.c refuses DCN 4.01 on illumos
+../display/dc/gpio/dcn401/hw_translate_dcn401.c	DCN 4.01: the same header; hw_translate.c refuses DCN 4.01 on illumos
 
 "
 CARRIED="

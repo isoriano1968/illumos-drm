@@ -4,12 +4,13 @@
  *
  * What amdgpu needs from Linux modules that are not built for illumos:
  *
- * drm_gem_fb_destroy(), drm_gem_fb_create_handle()
+ * drm_gem_fb_destroy(), drm_gem_fb_create_handle(), drm_gem_fb_get_obj()
  *	the framebuffer callbacks of Linux's drm_gem_framebuffer_helper.c
  *	(which carries no licence statement, so it is not built):
  *	destroy cleans up the framebuffer, drops the references it holds
  *	on its GEM objects and frees it; create_handle gives the file a
- *	handle for the first plane's object (MODE_GETFB).
+ *	handle for the first plane's object (MODE_GETFB); get_obj returns a
+ *	plane's GEM object (Display Core's plane code) or NULL.
  * amdgpu_xcp_drm_dev_alloc(), amdgpu_xcp_drm_dev_free(),
  * amdgpu_xcp_drv_release()
  *	amdxcp.ko, the DRM devices of compute partitions (MI300 class
@@ -43,6 +44,14 @@ drm_gem_fb_create_handle(struct drm_framebuffer *fb, struct drm_file *file,
 	if (fb->obj[0] == NULL)
 		return (-ENOENT);
 	return (drm_gem_handle_create(file, fb->obj[0], handle));
+}
+
+struct drm_gem_object *
+drm_gem_fb_get_obj(struct drm_framebuffer *fb, unsigned int plane)
+{
+	if (plane >= ARRAY_SIZE(fb->obj))
+		return (NULL);
+	return (fb->obj[plane]);
 }
 
 int
