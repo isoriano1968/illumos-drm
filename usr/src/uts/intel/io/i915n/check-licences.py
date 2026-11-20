@@ -10,8 +10,22 @@
 # distribute, and sell"). Prints every refused file and exits 1 if any.
 #
 #   check-licences.py <linux tree> <file of tree-relative paths>
+#
+# EXCEPTIONS: files the project decided to carry although they state no
+# licence, each pinned to the SHA-256 of the exact bytes that were
+# reviewed (any change makes the gate check the file again) and recorded
+# with its reason in usr/src/contrib/linux/README.
+import hashlib
 import re
 import sys
+
+EXCEPTIONS = {
+    # AMD Display Core's power module API; every other file of
+    # drivers/gpu/drm/amd/display is MIT, this header only lacks the
+    # notice ("All rights reserved"). Decided 2026-11-17 (Polaris DC).
+    "drivers/gpu/drm/amd/display/modules/inc/mod_power.h":
+        "4f5f293c1730c3f98d5bc4923c464c5559de9b5b5df0d49c4b0e2a256cce3f03",
+}
 
 root, listing = sys.argv[1], sys.argv[2]
 SPDX = re.compile(r"SPDX-License-Identifier:\s*(.+?)\s*(\*/)?\s*$")
@@ -52,6 +66,15 @@ for rel in open(listing, encoding="utf-8"):
         head = open(f"{root}/{rel}", encoding="utf-8", errors="replace").read(6000)
     except OSError as e:
         print(f"check-licences: {rel}: {e}")
+        bad += 1
+        continue
+    if rel in EXCEPTIONS:
+        with open(f"{root}/{rel}", "rb") as f:
+            digest = hashlib.sha256(f.read()).hexdigest()
+        if digest == EXCEPTIONS[rel]:
+            continue
+        print(f"check-licences: {rel}: recorded exception, but the file "
+              f"changed (sha256 {digest})")
         bad += 1
         continue
     m = None
