@@ -39,6 +39,8 @@ extern boolean_t amdgpu_con_is_console(dev_info_t *dip);
 extern void amdgpu_con_master_gone(void);
 /* The console shows text (KD_TEXT): the KMS side may restore it. */
 extern boolean_t amdgpu_con_text_mode(void);
+/* Repaint the console framebuffer from gfx_private's shadow (KD_TEXT). */
+extern void amdgpu_con_repaint(void);
 
 /* cb_ops and getinfo wrappers: the console minor, else the DRM core. */
 extern int amdgpu_con_open(dev_t *devp, int flag, int otyp, cred_t *credp);

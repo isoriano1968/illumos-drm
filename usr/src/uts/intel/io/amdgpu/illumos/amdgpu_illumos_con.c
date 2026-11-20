@@ -172,6 +172,24 @@ con_kdsetmode(int mode)
 	    &rval, amdgpu_con_st.gfxp);
 }
 
+/*
+ * Repaint the console framebuffer from gfx_private's shadow: its
+ * KDSETMODE to KD_TEXT copies the shadow to the framebuffer, but only on
+ * a change of mode, hence KD_GRAPHICS first (the hook records both; the
+ * KD_TEXT one queues a restore, which finds the console shown). For
+ * Display Core: the framebuffer's VRAM no longer holds what tem drew
+ * before amdgpu's init (MacBookPro14,3: black after the restore, 2026-11-18).
+ * Only in KD_TEXT, so never over X.
+ */
+void
+amdgpu_con_repaint(void)
+{
+	if (!amdgpu_con_st.console || !amdgpu_con_text_mode())
+		return;
+	con_kdsetmode(KD_GRAPHICS);
+	con_kdsetmode(KD_TEXT);
+}
+
 /* gfx_private's mode hook: called under its lock, from tem or wc. */
 static int
 amdgpu_con_setmode(int mode)

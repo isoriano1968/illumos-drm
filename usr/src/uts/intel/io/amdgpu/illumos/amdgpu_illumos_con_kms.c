@@ -44,6 +44,8 @@
 #include <drm/drm_framebuffer.h>
 #include <drm/drm_modes.h>
 #include <drm/drm_modeset_lock.h>
+#include <drm/drm_atomic_helper.h>
+#include <drm/drm_drv.h>
 #include <drm/drm_print.h>
 #include <drm/drm_lkms.h>
 
@@ -125,7 +127,14 @@ con_shown(void)
 {
 	struct drm_crtc *crtc = amdgpu_con.crtc;
 
-	return (crtc != NULL && crtc->enabled &&
+	if (crtc == NULL)
+		return (false);
+	/* Atomic (DC): the committed state, not the legacy fields. */
+	if (drm_drv_uses_atomic_modeset(crtc->dev))
+		return (crtc->state != NULL && crtc->state->active &&
+		    crtc->primary->state != NULL &&
+		    crtc->primary->state->fb == &amdgpu_con.rfb->base);
+	return (crtc->enabled &&
 	    crtc->primary->fb == &amdgpu_con.rfb->base);
 }
 
@@ -140,6 +149,15 @@ con_firmware_scanout(struct drm_device *drm)
 {
 	struct drm_crtc *c;
 
+	/*
+	 * Display Core (Polaris and later) programs the display engine at
+	 * hw_init and blanks what the firmware showed: the loader's
+	 * framebuffer is not on screen any more, whatever DRM's CRTC state
+	 * says (MacBookPro14,3, 2026-11-17: black from DC's init on).
+	 */
+	if (amdgpu_con.adev->dc_enabled)
+		return (false);
+
 	drm_for_each_crtc(c, drm) {
 		if (c->enabled)
 			return (false);
@@ -147,9 +165,14 @@ con_firmware_scanout(struct drm_device *drm)
 	return (true);
 }
 
-/* A connected connector, its CRTC, and the console's mode on it. */
+/*
+ * A connected connector, its CRTC, and the console's mode on it.
+ * ctx: the acquire context the modeset locks are held with (atomic
+ * drivers, DC); NULL for the legacy path under drm_modeset_lock_all().
+ * With ctx, -EDEADLK is returned for the caller's backoff.
+ */
 static int
-con_set(struct drm_device *drm)
+con_set(struct drm_device *drm, struct drm_modeset_acquire_ctx *ctx)
 {
 	struct drm_connector_list_iter iter;
 	struct drm_connector *conn, *found = NULL;
@@ -199,6 +222,24 @@ con_set(struct drm_device *drm)
 				break;
 		}
 	}
+	/*
+	 * No mode of the console's size (a panel whose firmware mode is
+	 * scaled, e.g. 3360x2100 on a 2880x1800 eDP): the largest mode that
+	 * fits in the framebuffer, preferred first, which shows the
+	 * console's top-left part.
+	 */
+	if (mode == NULL) {
+		list_for_each_entry(m, &found->modes, head) {
+			if (m->hdisplay > amdgpu_con.width ||
+			    m->vdisplay > amdgpu_con.height)
+				continue;
+			if (mode == NULL || (m->type & DRM_MODE_TYPE_PREFERRED) ||
+			    (!(mode->type & DRM_MODE_TYPE_PREFERRED) &&
+			    m->hdisplay * m->vdisplay >
+			    mode->hdisplay * mode->vdisplay))
+				mode = m;
+		}
+	}
 	if (mode == NULL) {
 		cvt = drm_cvt_mode(drm, amdgpu_con.width, amdgpu_con.height,
 		    60, false, false, false);
@@ -217,13 +258,103 @@ con_set(struct drm_device *drm)
 	set.y = 0;
 	set.connectors = &found;
 	set.num_connectors = 1;
-	ret = drm_mode_set_config_internal(&set);
+	/*
+	 * Atomic (DC): drm_mode_set_config_internal() is legacy only (it
+	 * WARNs on atomic drivers and passes no acquire context, so
+	 * drm_atomic_helper_set_config() took the CRTC lock without one
+	 * while this thread held it with drm_modeset_lock_all()'s: the
+	 * restore work deadlocked and X's GETCONNECTOR waited on
+	 * mode_config.mutex for ever, MacBookPro14,3 2026-11-18). The
+	 * helper with our context instead.
+	 */
+	if (ctx != NULL)
+		ret = drm_atomic_helper_set_config(&set, ctx);
+	else
+		ret = drm_mode_set_config_internal(&set);
 	if (ret == 0)
 		WRITE_ONCE(amdgpu_con.crtc, crtc);
 	if (cvt != NULL)
 		drm_mode_destroy(drm, cvt);
 	drm_connector_put(found);
 	return (ret);
+}
+
+/*
+ * Fill the connectors' mode lists (a probe, as a client's GETCONNECTOR
+ * does), with mode_config.mutex, before the modeset locks. DC fills them
+ * only on a probe; legacy DCE6 had them from its own init.
+ */
+static void
+con_probe(struct drm_device *drm)
+{
+	struct drm_connector_list_iter iter;
+	struct drm_connector *conn;
+
+	mutex_lock(&drm->mode_config.mutex);
+	drm_connector_list_iter_begin(drm, &iter);
+	drm_for_each_connector_iter(conn, &iter) {
+		if (list_empty(&conn->modes) && conn->funcs->fill_modes != NULL)
+			(void) conn->funcs->fill_modes(conn,
+			    drm->mode_config.max_width,
+			    drm->mode_config.max_height);
+	}
+	drm_connector_list_iter_end(&iter);
+	mutex_unlock(&drm->mode_config.mutex);
+}
+
+/*
+ * The restore on an atomic driver (DC), locked as Linux's
+ * drm_client_modeset_commit_atomic() does: every modeset lock with an
+ * acquire context, backoff and retry on -EDEADLK (a DRM client, e.g. X
+ * starting, contending for the same locks), and the commit with that
+ * context. The connectors are probed first, with mode_config.mutex only
+ * (DC fills their mode lists on a probe).
+ */
+static void
+con_restore_atomic(struct drm_device *drm, struct drm_file *closing)
+{
+	struct drm_modeset_acquire_ctx ctx;
+	struct drm_crtc *crtc;
+	struct drm_plane_state *ps;
+	uint64_t scan = 0;
+	int w = 0, h = 0, pipe = -1;
+	bool tried;
+	int ret = 0;
+
+	con_probe(drm);
+	DRM_MODESET_LOCK_ALL_BEGIN(drm, ctx, 0, ret);
+	tried = false;
+	if (amdgpu_con_text_mode() && !con_master_present(drm, closing) &&
+	    !con_shown()) {
+		tried = true;
+		ret = con_set(drm, &ctx);
+		/* What DC scans out now (prepare_fb set afb->address). */
+		crtc = amdgpu_con.crtc;
+		if (ret == 0 && crtc != NULL && crtc->state != NULL &&
+		    (ps = crtc->primary->state) != NULL && ps->fb != NULL) {
+			scan = to_amdgpu_framebuffer(ps->fb)->address;
+			w = crtc->state->mode.hdisplay;
+			h = crtc->state->mode.vdisplay;
+			pipe = drm_crtc_index(crtc);
+		}
+	}
+	DRM_MODESET_LOCK_ALL_END(drm, ctx, ret);
+	if (tried)
+		drm_info(drm, "console: restored at %llu ms (%s, %d): crtc %d "
+		    "%dx%d of %ux%u, scanout 0x%llx, console 0x%llx\n",
+		    (unsigned long long)(ktime_get_ns() / 1000000),
+		    closing != NULL ? "master closed" : "text mode", ret,
+		    pipe, w, h, amdgpu_con.width, amdgpu_con.height,
+		    (unsigned long long)scan,
+		    (unsigned long long)amdgpu_con.gpu_addr);
+	if (ret != 0)
+		drm_err(drm, "console: restore failed (%d)\n", ret);
+	/*
+	 * DC's init left the framebuffer's VRAM without the console's
+	 * text: tem's content back from gfx_private's shadow.
+	 */
+	else if (tried)
+		amdgpu_con_repaint();
 }
 
 static void
@@ -235,6 +366,10 @@ con_restore_work(struct work_struct *work)
 
 	if (!READ_ONCE(amdgpu_con.active) || !amdgpu_con_text_mode())
 		return;
+	if (amdgpu_con.adev->dc_enabled) {
+		con_restore_atomic(drm, closing);
+		return;
+	}
 	drm_modeset_lock_all(drm);
 	/*
 	 * With every modeset lock held: X's own SETCRTC waits. Nothing to do
@@ -244,7 +379,7 @@ con_restore_work(struct work_struct *work)
 	 */
 	if (amdgpu_con_text_mode() && !con_master_present(drm, closing) &&
 	    !con_shown() && !con_firmware_scanout(drm)) {
-		ret = con_set(drm);
+		ret = con_set(drm, NULL);
 		/* Measurement: a console modeset, in ms since boot. */
 		drm_info(drm, "console: restored at %llu ms (%s, %d)\n",
 		    (unsigned long long)(ktime_get_ns() / 1000000),
@@ -269,6 +404,15 @@ amdgpu_con_kms_takeover(dev_info_t *dip, const struct amdgpu_con_fb *want)
 	if (pdev == NULL || (drm = pci_get_drvdata(pdev)) == NULL)
 		return (-ENODEV);
 	adev = drm_to_adev(drm);
+	/*
+	 * No display block (Polaris without Display Core, a headless GPU):
+	 * DRM's mode config was never set up, so there is no framebuffer to
+	 * build and no CRTC to restore. The console stays on the loader's
+	 * framebuffer through gfx_private, which the firmware keeps scanning
+	 * out (amdgpu does not touch the display engine then).
+	 */
+	if (!adev->mode_info.mode_config_initialized)
+		return (-ENODEV);
 	bo = adev->mman.resv_region[AMDGPU_RESV_ILLUMOS_CON].bo;
 	if (bo == NULL || want->bpp != 4 ||
 	    adev->mman.resv_region[AMDGPU_RESV_ILLUMOS_CON].size <
@@ -298,6 +442,12 @@ amdgpu_con_kms_takeover(dev_info_t *dip, const struct amdgpu_con_fb *want)
 	amdgpu_con.height = want->height;
 	amdgpu_con.pitch = want->pitch;
 	WRITE_ONCE(amdgpu_con.active, true);
+	/*
+	 * DC blanked the loader's framebuffer at hw_init: put the console on
+	 * a connected connector now, as Linux's fbdev does at attach.
+	 */
+	if (adev->dc_enabled)
+		amdgpu_con_kms_restore();
 	return (0);
 }
 
