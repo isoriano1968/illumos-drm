@@ -15,7 +15,7 @@
 # its own licence (usr/src/data/firmware/README.md); it is not in Git, and
 # usr/src/tools/build/stage.sh refuses to stage without it.
 #
-set name=pkg.fmri value=pkg://illumos-drm/driver/graphics/amdgpu@0.0.2.10,5.11-2026.0.0.0
+set name=pkg.fmri value=pkg://illumos-drm/driver/graphics/amdgpu@0.0.2.11,5.11-2026.0.0.0
 set name=pkg.summary value="AMD GPU driver from Linux amdgpu (bring-up)"
 set name=pkg.description value="amdgpu, the amdgpu driver of Linux v7.2 built for the illumos-drm DRM core and its Linux compatibility layer, with Display Core (DCE 11.2), for Polaris 11 (MacBook Pro 15-inch 2017, Radeon Pro 555/560, PCI 1002,67ef; tested) and bring-up tests on Southern Islands GPUs (Tahiti). Includes the Tahiti firmware; the Polaris firmware is system/firmware/amdgpu-polaris. Binds pciex1002,67ef only."
 set name=info.classification value=org.opensolaris.category.2008:Drivers/Display
@@ -41,14 +41,14 @@ file usr/src/uts/intel/io/amdgpu/amdgpu.system path=etc/system.d/driver:graphics
 driver name=amdgpu alias=pciex1002,67ef perms="* 0666 root sys" \
     perms="gfx* 0600 root sys" \
     devlink=type=ddi_display:drm;name=display\tdri/\M0
-depend fmri=pkg:/driver/graphics/drm-core@0.0.2.10 type=require
-depend fmri=pkg:/driver/graphics/linuxkpi@0.0.2.10 type=require
-depend fmri=pkg:/driver/graphics/drm-helpers@0.0.2.10 type=require
-depend fmri=pkg:/driver/graphics/drm-kms@0.0.2.10 type=require
-depend fmri=pkg:/driver/graphics/drmadm@0.0.2.10 type=require
-depend fmri=pkg:/driver/graphics/drm-core@0.0.2.10 type=incorporate
-depend fmri=pkg:/driver/graphics/linuxkpi@0.0.2.10 type=incorporate
-depend fmri=pkg:/driver/graphics/drm-kms@0.0.2.10 type=incorporate
+depend fmri=pkg:/driver/graphics/drm-core@0.0.2.11 type=require
+depend fmri=pkg:/driver/graphics/linuxkpi@0.0.2.11 type=require
+depend fmri=pkg:/driver/graphics/drm-helpers@0.0.2.11 type=require
+depend fmri=pkg:/driver/graphics/drm-kms@0.0.2.11 type=require
+depend fmri=pkg:/driver/graphics/drmadm@0.0.2.11 type=require
+depend fmri=pkg:/driver/graphics/drm-core@0.0.2.11 type=incorporate
+depend fmri=pkg:/driver/graphics/linuxkpi@0.0.2.11 type=incorporate
+depend fmri=pkg:/driver/graphics/drm-kms@0.0.2.11 type=incorporate
 license LICENSE.amdgpu license=MIT-amdgpu
 
 # Unmodified AMD firmware (Tahiti); a separate licence from the driver.
