@@ -314,6 +314,19 @@ int amdgpu_vce_suspend(struct amdgpu_device *adev)
 	if (i == AMDGPU_MAX_VCE_HANDLES)
 		return 0;
 
+#ifdef __illumos__
+	/*
+	 * illumos-drm: during a GPU reset the open sessions are lost anyway
+	 * (their contexts are cancelled). Refusing here stops
+	 * amdgpu_device_ip_suspend() at VCE, the last IP block, before any
+	 * block is marked suspended; the reset then goes on and
+	 * amdgpu_device_reinit_after_reset() re-initialises no block, so a
+	 * VCE hang left the GPU dead until a power cycle.
+	 */
+	if (amdgpu_in_reset(adev))
+		return 0;
+#endif
+
 	/* TODO: suspending running encoding sessions isn't supported */
 	return -EINVAL;
 }
