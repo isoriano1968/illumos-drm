@@ -31,6 +31,9 @@ cdrmnull|drm_core) ;;
 *) . "$LKPI/kflags.sh" ;;
 esac
 . "$HERE/flags.sh"
+# No build-host paths in the modules: __FILE__ (WARN, BUG, BUILD_BUG) and
+# the debug information name files relative to the workspace root.
+CFLAGS="${CFLAGS:-} -ffile-prefix-map=$REPO/="
 case $module in
 linuxkpi_selftest) CPPFLAGS=$STCPP; LDFLAGS=$STLDFLAGS ;;
 drm_helpers_test) LDFLAGS=$TEST_LDFLAGS ;;

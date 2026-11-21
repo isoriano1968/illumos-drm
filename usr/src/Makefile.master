@@ -15,7 +15,9 @@ CARGO_FLAGS:sh= printf '%s' "${CARGO_FLAGS:---locked}"
 RUST_TOOLCHAIN:sh= printf '%s' "${RUST_TOOLCHAIN:-nightly-2026-04-16}"
 CARGO_TARGET_DIR:sh= printf '%s' "${CARGO_TARGET_DIR:-$CODEMGR_WS/target}"
 PKGREPO:sh= printf '%s' "${PKGREPO:-$CODEMGR_WS/packages/i386/nightly/repo.redist}"
-RUSTFLAGS:sh= printf '%s' "${RUSTFLAGS-}"
+# No build-host paths in the Rust modules (panic locations, debug
+# information): the workspace, Cargo's and rustup's homes are remapped.
+RUSTFLAGS:sh= printf '%s --remap-path-prefix=%s=. --remap-path-prefix=%s=/cargo --remap-path-prefix=%s=/rustup' "${RUSTFLAGS-}" "$CODEMGR_WS" "${CARGO_HOME:-$HOME/.cargo}" "${RUSTUP_HOME:-$HOME/.rustup}"
 RUST_SELECT:sh= if test "${RUST_TOOLCHAIN:-nightly-2026-04-16}" != system; then printf '+%s' "${RUST_TOOLCHAIN:-nightly-2026-04-16}"; fi
 # The native reference builds these two crates together (feature unification).
 PACKAGE_COMMAND = if test "$(RUST_TOOLCHAIN)" = system; then printf '%s' '-p drm-module -p virtio_gpu'; else printf '%s' '-p $(CRATE)'; fi
