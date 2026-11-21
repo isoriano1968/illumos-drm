@@ -5,6 +5,11 @@
 set -eu
 module=$1 archive=$2 output=$3
 LD=${LD:-/usr/bin/ld}
+# relative -o: ld names the output, as given, in a FILE symbol (no build
+# path); the inputs are made absolute first.
+case $archive in /*) ;; *) archive=$PWD/$archive ;; esac
+case ${4:-/} in /*) ;; *) set -- "$1" "$2" "$3" "$PWD/$4" ;; esac
+cd "$(dirname "$output")"; output=$(basename "$output")
 run() {
     printf '%s\n' "$@" > "$output.argv"
     printf '%s ' "$@"; printf '\n'
