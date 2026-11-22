@@ -64,6 +64,9 @@
 #include <sys/poll.h>
 #include <sys/cred.h>
 #include <sys/ioccom.h>
+#if defined(__aarch64__)
+#include <sys/pte.h>	/* before pte_t is renamed */
+#endif
 
 /*
  * Port output: illumos' outb(port, value), outw() and outl() (declared by
@@ -111,6 +114,9 @@ extern void lkpi_port_output_needs_linux_io_h(void)
 #define	kstat	lx_kstat
 /* struct kmem_cache: illumos' kmem_cache_t tag; Linux code means the layer's. */
 #define	kmem_cache	lkpi_kmem_cache
+#if defined(__aarch64__)
+#define	pte_t		lx_pte_t	/* illumos' own, in <sys/pte.h> */
+#endif
 /* sys/disp.h declares resume(); i915 has a static function of that name. */
 #define	resume	lx_resume
 /*

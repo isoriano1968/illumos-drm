@@ -10,7 +10,26 @@
 #
 #   CROSS=1   CC is a Linux-hosted x86_64 cross gcc (development only):
 #             drop illumos-only flags, undefine the Linux target macros.
+#   LKPI_ARCH=aarch64
+#             CC is an aarch64-unknown-solaris2.11 gcc and GATE an
+#             illumos-gate with the aarch64 port; its uts headers replace
+#             SYSINC, searched after the layer's own.
 
+LKPI_ARCH=${LKPI_ARCH:-x86_64}
+case $LKPI_ARCH in
+aarch64)
+	: "${GATE:?set GATE to the illumos-gate with the aarch64 port}"
+	SYSINC=/nonexistent
+	_lkpi_m64=
+	;;
+x86_64)
+	_lkpi_m64=-m64
+	;;
+*)
+	echo "kflags.sh: unknown LKPI_ARCH $LKPI_ARCH" >&2
+	exit 1
+	;;
+esac
 mkdir -p "$OUT/sysinc"
 # Only the kernel header directories of the system include tree, so a
 # Linux header the layer lacks is an error and not a userland header.
@@ -21,14 +40,24 @@ done
 _lkpi_tmp=$(mktemp -d /tmp/lkpi-flags.XXXXXX)
 printf 'int probe;\n' > "$_lkpi_tmp/probe.c"
 _lkpi_probe() {
-	"$CC" -m64 -Werror "$@" -c -o "$_lkpi_tmp/probe.o" "$_lkpi_tmp/probe.c" >/dev/null 2>&1
+	"$CC" $_lkpi_m64 -Werror "$@" -c -o "$_lkpi_tmp/probe.o" "$_lkpi_tmp/probe.c" >/dev/null 2>&1
 }
 
 # The flags a kernel module cannot do without: a compiler that refuses
 # one of them cannot build the layer (checked below, not dropped).
-_lkpi_must="-m64 -O2 -std=gnu11 -fno-strict-aliasing -fno-strict-overflow"
-_lkpi_must="$_lkpi_must -ffreestanding -mcmodel=kernel -fno-pie -fno-pic -mno-red-zone"
-_lkpi_must="$_lkpi_must -mno-mmx -mno-sse -mno-sse2 -mno-avx -mno-80387 -mno-fp-ret-in-387"
+_lkpi_must="$_lkpi_m64 -O2 -std=gnu11 -fno-strict-aliasing -fno-strict-overflow"
+_lkpi_must="$_lkpi_must -ffreestanding -fno-pie -fno-pic"
+if [ "$LKPI_ARCH" = aarch64 ]; then
+	# No FP registers; aligned accesses only (Device memory faults on
+	# others); no outlined atomics (they are libgcc's); krtld knows
+	# neither GOT nor descriptor TLS.
+	_lkpi_must="$_lkpi_must -mgeneral-regs-only -mstrict-align -mcmodel=large"
+	_lkpi_must="$_lkpi_must -mno-outline-atomics -mtls-dialect=trad"
+	_lkpi_must="$_lkpi_must -fno-omit-frame-pointer"
+else
+	_lkpi_must="$_lkpi_must -mcmodel=kernel -mno-red-zone"
+	_lkpi_must="$_lkpi_must -mno-mmx -mno-sse -mno-sse2 -mno-avx -mno-80387 -mno-fp-ret-in-387"
+fi
 LKPI_CFLAGS="$_lkpi_must -fno-optimize-sibling-calls"
 LKPI_CFLAGS="$LKPI_CFLAGS -fno-builtin -fno-common -fno-asynchronous-unwind-tables"
 LKPI_CFLAGS="$LKPI_CFLAGS -fms-extensions -funsigned-char -fno-delete-null-pointer-checks"
@@ -65,7 +94,15 @@ fi
 LKPI_CFLAGS=$(for _f in $LKPI_CFLAGS; do _lkpi_probe $_lkpi_must "$_f" && printf '%s ' "$_f"; done)
 rm -rf "$_lkpi_tmp"
 
-LKPI_CPPFLAGS="-D_KERNEL -D_SYSCALL32 -D_SYSCALL32_IMPL -D_ELF64 -D_DDI_STRICT"
+if [ "$LKPI_ARCH" = aarch64 ]; then
+	_lkpi_uts=$GATE/usr/src/uts
+	LKPI_CPPFLAGS="-D_KERNEL -D_ELF64 -D_DDI_STRICT -D_MACHDEP -Darmv8 -Daarch64"
+	for d in "$_lkpi_uts/armv8" "$_lkpi_uts/aarch64" "$GATE/usr/src/common" "$_lkpi_uts/common"; do
+		LKPI_CPPFLAGS="$LKPI_CPPFLAGS -idirafter $d"
+	done
+else
+	LKPI_CPPFLAGS="-D_KERNEL -D_SYSCALL32 -D_SYSCALL32_IMPL -D_ELF64 -D_DDI_STRICT"
+fi
 LKPI_CPPFLAGS="$LKPI_CPPFLAGS -Dsun -D__sun -D__SVR4 -D__illumos__ -D_ASM_INLINES"
 LKPI_CPPFLAGS="$LKPI_CPPFLAGS -D__KERNEL__ -DMODULE"
 if [ "${CROSS:-0}" = 1 ]; then

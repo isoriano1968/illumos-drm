@@ -17,6 +17,12 @@
  * wbinvd		writes back and invalidates the caches of the calling
  *			CPU only: the DDI has no cross-call, so other CPUs'
  *			caches are not flushed (see <linux/smp.h>).
+ *
+ * On aarch64 there is no such CPU to describe: no vendor and no features
+ * (so drivers take their plain C paths), the line size and the physical
+ * address width from CTR_EL0 and ID_AA64MMFR0_EL1, rdtsc() is gethrtime(9F),
+ * and wbinvd warns: caches are only maintained by address there.
+ *
  * kernel_fpu_*()	over illumos kernel_fpu_begin()/kernel_fpu_end() with
  *			KFPU_NO_STATE and preemption disabled, as Linux's
  *			sections are non-preemptible. illumos panics on a
@@ -50,6 +56,7 @@ struct cpuinfo_x86 boot_cpu_data;
 static unsigned int lkpi_tsc_khz_val;
 static unsigned int lkpi_phys_bits_val;
 
+#if !defined(__aarch64__)
 static inline void
 lkpi_cpuid(u32 leaf, u32 sub, u32 *a, u32 *b, u32 *c, u32 *d)
 {
@@ -178,6 +185,32 @@ lkpi_cpu_init(void)
 	return (0);
 }
 
+#else	/* __aarch64__ */
+
+int
+lkpi_cpu_init(void)
+{
+	static const u8 pa_bits[] = { 32, 36, 40, 42, 44, 48, 52 };
+	struct cpuinfo_x86 *c = &boot_cpu_data;
+	unsigned long mmfr0;
+	unsigned int range;
+
+	bzero(c, sizeof (*c));
+	c->x86_vendor = X86_VENDOR_UNKNOWN;
+	c->x86_clflush_size = (u16)lkpi_dcache_line();
+	c->x86_cache_alignment = c->x86_clflush_size;
+	c->x86_vfm = VFM_MAKE((u32)c->x86_vendor, 0, 0);
+
+	__asm__ ("mrs %0, id_aa64mmfr0_el1" : "=r" (mmfr0));
+	range = mmfr0 & 0xf;
+	lkpi_phys_bits_val = range < ARRAY_SIZE(pa_bits) ? pa_bits[range] : 48;
+
+	lkpi_tsc_khz_val = 1000000;	/* rdtsc() counts nanoseconds */
+	return (0);
+}
+
+#endif	/* __aarch64__ */
+
 /*
  * The first entry of the table (ended by an entry without
  * X86_CPU_ID_FLAG_ENTRY_VALID) that matches the boot CPU, or NULL.
@@ -222,7 +255,11 @@ lkpi_phys_addr_bits(void)
 void
 lkpi_wbinvd_all(void)
 {
+#if defined(__aarch64__)
+	WARN_ONCE(1, "linuxkpi: no flush of whole caches on aarch64");
+#else
 	wbinvd();
+#endif
 }
 
 /* --- kernel FPU sections ------------------------------------------------- */

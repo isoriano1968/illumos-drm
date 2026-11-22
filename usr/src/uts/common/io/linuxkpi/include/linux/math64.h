@@ -82,10 +82,11 @@ mul_u64_u64_shr(u64 a, u64 mul, unsigned int shift)
 }
 
 /*
- * 128-by-64-bit division with the divq instruction (no libgcc
- * __udivti3): the quotient must fit 64 bits, which holds for the
- * callers' (a * mul / div) scaling with div >= mul; otherwise divq would
- * fault, so larger quotients saturate to U64_MAX.
+ * 128-by-64-bit division without libgcc's __udivti3 (divq on x86, shift
+ * and subtract on aarch64, which has no such instruction): the quotient
+ * must fit 64 bits, which holds for the callers' (a * mul / div) scaling
+ * with div >= mul; otherwise divq would fault, so larger quotients
+ * saturate to U64_MAX.
  */
 static inline u64
 lkpi_div128_64(unsigned __int128 n, u64 d)
@@ -94,8 +95,24 @@ lkpi_div128_64(unsigned __int128 n, u64 d)
 
 	if (d == 0 || hi >= d)
 		return (~0ULL);
+#if defined(__x86_64__)
 	__asm__ ("divq %4" : "=a" (q), "=d" (r) : "a" (lo), "d" (hi), "rm" (d));
 	(void) r;
+#else
+	if (hi == 0)
+		return (lo / d);
+	q = 0;
+	for (int i = 0; i < 64; i++) {
+		r = hi >> 63;		/* the bit shifted out */
+		hi = (hi << 1) | (lo >> 63);
+		lo <<= 1;
+		q <<= 1;
+		if (r != 0 || hi >= d) {
+			hi -= d;
+			q |= 1;
+		}
+	}
+#endif
 	return (q);
 }
 

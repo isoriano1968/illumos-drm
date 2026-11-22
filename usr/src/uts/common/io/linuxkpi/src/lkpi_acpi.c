@@ -14,9 +14,26 @@
 #include <linux/stddef.h>
 #include <linux/export.h>
 
+#if defined(__aarch64__)
+/* The aarch64 port has no ACPICA: no table is ever found. */
+#define	LKPI_AE_NOT_FOUND	0x0005
+
+static inline uint32_t
+AcpiGetTable(char *sig, uint32_t inst, struct acpi_table_header **out)
+{
+	*out = NULL;
+	return (LKPI_AE_NOT_FOUND);
+}
+
+static inline void
+AcpiPutTable(struct acpi_table_header *t)
+{
+}
+#else
 extern uint32_t AcpiGetTable(char *Signature, uint32_t Instance,
     struct acpi_table_header **OutTable);
 extern void AcpiPutTable(struct acpi_table_header *Table);
+#endif
 
 /* ACPI_TABLE_HEADER is 36 bytes, packed by layout (no padding). */
 static_assert(sizeof (struct acpi_table_header) == 36);

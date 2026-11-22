@@ -21,7 +21,7 @@
 #define	HZ		1000
 #define	USER_HZ		100
 
-/* Linux's x86-64 page size, which is illumos' MMU page size. */
+/* illumos' MMU page size on amd64 and aarch64, and Linux's there. */
 #define	PAGE_SHIFT	12
 #define	PAGE_SIZE	(1UL << PAGE_SHIFT)
 #define	PAGE_MASK	(~(PAGE_SIZE - 1))

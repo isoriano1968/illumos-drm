@@ -11,10 +11,15 @@ extern unsigned int lkpi_tsc_khz(void);
 static inline unsigned long long
 rdtsc(void)
 {
+#if defined(__aarch64__)
+	/* no TSC: nanoseconds, with tsc_khz to match */
+	return ((unsigned long long)gethrtime());
+#else
 	unsigned int lo, hi;
 
 	__asm__ __volatile__("rdtsc" : "=a" (lo), "=d" (hi));
 	return (((unsigned long long)hi << 32) | lo);
+#endif
 }
 #define	rdtsc_ordered()	rdtsc()
 #endif

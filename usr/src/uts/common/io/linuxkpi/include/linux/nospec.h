@@ -14,7 +14,13 @@ array_index_mask_nospec(unsigned long index, unsigned long size)
 {
 	unsigned long mask;
 
+#if defined(__aarch64__)
+	/* all ones if index < size; csdb keeps speculation to that value */
+	__asm__ __volatile__("cmp %1, %2; sbc %0, xzr, xzr; hint #20" :
+	    "=r" (mask) : "r" (index), "r" (size) : "cc");
+#else
 	__asm__ ("cmp %1,%2; sbb %0,%0;" : "=r" (mask) : "g" (size), "r" (index) : "cc");
+#endif
 	return (mask);
 }
 #define	array_index_nospec(index, size) ({ \
