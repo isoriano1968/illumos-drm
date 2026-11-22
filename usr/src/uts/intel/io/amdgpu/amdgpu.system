@@ -1,8 +1,12 @@
-* amdgpu (driver/graphics/amdgpu): the settings tested on Polaris 11
-* (MacBook Pro 15-inch 2017). Power management (dpm) is on (the driver
-* default, tested 2026-11-19: SMU7 powerplay up, 4K60 H.264 decode and
-* playback, no errors). Runtime PM, ASPM and the HDMI/DP audio part stay
-* off until they are tested on illumos.
+* amdgpu (driver/graphics/amdgpu): settings for every GPU the driver binds
+* (the file is read for the module, not per GPU).
+* Runtime PM and ASPM stay off until they are tested on illumos.
+* HDMI/DP audio is left at the driver's default (auto): with amdgpu_audio = 0
+* the DCE 6 display code (Southern Islands) sets up no audio pins and the
+* monitor gets no sound. Display Core (Polaris) programs stream audio either
+* way; HDMI/DP audio is untested there.
+* Power management (dpm) is on, the driver's default, tested on Polaris 11
+* (MacBook Pro 15-inch 2017) 2026-11-19: SMU7 powerplay up, 4K60 H.264 decode
+* and playback, no errors.
 set amdgpu:amdgpu_runtime_pm = 0
 set amdgpu:amdgpu_aspm = 0
-set amdgpu:amdgpu_audio = 0
