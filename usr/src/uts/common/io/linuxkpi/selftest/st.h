@@ -66,5 +66,7 @@ extern void st_mem_tests(struct pci_dev *pdev);
 extern void st_resv_tests(void);
 /* st_i2c.c: I2C core and bit-banging algorithm on a simulated bus. */
 extern void st_i2c_tests(struct pci_dev *pdev);
+/* st_order.c: memory ordering between CPUs. */
+extern void st_order_tests(void);
 
 #endif /* _LKPI_ST_H */
