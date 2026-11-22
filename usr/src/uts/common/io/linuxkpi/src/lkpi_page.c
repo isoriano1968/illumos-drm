@@ -79,6 +79,39 @@
 #define	HAT_PLAT_NOCACHE	0x100000
 #endif
 
+#if defined(__aarch64__)
+extern caddr_t hat_kpm_pfn2va(pfn_t);
+
+#define	lkpi_vmap_set_nc(vm, prot)	((vm)->vm_nc = \
+	(pgprot_val(prot) & LKPI_PROT_CACHE_MASK) != LKPI_PROT_WB)
+#define	lkpi_vmap_nc_done(vm)	do { \
+	if ((vm)->vm_nc) \
+		lkpi_vmap_nc_flush((vm)->vm_va, (vm)->vm_size); \
+} while (0)
+
+/*
+ * An uncached or write-combining alias of RAM is going away: what was
+ * written through it is in RAM, and the cached mapping's lines may predate
+ * that. (The HAT cleans them when such an alias is loaded.)
+ */
+static void
+lkpi_vmap_nc_flush(caddr_t va, size_t size)
+{
+	size_t off;
+	pfn_t pfn;
+
+	mb();		/* drains the write-combining buffers */
+	for (off = 0; off < size; off += PAGE_SIZE) {
+		pfn = hat_getpfnum(kas.a_hat, va + off);
+		if (pfn != PFN_INVALID && pf_is_memory(pfn))
+			sync_data_memory(hat_kpm_pfn2va(pfn), PAGE_SIZE);
+	}
+}
+#else
+#define	lkpi_vmap_set_nc(vm, prot)	((void)0)
+#define	lkpi_vmap_nc_done(vm)		((void)0)
+#endif
+
 /* A page descriptor; the struct lx_page comes first (page == descriptor). */
 struct lkpi_pg {
 	struct lx_page	lp_page;
@@ -101,6 +134,9 @@ struct lkpi_vmap {
 	uint64_t	vm_seq;		/* orders records of the same address */
 	size_t		vm_size;
 	bool		vm_loaded;	/* a heap range loaded by this layer */
+#if defined(__aarch64__)
+	bool		vm_nc;		/* loaded uncached or write-combining */
+#endif
 	unsigned long	vm_flags;
 	struct lx_page	**vm_pages;	/* NULL for a contiguous or pfn map */
 	unsigned int	vm_count;
@@ -617,6 +653,7 @@ vmap(struct lx_page **pages, unsigned int count, unsigned long flags,
 			goto fail;
 		}
 		vm->vm_loaded = true;
+		lkpi_vmap_set_nc(vm, prot);
 		/* virt_to_page() inside the range needs the pages. */
 		if (flags & VM_MAP_PUT_PAGES) {
 			vm->vm_pages = pages;
@@ -662,6 +699,7 @@ vmap_pfn(unsigned long *pfns, unsigned int count, pgprot_t prot)
 	vm->vm_size = size;
 	vm->vm_count = count;
 	vm->vm_loaded = true;
+	lkpi_vmap_set_nc(vm, prot);
 	lkpi_vmap_insert(vm);
 	return (va);
 }
@@ -752,6 +790,7 @@ lkpi_vmap_remove(const void *addr)
 	mutex_exit(&lkpi_vmap_lock);
 
 	if (vm->vm_loaded) {
+		lkpi_vmap_nc_done(vm);
 		hat_unload(kas.a_hat, vm->vm_va, vm->vm_size,
 		    HAT_UNLOAD_UNLOCK);
 		vmem_free(heap_arena, vm->vm_va, vm->vm_size);

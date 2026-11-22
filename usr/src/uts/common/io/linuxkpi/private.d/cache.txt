@@ -1,0 +1,2 @@
+hat_kpm_pfn2va	# non-DDI kernel interface (aarch64 only, <vm/hat_aarch64.h>): the cached mapping of a frame, for the maintenance when an uncached alias goes away (src/lkpi_page.c)
+sync_data_memory	# non-DDI kernel interface (<sys/systm.h>; used on aarch64 only): clean and invalidate the data cache by address to the point of coherency (src/lkpi_page.c)

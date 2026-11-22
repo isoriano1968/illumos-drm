@@ -10,6 +10,31 @@
 
 #include <asm/cpufeature.h>
 
+#if defined(__aarch64__)
+/*
+ * The same operation on aarch64: clean and invalidate one line to the
+ * point of coherency. There is no wbinvd.
+ */
+static inline void
+clflush(volatile void *p)
+{
+	__asm__ __volatile__("dc civac, %0" : : "r" (p) : "memory");
+}
+
+#define	clflushopt(p)	clflush(p)
+
+static inline unsigned long
+lkpi_dcache_line(void)
+{
+	unsigned long ctr;
+
+	/* CTR_EL0.DminLine: log2 of the smallest line, in words */
+	__asm__ ("mrs %0, ctr_el0" : "=r" (ctr));
+	return (4UL << ((ctr >> 16) & 0xf));
+}
+
+#else	/* !__aarch64__ */
+
 static inline void
 clflush(volatile void *p)
 {
@@ -31,5 +56,7 @@ wbinvd(void)
 {
 	__asm__ __volatile__("wbinvd" ::: "memory");
 }
+
+#endif	/* __aarch64__ */
 
 #endif

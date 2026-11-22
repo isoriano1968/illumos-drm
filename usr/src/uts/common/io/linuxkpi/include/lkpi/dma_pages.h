@@ -24,8 +24,10 @@
  * lkpi_dma_unmap_pages	unbinds and unmaps; NULL is a no-op.
  *
  * Mappings the driver left are released by the layer at its fini, with
- * a warning, as for the other DMA mappings. No sync is needed (x86 DMA
- * is cache-coherent and no copy buffer is used).
+ * a warning, as for the other DMA mappings. On x86 no sync is needed
+ * (DMA is cache-coherent and no copy buffer is used); on aarch64 the
+ * caches are synced at map and unmap, and CPU accesses in between need
+ * dma_sync.
  */
 #ifndef _LKPI_DMA_PAGES_H
 #define	_LKPI_DMA_PAGES_H

@@ -17,11 +17,16 @@
 static inline void
 clflush_cache_range(void *vaddr, unsigned int size)
 {
-	unsigned long p = (unsigned long)vaddr & ~((unsigned long)L1_CACHE_BYTES - 1);
+#if defined(__aarch64__)
+	unsigned long line = lkpi_dcache_line();
+#else
+	unsigned long line = L1_CACHE_BYTES;
+#endif
+	unsigned long p = (unsigned long)vaddr & ~(line - 1);
 	unsigned long end = (unsigned long)vaddr + size;
 
 	mb();
-	for (; p < end; p += L1_CACHE_BYTES)
+	for (; p < end; p += line)
 		clflush((void *)p);
 	mb();
 }

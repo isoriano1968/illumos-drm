@@ -42,6 +42,11 @@
  * page-aligned, below the coherent mask), zeroed; dma_alloc_wc() asks for
  * IOMEM_DATA_UC_WR_COMBINE memory. dma_sync_*() are ddi_dma_sync(9F).
  *
+ * On aarch64 devices need not snoop the CPU caches (the Pi's GPU doesn't):
+ * coherent memory is always IOMEM_DATA_UC_WR_COMBINE (Normal non-cacheable).
+ * Streaming mappings rely on rootnex, which cleans the caches at bind and
+ * invalidates them at unbind and in ddi_dma_sync(9F).
+ *
  * lkpi_dma_map_pages() (<lkpi/dma_pages.h>, illumos only) binds a whole
  * page array with one handle through a vmap() of it, for TTM: a handle
  * per page would cost more than half the memory it maps.
@@ -765,8 +770,13 @@ dma_alloc_attrs(struct device *dev, size_t size, dma_addr_t *dma_handle,
 		    dev->coherent_dma_mask);
 	wait = lkpi_gfp_may_wait(gfp) ? DDI_DMA_SLEEP : DDI_DMA_DONTWAIT;
 	xfer = DDI_DMA_CONSISTENT;
+#if defined(__aarch64__)
+	/* "Coherent" without snooping: not cached. */
+	xfer |= IOMEM_DATA_UC_WR_COMBINE;
+#else
 	if (attrs & DMA_ATTR_WRITE_COMBINE)
 		xfer |= IOMEM_DATA_UC_WR_COMBINE;
+#endif
 
 	if ((dc = kmem_zalloc(sizeof (*dc), lkpi_kmflag(gfp))) == NULL)
 		return (NULL);

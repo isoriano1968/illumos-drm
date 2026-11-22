@@ -8,17 +8,26 @@
  * memory is write-back and drivers flush with clflush (i915 does on
  * non-LLC parts); uncached or write-combining CPU access goes through
  * vmap() with a caching mode instead.
+ *
+ * On aarch64 a device may not snoop the caches, so pretending would
+ * corrupt data: the uncached and write-combining requests fail there.
  */
 #ifndef _ASM_SET_MEMORY_H
 #define	_ASM_SET_MEMORY_H
+#if defined(__aarch64__)
+#include <linux/errno.h>
+#define	__LKPI_SET_NC	(-EOPNOTSUPP)
+#else
+#define	__LKPI_SET_NC	0
+#endif
 struct page;
 static inline int set_pages_wb(struct page *p, int n) { return 0; }
-static inline int set_pages_uc(struct page *p, int n) { return 0; }
-static inline int set_pages_wc(struct page *p, int n) { return 0; }
+static inline int set_pages_uc(struct page *p, int n) { return __LKPI_SET_NC; }
+static inline int set_pages_wc(struct page *p, int n) { return __LKPI_SET_NC; }
 static inline int set_pages_array_wb(struct page **p, int n) { return 0; }
-static inline int set_pages_array_uc(struct page **p, int n) { return 0; }
-#define	set_pages_array_wc(p, n)	((void)(p), (void)(n), 0)
+static inline int set_pages_array_uc(struct page **p, int n) { return __LKPI_SET_NC; }
+#define	set_pages_array_wc(p, n)	((void)(p), (void)(n), __LKPI_SET_NC)
 #define	set_memory_wb(a, n)		((void)(a), (void)(n), 0)
-#define	set_memory_uc(a, n)		((void)(a), (void)(n), 0)
-#define	set_memory_wc(a, n)		((void)(a), (void)(n), 0)
+#define	set_memory_uc(a, n)		((void)(a), (void)(n), __LKPI_SET_NC)
+#define	set_memory_wc(a, n)		((void)(a), (void)(n), __LKPI_SET_NC)
 #endif
