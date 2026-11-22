@@ -6,9 +6,10 @@
  * generic cmpxchg()/xchg() (include/linux/atomic/*, arch/x86/include/asm/
  * atomic*.h, cmpxchg.h; GPL-2.0; reimplemented over gcc's __atomic
  * builtins, which are lock-prefixed instructions on x86). Every
- * value-returning operation is fully ordered, as on Linux; the _relaxed,
- * _acquire and _release forms are the same operations (x86 orders them
- * at least as strongly).
+ * value-returning operation is fully ordered, as on Linux: by itself on
+ * x86, between two fences on aarch64 (__lkpi_atomic_fence(),
+ * <asm/barrier.h>). The _relaxed, _acquire and _release forms are the
+ * same operations, which are at least as strong.
  */
 #ifndef _LINUX_ATOMIC_H
 #define	_LINUX_ATOMIC_H
@@ -19,10 +20,17 @@
 
 #define	__LKPI_SC	__ATOMIC_SEQ_CST
 
+/* A fully ordered operation with a value. */
+#define	__LKPI_FULL(op) ({ \
+	__lkpi_atomic_fence(); \
+	typeof (op) __lkpi_full_r = (op); \
+	__lkpi_atomic_fence(); \
+	__lkpi_full_r; })
+
 #define	cmpxchg(ptr, o, n) ({ \
 	typeof (*(ptr)) __o = (o); \
-	(void)__atomic_compare_exchange_n((ptr), &__o, (n), false, \
-	    __LKPI_SC, __LKPI_SC); \
+	(void)__LKPI_FULL(__atomic_compare_exchange_n((ptr), &__o, (n), false, \
+	    __LKPI_SC, __LKPI_SC)); \
 	__o; })
 #define	cmpxchg_relaxed(p, o, n)	cmpxchg(p, o, n)
 #define	cmpxchg_acquire(p, o, n)	cmpxchg(p, o, n)
@@ -31,12 +39,13 @@
 #define	cmpxchg64_relaxed(p, o, n)	cmpxchg(p, o, n)
 #define	cmpxchg_local(p, o, n)		cmpxchg(p, o, n)
 #define	try_cmpxchg(ptr, po, n) \
-	__atomic_compare_exchange_n((ptr), (po), (n), false, __LKPI_SC, __LKPI_SC)
+	__LKPI_FULL(__atomic_compare_exchange_n((ptr), (po), (n), false, \
+	    __LKPI_SC, __LKPI_SC))
 #define	try_cmpxchg_relaxed(p, po, n)	try_cmpxchg(p, po, n)
 #define	try_cmpxchg_acquire(p, po, n)	try_cmpxchg(p, po, n)
 #define	try_cmpxchg_release(p, po, n)	try_cmpxchg(p, po, n)
 #define	try_cmpxchg64(p, po, n)		try_cmpxchg(p, po, n)
-#define	xchg(ptr, v)			__atomic_exchange_n((ptr), (v), __LKPI_SC)
+#define	xchg(ptr, v)			__LKPI_FULL(__atomic_exchange_n((ptr), (v), __LKPI_SC))
 #define	xchg_relaxed(p, v)		xchg(p, v)
 #define	xchg_acquire(p, v)		xchg(p, v)
 #define	xchg_release(p, v)		xchg(p, v)
@@ -58,28 +67,30 @@ static inline void pfx##_or(V i, T *v) { (void)__atomic_fetch_or(&v->counter, i,
 static inline void pfx##_and(V i, T *v) { (void)__atomic_fetch_and(&v->counter, i, __LKPI_SC); } \
 static inline void pfx##_andnot(V i, T *v) { (void)__atomic_fetch_and(&v->counter, ~i, __LKPI_SC); } \
 static inline void pfx##_xor(V i, T *v) { (void)__atomic_fetch_xor(&v->counter, i, __LKPI_SC); } \
-static inline V pfx##_fetch_add(V i, T *v) { return (__atomic_fetch_add(&v->counter, i, __LKPI_SC)); } \
-static inline V pfx##_fetch_sub(V i, T *v) { return (__atomic_fetch_sub(&v->counter, i, __LKPI_SC)); } \
-static inline V pfx##_fetch_or(V i, T *v) { return (__atomic_fetch_or(&v->counter, i, __LKPI_SC)); } \
-static inline V pfx##_fetch_and(V i, T *v) { return (__atomic_fetch_and(&v->counter, i, __LKPI_SC)); } \
-static inline V pfx##_fetch_andnot(V i, T *v) { return (__atomic_fetch_and(&v->counter, ~i, __LKPI_SC)); } \
-static inline V pfx##_fetch_xor(V i, T *v) { return (__atomic_fetch_xor(&v->counter, i, __LKPI_SC)); } \
+static inline V pfx##_fetch_add(V i, T *v) { return (__LKPI_FULL(__atomic_fetch_add(&v->counter, i, __LKPI_SC))); } \
+static inline V pfx##_fetch_sub(V i, T *v) { return (__LKPI_FULL(__atomic_fetch_sub(&v->counter, i, __LKPI_SC))); } \
+static inline V pfx##_fetch_or(V i, T *v) { return (__LKPI_FULL(__atomic_fetch_or(&v->counter, i, __LKPI_SC))); } \
+static inline V pfx##_fetch_and(V i, T *v) { return (__LKPI_FULL(__atomic_fetch_and(&v->counter, i, __LKPI_SC))); } \
+static inline V pfx##_fetch_andnot(V i, T *v) { return (__LKPI_FULL(__atomic_fetch_and(&v->counter, ~i, __LKPI_SC))); } \
+static inline V pfx##_fetch_xor(V i, T *v) { return (__LKPI_FULL(__atomic_fetch_xor(&v->counter, i, __LKPI_SC))); } \
 static inline V pfx##_fetch_inc(T *v) { return (pfx##_fetch_add(1, v)); } \
 static inline V pfx##_fetch_dec(T *v) { return (pfx##_fetch_sub(1, v)); } \
-static inline V pfx##_add_return(V i, T *v) { return (__atomic_add_fetch(&v->counter, i, __LKPI_SC)); } \
-static inline V pfx##_sub_return(V i, T *v) { return (__atomic_sub_fetch(&v->counter, i, __LKPI_SC)); } \
+static inline V pfx##_add_return(V i, T *v) { return (__LKPI_FULL(__atomic_add_fetch(&v->counter, i, __LKPI_SC))); } \
+static inline V pfx##_sub_return(V i, T *v) { return (__LKPI_FULL(__atomic_sub_fetch(&v->counter, i, __LKPI_SC))); } \
 static inline V pfx##_inc_return(T *v) { return (pfx##_add_return(1, v)); } \
 static inline V pfx##_dec_return(T *v) { return (pfx##_sub_return(1, v)); } \
 static inline bool pfx##_dec_and_test(T *v) { return (pfx##_dec_return(v) == 0); } \
 static inline bool pfx##_inc_and_test(T *v) { return (pfx##_inc_return(v) == 0); } \
 static inline bool pfx##_sub_and_test(V i, T *v) { return (pfx##_sub_return(i, v) == 0); } \
 static inline bool pfx##_add_negative(V i, T *v) { return (pfx##_add_return(i, v) < 0); } \
-static inline V pfx##_xchg(T *v, V n) { return (__atomic_exchange_n(&v->counter, n, __LKPI_SC)); } \
+static inline V pfx##_xchg(T *v, V n) { return (__LKPI_FULL(__atomic_exchange_n(&v->counter, n, __LKPI_SC))); } \
 static inline V pfx##_cmpxchg(T *v, V o, V n) { \
-	(void)__atomic_compare_exchange_n(&v->counter, &o, n, false, __LKPI_SC, __LKPI_SC); \
+	(void)__LKPI_FULL(__atomic_compare_exchange_n(&v->counter, &o, n, false, \
+	    __LKPI_SC, __LKPI_SC)); \
 	return (o); } \
 static inline bool pfx##_try_cmpxchg(T *v, V *o, V n) { \
-	return (__atomic_compare_exchange_n(&v->counter, o, n, false, __LKPI_SC, __LKPI_SC)); } \
+	return (__LKPI_FULL(__atomic_compare_exchange_n(&v->counter, o, n, false, \
+	    __LKPI_SC, __LKPI_SC))); } \
 static inline V pfx##_fetch_add_unless(T *v, V a, V u) { \
 	V c = pfx##_read(v); \
 	do { if (c == u) break; } while (!pfx##_try_cmpxchg(v, &c, c + a)); \

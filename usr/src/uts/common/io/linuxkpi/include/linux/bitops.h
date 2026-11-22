@@ -4,8 +4,9 @@
  *
  * Linux's bit operations (include/linux/bitops.h, asm/bitops.h,
  * asm-generic/bitops/*; GPL-2.0; reimplemented). The atomic forms use
- * gcc's __atomic builtins (lock-prefixed instructions, full barriers on
- * x86); the double-underscore forms are plain.
+ * gcc's __atomic builtins; the test_and_ forms are full barriers (by
+ * themselves on x86, between fences on aarch64); the double-underscore
+ * forms are plain.
  * Bit numbers count from bit 0 of word 0, as on little-endian Linux.
  */
 #ifndef _LINUX_BITOPS_H
@@ -181,27 +182,36 @@ static inline bool
 test_and_set_bit(long nr, volatile unsigned long *addr)
 {
 	unsigned long m = __lkpi_bitmask(nr);
+	unsigned long old;
 
-	return ((__atomic_fetch_or(__lkpi_bitword(nr, addr), m,
-	    __ATOMIC_SEQ_CST) & m) != 0);
+	__lkpi_atomic_fence();
+	old = __atomic_fetch_or(__lkpi_bitword(nr, addr), m, __ATOMIC_SEQ_CST);
+	__lkpi_atomic_fence();
+	return ((old & m) != 0);
 }
 
 static inline bool
 test_and_clear_bit(long nr, volatile unsigned long *addr)
 {
 	unsigned long m = __lkpi_bitmask(nr);
+	unsigned long old;
 
-	return ((__atomic_fetch_and(__lkpi_bitword(nr, addr), ~m,
-	    __ATOMIC_SEQ_CST) & m) != 0);
+	__lkpi_atomic_fence();
+	old = __atomic_fetch_and(__lkpi_bitword(nr, addr), ~m, __ATOMIC_SEQ_CST);
+	__lkpi_atomic_fence();
+	return ((old & m) != 0);
 }
 
 static inline bool
 test_and_change_bit(long nr, volatile unsigned long *addr)
 {
 	unsigned long m = __lkpi_bitmask(nr);
+	unsigned long old;
 
-	return ((__atomic_fetch_xor(__lkpi_bitword(nr, addr), m,
-	    __ATOMIC_SEQ_CST) & m) != 0);
+	__lkpi_atomic_fence();
+	old = __atomic_fetch_xor(__lkpi_bitword(nr, addr), m, __ATOMIC_SEQ_CST);
+	__lkpi_atomic_fence();
+	return ((old & m) != 0);
 }
 
 #define	test_and_set_bit_lock(nr, addr)	test_and_set_bit(nr, addr)
@@ -228,7 +238,7 @@ test_bit_acquire(long nr, const volatile unsigned long *addr)
 {
 	bool r = test_bit(nr, addr);
 
-	barrier();
+	__lkpi_acquire_after_load();
 	return (r);
 }
 
