@@ -163,6 +163,11 @@ lkpi_set_current_state(long state)
 	if (t == &lkpi_irq_task)
 		return;
 	__atomic_store_n(&t->__state, state, __ATOMIC_SEQ_CST);
+	/*
+	 * The caller tests its condition next. A seq_cst store orders only
+	 * against seq_cst loads on aarch64 (on x86 it is an xchg).
+	 */
+	__lkpi_atomic_fence();
 }
 
 int
@@ -173,6 +178,11 @@ wake_up_state(struct task_struct *t, unsigned int state)
 	if (t == NULL || t == &lkpi_irq_task)
 		return (0);
 	mutex_enter(&t->lock);
+	/*
+	 * The caller's store of the condition before the test of the state:
+	 * mutex_enter() is only an acquire on aarch64.
+	 */
+	__lkpi_atomic_fence();
 	if ((t->__state & state) != 0) {
 		t->__state = TASK_RUNNING;
 		cv_broadcast(&t->cv);

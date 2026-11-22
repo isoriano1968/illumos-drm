@@ -3,8 +3,8 @@
  * Copyright 2026 The illumos-drm authors
  *
  * Linux's fixed-size hash tables of hlists (include/linux/hashtable.h,
- * GPL-2.0; reimplemented). The _rcu forms are the plain ones: readers
- * hold the writer's lock (see <linux/rcupdate.h>).
+ * GPL-2.0; reimplemented). hash_add_rcu() publishes the node after its
+ * contents, for readers inside rcu_read_lock().
  */
 #ifndef _LINUX_HASHTABLE_H
 #define	_LINUX_HASHTABLE_H
@@ -34,7 +34,8 @@ __hash_init(struct hlist_head *ht, unsigned int sz)
 #define	hash_init(hashtable)	__hash_init(hashtable, HASH_SIZE(hashtable))
 #define	hash_add(hashtable, node, key) \
 	hlist_add_head(node, &hashtable[hash_min(key, HASH_BITS(hashtable))])
-#define	hash_add_rcu(hashtable, node, key)	hash_add(hashtable, node, key)
+#define	hash_add_rcu(hashtable, node, key) \
+	hlist_add_head_rcu(node, &hashtable[hash_min(key, HASH_BITS(hashtable))])
 #define	hash_hashed(node)	(!hlist_unhashed(node))
 
 static inline bool

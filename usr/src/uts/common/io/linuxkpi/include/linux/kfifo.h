@@ -114,7 +114,9 @@ static inline unsigned int
 lkpi_kfifo_in(struct __kfifo *f, const void *buf, unsigned int n)
 {
 	n = min(n, lkpi_kfifo_avail(f));
+	__lkpi_atomic_fence();	/* the space was read before it is filled */
 	lkpi_kfifo_copy(f, f->in, NULL, buf, n * f->esize, true);
+	smp_wmb();		/* the data before the index */
 	f->in += n * f->esize;
 	return (n);
 }
@@ -123,9 +125,12 @@ static inline unsigned int
 lkpi_kfifo_out(struct __kfifo *f, void *buf, unsigned int n, bool peek)
 {
 	n = min(n, lkpi_kfifo_len(f));
+	smp_rmb();		/* the index before the data */
 	lkpi_kfifo_copy(f, f->out, buf, NULL, n * f->esize, false);
-	if (!peek)
+	if (!peek) {
+		__lkpi_atomic_fence();	/* the data before its space is free */
 		f->out += n * f->esize;
+	}
 	return (n);
 }
 

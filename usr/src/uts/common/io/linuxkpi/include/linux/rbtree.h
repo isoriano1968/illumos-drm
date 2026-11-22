@@ -15,6 +15,7 @@
 #include <linux/container_of.h>
 #include <linux/compiler.h>
 #include <linux/rbtree_types.h>
+#include <asm/barrier.h>
 
 #define	RB_RED		0
 #define	RB_BLACK	1
@@ -61,8 +62,12 @@ rb_erase(struct rb_node *node, struct rb_root *root)
 	lkpi_rb_erase(node, root, NULL);
 }
 
-#define	rb_replace_node_rcu(victim, new_n, root) \
-	rb_replace_node(victim, new_n, root)
+/* The new node is complete before the tree points to it. */
+#define	rb_replace_node_rcu(victim, new_n, root) do { \
+	*(new_n) = *(victim); \
+	smp_wmb(); \
+	rb_replace_node((victim), (new_n), (root)); \
+} while (0)
 
 static inline void
 rb_link_node(struct rb_node *node, struct rb_node *parent,
@@ -73,7 +78,14 @@ rb_link_node(struct rb_node *node, struct rb_node *parent,
 	*rb_link = node;
 }
 
-#define	rb_link_node_rcu(node, parent, link)	rb_link_node(node, parent, link)
+static inline void
+rb_link_node_rcu(struct rb_node *node, struct rb_node *parent,
+    struct rb_node **rb_link)
+{
+	node->__rb_parent_color = (unsigned long)parent;
+	node->rb_left = node->rb_right = NULL;
+	smp_store_release(rb_link, node);
+}
 
 #define	rbtree_postorder_for_each_entry_safe(pos, n, root, field) \
 	for ((pos) = rb_entry_safe(rb_first_postorder(root), typeof (*(pos)), field); \

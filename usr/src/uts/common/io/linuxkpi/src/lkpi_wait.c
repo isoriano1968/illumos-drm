@@ -38,7 +38,7 @@ autoremove_wake_function(struct wait_queue_entry *e, unsigned int mode,
 	int woken = default_wake_function(e, mode, sync, key);
 
 	if (woken)
-		list_del_init(&e->entry);
+		list_del_init_careful(&e->entry);
 	return (woken);
 }
 
@@ -168,6 +168,8 @@ wait_woken(struct wait_queue_entry *e, unsigned int mode, long timeout)
 	__set_current_state(TASK_RUNNING);
 	(void) __atomic_fetch_and(&e->flags, ~(unsigned int)WQ_FLAG_WOKEN,
 	    __ATOMIC_SEQ_CST);
+	/* The caller tests its condition again after the mark is consumed. */
+	__lkpi_atomic_fence();
 	return (timeout);
 }
 
