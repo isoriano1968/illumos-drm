@@ -48,8 +48,18 @@ extern long strncpy_from_user(char *dst, const char __user *src, long count);
 #define	copy_from_user_inatomic_nocache(t, f, n)	copy_from_user(t, f, n)
 #define	__copy_from_user_inatomic_nocache(t, f, n)	copy_from_user(t, f, n)
 #define	access_ok(addr, size)			((void)(addr), (void)(size), true)
+/*
+ * The unqualified type of the target: __typeof_unqual__ from gcc 14; for
+ * older compilers (the gate's sparcv9 gcc 13) the type of a comma
+ * expression, which C makes unqualified without promoting it.
+ */
+#if defined(__GNUC__) && __GNUC__ >= 14
+#define	__lkpi_typeof_unqual(x)	__typeof_unqual__(x)
+#else
+#define	__lkpi_typeof_unqual(x)	__typeof__(((void)0, (x)))
+#endif
 #define	get_user(x, ptr) ({ \
-	__typeof_unqual__(*(ptr)) __gu_v; \
+	__lkpi_typeof_unqual(*(ptr)) __gu_v; \
 	int __gu_e = copy_from_user(&__gu_v, (ptr), sizeof (__gu_v)) ? -EFAULT : 0; \
 	(x) = __gu_e == 0 ? __gu_v : (typeof (*(ptr)))0; \
 	__gu_e; })

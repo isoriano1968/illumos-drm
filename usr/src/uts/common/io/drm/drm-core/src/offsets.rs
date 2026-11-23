@@ -26,14 +26,20 @@ use alloc::collections::BTreeMap;
 
 use ddi::{Errno, Sleepable};
 
-/// The page size the offsets are counted in: the amd64 MMU page. The
-/// device checks it against `ptob(1)` when it attaches.
-pub const PAGE_SIZE: u64 = 4096;
+/// log2 of the MMU page the offsets are counted in: 4 KiB on amd64 and
+/// aarch64, 8 KiB on sparcv9 (sun4u, sun4v).
+#[cfg(target_arch = "sparc64")]
+pub const PAGE_SHIFT: u32 = 13;
+#[cfg(not(target_arch = "sparc64"))]
+pub const PAGE_SHIFT: u32 = 12;
+/// The page size the offsets are counted in. The device checks it against
+/// `ptob(1)` when it attaches.
+pub const PAGE_SIZE: u64 = 1 << PAGE_SHIFT;
 /// The first GEM offset, `DRM_FILE_PAGE_OFFSET_START` pages: 256 MiB.
-pub const OFFSET_START: u64 = ((0x0fff_ffff >> 12) + 1) * PAGE_SIZE;
+pub const OFFSET_START: u64 = ((0x0fff_ffff >> PAGE_SHIFT) + 1) * PAGE_SIZE;
 /// The size of the GEM offset space, `DRM_FILE_PAGE_OFFSET_SIZE` pages:
-/// just under 64 GiB.
-pub const OFFSET_SIZE: u64 = (0x0fff_ffff >> 12) * 256 * PAGE_SIZE;
+/// just under 64 GiB with 4 KiB pages, 32 GiB with 8 KiB.
+pub const OFFSET_SIZE: u64 = (0x0fff_ffff >> PAGE_SHIFT) * 256 * PAGE_SIZE;
 
 /// A source of page-aligned ranges.
 pub trait RangeAlloc {

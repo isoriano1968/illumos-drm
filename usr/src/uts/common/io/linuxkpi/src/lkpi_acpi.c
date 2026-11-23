@@ -14,8 +14,8 @@
 #include <linux/stddef.h>
 #include <linux/export.h>
 
-#if defined(__aarch64__)
-/* The aarch64 port has no ACPICA: no table is ever found. */
+#if defined(__aarch64__) || defined(__sparc)
+/* The aarch64 and sparc ports have no ACPICA: no table is ever found. */
 #define	LKPI_AE_NOT_FOUND	0x0005
 
 static inline uint32_t

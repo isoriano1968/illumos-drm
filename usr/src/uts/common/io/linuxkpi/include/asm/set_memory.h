@@ -14,7 +14,7 @@
  */
 #ifndef _ASM_SET_MEMORY_H
 #define	_ASM_SET_MEMORY_H
-#if defined(__aarch64__)
+#if defined(__aarch64__) || defined(__sparc)
 #include <linux/errno.h>
 #define	__LKPI_SET_NC	(-EOPNOTSUPP)
 #else

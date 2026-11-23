@@ -22,6 +22,10 @@ aarch64)
 	SYSINC=/nonexistent
 	_lkpi_m64=
 	;;
+sparcv9)
+	: "${GATE:?set GATE to the illumos-gate the SPARC kernel was built from}"
+	_lkpi_m64=-m64
+	;;
 x86_64)
 	_lkpi_m64=-m64
 	;;
@@ -34,7 +38,9 @@ mkdir -p "$OUT/sysinc"
 # Only the kernel header directories of the system include tree, so a
 # Linux header the layer lacks is an error and not a userland header.
 for d in sys vm asm ia32 amd64 netinet inet net rpc; do
-	[ -e "$SYSINC/$d" ] && ln -sfn "$SYSINC/$d" "$OUT/sysinc/$d"
+	# rm first: illumos ln -sfn onto an existing link to a directory
+	# creates the new link inside that directory.
+	[ -e "$SYSINC/$d" ] && { rm -f "$OUT/sysinc/$d"; ln -s "$SYSINC/$d" "$OUT/sysinc/$d"; }
 done
 
 _lkpi_tmp=$(mktemp -d /tmp/lkpi-flags.XXXXXX)
@@ -53,6 +59,12 @@ if [ "$LKPI_ARCH" = aarch64 ]; then
 	# neither GOT nor descriptor TLS.
 	_lkpi_must="$_lkpi_must -mgeneral-regs-only -mstrict-align -mcmodel=large"
 	_lkpi_must="$_lkpi_must -mno-outline-atomics -mtls-dialect=trad"
+	_lkpi_must="$_lkpi_must -fno-omit-frame-pointer"
+elif [ "$LKPI_ARCH" = sparcv9 ]; then
+	# The gate's sparcv9 kernel flags: abs32 code (-xcode=abs32), no FP
+	# registers (-xregs=no%float), %g2-%g4 left to applications
+	# (-xregs=no%appl).
+	_lkpi_must="$_lkpi_must -mcmodel=medlow -mno-fpu -mno-app-regs"
 	_lkpi_must="$_lkpi_must -fno-omit-frame-pointer"
 else
 	_lkpi_must="$_lkpi_must -mcmodel=kernel -mno-red-zone"
@@ -79,6 +91,9 @@ for _f in -msave-args "-mindirect-branch=thunk-extern -mindirect-branch-register
     -fno-inline-small-functions -fno-inline-functions-called-once \
     -fno-aggressive-loop-optimizations -fstack-protector-strong; do
 	if [ "${CROSS:-0}" = 1 ] && [ "$_f" = -msave-args ]; then continue; fi
+	# illumos builds its sparc kernel without the stack protector
+	# (no __stack_chk_guard there).
+	if [ "${LKPI_ARCH:-}" = sparcv9 ] && [ "$_f" = -fstack-protector-strong ]; then continue; fi
 	# shellcheck disable=SC2086
 	_lkpi_probe $_f && LKPI_CFLAGS="$LKPI_CFLAGS $_f"
 done
@@ -98,6 +113,13 @@ if [ "$LKPI_ARCH" = aarch64 ]; then
 	_lkpi_uts=$GATE/usr/src/uts
 	LKPI_CPPFLAGS="-D_KERNEL -D_ELF64 -D_DDI_STRICT -D_MACHDEP -Darmv8 -Daarch64"
 	for d in "$_lkpi_uts/armv8" "$_lkpi_uts/aarch64" "$GATE/usr/src/common" "$_lkpi_uts/common"; do
+		LKPI_CPPFLAGS="$LKPI_CPPFLAGS -idirafter $d"
+	done
+elif [ "$LKPI_ARCH" = sparcv9 ]; then
+	_lkpi_uts=$GATE/usr/src/uts
+	LKPI_CPPFLAGS="-D_KERNEL -D_SYSCALL32 -D_SYSCALL32_IMPL -D_ELF64 -D_DDI_STRICT"
+	LKPI_CPPFLAGS="$LKPI_CPPFLAGS -D_MACHDEP -Dsun4u -D__sparcv9cpu"
+	for d in "$_lkpi_uts/sun4u" "$_lkpi_uts/sfmmu" "$_lkpi_uts/sun4" "$_lkpi_uts/sparc/v9" "$_lkpi_uts/sparc" "$GATE/usr/src/common" "$_lkpi_uts/common"; do
 		LKPI_CPPFLAGS="$LKPI_CPPFLAGS -idirafter $d"
 	done
 else

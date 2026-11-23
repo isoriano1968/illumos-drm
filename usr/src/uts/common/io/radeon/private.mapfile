@@ -1,0 +1,11 @@
+#
+# SPDX-License-Identifier: MIT
+# Kernel symbols radeon uses that the DDI mapfile lists not (filled in as
+# the link shows them, each with its reason).
+#
+$mapfile_version 2
+
+SYMBOL_SCOPE {
+	global:
+		mod_driverops		{ FLAGS = EXTERN };
+};

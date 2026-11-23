@@ -56,7 +56,7 @@ struct cpuinfo_x86 boot_cpu_data;
 static unsigned int lkpi_tsc_khz_val;
 static unsigned int lkpi_phys_bits_val;
 
-#if !defined(__aarch64__)
+#if !defined(__aarch64__) && !defined(__sparc)
 static inline void
 lkpi_cpuid(u32 leaf, u32 sub, u32 *a, u32 *b, u32 *c, u32 *d)
 {
@@ -185,6 +185,23 @@ lkpi_cpu_init(void)
 	return (0);
 }
 
+#elif defined(__sparc)
+
+int
+lkpi_cpu_init(void)
+{
+	struct cpuinfo_x86 *c = &boot_cpu_data;
+
+	bzero(c, sizeof (*c));
+	c->x86_vendor = X86_VENDOR_UNKNOWN;
+	c->x86_clflush_size = (u16)lkpi_dcache_line();
+	c->x86_cache_alignment = c->x86_clflush_size;
+	c->x86_vfm = VFM_MAKE((u32)c->x86_vendor, 0, 0);
+	lkpi_phys_bits_val = 43;	/* UltraSPARC III/IIIi physical address */
+	lkpi_tsc_khz_val = 1000000;	/* rdtsc() counts nanoseconds */
+	return (0);
+}
+
 #else	/* __aarch64__ */
 
 int
@@ -255,7 +272,9 @@ lkpi_phys_addr_bits(void)
 void
 lkpi_wbinvd_all(void)
 {
-#if defined(__aarch64__)
+#if defined(__sparc)
+	wbinvd();	/* coherent: an ordering point only */
+#elif defined(__aarch64__)
 	WARN_ONCE(1, "linuxkpi: no flush of whole caches on aarch64");
 #else
 	wbinvd();
@@ -263,6 +282,27 @@ lkpi_wbinvd_all(void)
 }
 
 /* --- kernel FPU sections ------------------------------------------------- */
+
+#if defined(__sparc)
+
+/*
+ * sparcv9: the layer and its drivers are built -mno-fpu, so no code in a
+ * Linux kernel_fpu section touches the FPU; the section only keeps the
+ * thread on its CPU, as Linux's does.
+ */
+void
+lkpi_kernel_fpu_begin(void)
+{
+	kpreempt_disable();
+}
+
+void
+lkpi_kernel_fpu_end(void)
+{
+	kpreempt_enable();
+}
+
+#else	/* !__sparc */
 
 static struct lkpi_fpu_cpu {
 	kthread_t *owner;
@@ -324,3 +364,5 @@ lkpi_kernel_fpu_end(void)
 	}
 	kpreempt_enable();
 }
+
+#endif	/* !__sparc */

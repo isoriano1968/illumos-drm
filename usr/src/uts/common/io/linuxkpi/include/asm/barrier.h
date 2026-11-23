@@ -22,7 +22,38 @@
 
 #include <linux/compiler.h>
 
-#if defined(__aarch64__)
+#if defined(__sparc)
+
+/*
+ * sparcv9, TSO (the memory model illumos runs sun4u in): loads are not
+ * reordered with loads, stores not with stores, only a later load may pass
+ * an earlier store.  membar #Sync also waits for outstanding device and
+ * DMA accesses, as mb() and friends must.
+ */
+#define	__lkpi_barrier(op)	__asm__ __volatile__(op ::: "memory")
+#define	mb()		__lkpi_barrier("membar #Sync")
+#define	rmb()		__lkpi_barrier("membar #Sync")
+#define	wmb()		__lkpi_barrier("membar #Sync")
+#define	dma_mb()	__lkpi_barrier("membar #Sync")
+#define	dma_rmb()	__lkpi_barrier("membar #LoadLoad")
+#define	dma_wmb()	__lkpi_barrier("membar #StoreStore")
+#define	smp_mb()	__lkpi_barrier("membar #StoreLoad")
+#define	smp_rmb()	__lkpi_barrier("")
+#define	smp_wmb()	__lkpi_barrier("")
+#define	smp_store_release(p, v)	__atomic_store_n((p), (v), __ATOMIC_RELEASE)
+#define	smp_load_acquire(p)	__atomic_load_n((p), __ATOMIC_ACQUIRE)
+#define	smp_mb__before_atomic()	smp_mb()
+#define	smp_mb__after_atomic()	smp_mb()
+/*
+ * Fully ordered atomics: a casx is both a load and a store, and under TSO
+ * a later load may still pass its store half, so a #StoreLoad goes around.
+ */
+#define	__lkpi_atomic_fence()	smp_mb()
+#define	__lkpi_acquire_after_load()	barrier()
+/* UltraSPARC III/IIIi has no pause instruction; illumos spins on a nop. */
+#define	__LKPI_CPU_RELAX	"nop"
+
+#elif defined(__aarch64__)
 
 #define	__lkpi_barrier(op)	__asm__ __volatile__(op ::: "memory")
 #define	mb()		__lkpi_barrier("dsb sy")

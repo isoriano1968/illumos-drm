@@ -70,6 +70,34 @@
 #include <sys/gfx_private.h>
 #include <lkpi/umem_window.h>
 
+#if defined(__sparc)
+/*
+ * illumos builds misc/gfx_private for x86 only. The two calls the user
+ * mapping windows need are small: a ddi_umem cookie of type
+ * KMEM_NON_PAGEABLE that describes a kernel VA range, for devmap_umem_setup().
+ */
+#include <sys/ddi_impldefs.h>
+
+static ddi_umem_cookie_t
+lkpi_umem_cookie_init(caddr_t kva, size_t size)
+{
+	struct ddi_umem_cookie *c = kmem_zalloc(sizeof (*c), KM_SLEEP);
+
+	c->cvaddr = kva;
+	c->type = KMEM_NON_PAGEABLE;
+	c->size = size;
+	return ((ddi_umem_cookie_t)c);
+}
+
+static void
+lkpi_umem_cookie_destroy(ddi_umem_cookie_t cookie)
+{
+	kmem_free(cookie, sizeof (struct ddi_umem_cookie));
+}
+#define	gfxp_umem_cookie_init		lkpi_umem_cookie_init
+#define	gfxp_umem_cookie_destroy	lkpi_umem_cookie_destroy
+#endif	/* __sparc */
+
 /*
  * From i86pc's <vm/hat_i86.h>, which is not installed: honour the caching
  * attribute for frames of RAM (hat_devload() makes them write-back
@@ -559,6 +587,14 @@ free_pages_exact(void *virt, size_t size)
 static uint_t
 lkpi_hat_attr(pgprot_t prot)
 {
+#if defined(__sparc)
+	/*
+	 * sun4u keeps RAM coherent with DMA through the IOMMU, and its HAT has
+	 * no uncached attribute for RAM frames: write-combining and uncached
+	 * requests get the cached mapping, which is coherent all the same.
+	 */
+	return (PROT_READ | PROT_WRITE | HAT_STORECACHING_OK);
+#endif
 	switch (pgprot_val(prot) & LKPI_PROT_CACHE_MASK) {
 	case LKPI_PROT_WC:
 		return (PROT_READ | PROT_WRITE | HAT_MERGING_OK |

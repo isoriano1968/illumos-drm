@@ -1,0 +1,25 @@
+# <sys/atomic.h> operations that ddi.mapfile does not list. x86 inlines
+# them; on sparcv9 they are functions of the kernel (common/atomic,
+# sparc/v9/ml). Listed whole so carried code may use any of them.
+atomic_add_32	# <sys/atomic.h>
+atomic_add_64	# <sys/atomic.h>
+atomic_add_32_nv	# <sys/atomic.h>
+atomic_add_64_nv	# <sys/atomic.h>
+atomic_cas_32	# <sys/atomic.h>
+atomic_cas_64	# <sys/atomic.h>
+atomic_cas_ptr	# <sys/atomic.h>
+atomic_inc_32	# <sys/atomic.h>
+atomic_inc_64	# <sys/atomic.h>
+atomic_inc_32_nv	# <sys/atomic.h>
+atomic_inc_64_nv	# <sys/atomic.h>
+atomic_dec_32	# <sys/atomic.h>
+atomic_dec_64	# <sys/atomic.h>
+atomic_dec_32_nv	# <sys/atomic.h>
+atomic_dec_64_nv	# <sys/atomic.h>
+atomic_swap_32	# <sys/atomic.h>
+atomic_swap_64	# <sys/atomic.h>
+atomic_swap_ptr	# <sys/atomic.h>
+atomic_or_32	# <sys/atomic.h>
+atomic_and_32	# <sys/atomic.h>
+atomic_or_64	# <sys/atomic.h>
+atomic_and_64	# <sys/atomic.h>

@@ -18,6 +18,7 @@
 #include <linux/string.h>
 #include <linux/err.h>
 #include <asm/barrier.h>
+#include <lkpi/byteorder.h>
 
 #if defined(__aarch64__)
 /*
@@ -105,11 +106,16 @@ static inline void writeq(u64 v, volatile void __iomem *a) { __lkpi_wr(u64, v, a
 #define	iowrite32(v, a)		writel(v, a)
 #define	iowrite64(v, a)		writeq(v, a)
 
-#if defined(__aarch64__)
+#if defined(__aarch64__) || defined(__sparc)
 /*
  * Device memory takes no unaligned access and no "dc zva", both of which
  * memcpy() and memset() may use: aligned words (32 bits, the width every
  * register block takes) and single bytes only.
+ *
+ * sparcv9: ioremap() maps little-endian (DDI_STRUCTURE_LE_ACC, an
+ * invert-endian mapping), so a word load returns the bytes reversed
+ * against memory order; cpu_to_le32()/le32_to_cpu() put them back (no-ops
+ * on aarch64). Byte accesses are not affected.
  */
 static inline void
 memcpy_fromio(void *to, const volatile void __iomem *from, size_t n)
@@ -123,7 +129,7 @@ memcpy_fromio(void *to, const volatile void __iomem *from, size_t n)
 		n--;
 	}
 	for (; n >= 4; n -= 4, f += 4, t += 4) {
-		w = readl_relaxed(f);
+		w = cpu_to_le32(readl_relaxed(f));
 		__builtin_memcpy(t, &w, 4);
 	}
 	while (n != 0) {
@@ -145,7 +151,7 @@ memcpy_toio(volatile void __iomem *to, const void *from, size_t n)
 	}
 	for (; n >= 4; n -= 4, f += 4, t += 4) {
 		__builtin_memcpy(&w, f, 4);
-		writel_relaxed(w, t);
+		writel_relaxed(le32_to_cpu(w), t);
 	}
 	while (n != 0) {
 		writeb_relaxed(*f++, t++);
@@ -171,7 +177,7 @@ memset_io(volatile void __iomem *a, int c, size_t n)
 	}
 }
 
-#else	/* !__aarch64__ */
+#else	/* !__aarch64__ && !__sparc */
 
 static inline void
 memcpy_fromio(void *to, const volatile void __iomem *from, size_t n)

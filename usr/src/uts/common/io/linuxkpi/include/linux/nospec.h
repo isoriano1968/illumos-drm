@@ -14,7 +14,10 @@ array_index_mask_nospec(unsigned long index, unsigned long size)
 {
 	unsigned long mask;
 
-#if defined(__aarch64__)
+#if defined(__sparc)
+	/* in-order UltraSPARC III: no speculation past the bounds check */
+	mask = (index < size) ? ~0UL : 0UL;
+#elif defined(__aarch64__)
 	/* all ones if index < size; csdb keeps speculation to that value */
 	__asm__ __volatile__("cmp %1, %2; sbc %0, xzr, xzr; hint #20" :
 	    "=r" (mask) : "r" (index), "r" (size) : "cc");

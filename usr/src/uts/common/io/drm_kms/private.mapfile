@@ -29,4 +29,30 @@ SYMBOL_SCOPE {
 		# in its private.d too).
 		#
 		mod_miscops		{ FLAGS = EXTERN };
+		#
+		# <sys/atomic.h>: inline on x86, kernel functions on sparcv9
+		# (common/atomic), which ddi.mapfile does not list.
+		#
+		atomic_add_32		{ FLAGS = EXTERN };
+		atomic_add_64		{ FLAGS = EXTERN };
+		atomic_add_32_nv		{ FLAGS = EXTERN };
+		atomic_add_64_nv		{ FLAGS = EXTERN };
+		atomic_cas_32		{ FLAGS = EXTERN };
+		atomic_cas_64		{ FLAGS = EXTERN };
+		atomic_cas_ptr		{ FLAGS = EXTERN };
+		atomic_inc_32		{ FLAGS = EXTERN };
+		atomic_inc_64		{ FLAGS = EXTERN };
+		atomic_inc_32_nv		{ FLAGS = EXTERN };
+		atomic_inc_64_nv		{ FLAGS = EXTERN };
+		atomic_dec_32		{ FLAGS = EXTERN };
+		atomic_dec_64		{ FLAGS = EXTERN };
+		atomic_dec_32_nv		{ FLAGS = EXTERN };
+		atomic_dec_64_nv		{ FLAGS = EXTERN };
+		atomic_swap_32		{ FLAGS = EXTERN };
+		atomic_swap_64		{ FLAGS = EXTERN };
+		atomic_swap_ptr		{ FLAGS = EXTERN };
+		atomic_or_32		{ FLAGS = EXTERN };
+		atomic_and_32		{ FLAGS = EXTERN };
+		atomic_or_64		{ FLAGS = EXTERN };
+		atomic_and_64		{ FLAGS = EXTERN };
 };

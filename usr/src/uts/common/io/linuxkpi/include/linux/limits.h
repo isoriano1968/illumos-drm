@@ -11,6 +11,15 @@
 
 #include <linux/types.h>
 
+#ifndef	UCHAR_MAX
+#define	UCHAR_MAX	((unsigned char)~0U)
+#endif
+#ifndef	SCHAR_MAX
+#define	SCHAR_MAX	((signed char)(UCHAR_MAX >> 1))
+#endif
+#ifndef	SCHAR_MIN
+#define	SCHAR_MIN	((signed char)(-SCHAR_MAX - 1))
+#endif
 #ifndef	USHRT_MAX
 #define	USHRT_MAX	((unsigned short)~0U)
 #endif

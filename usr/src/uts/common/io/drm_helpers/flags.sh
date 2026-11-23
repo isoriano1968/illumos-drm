@@ -7,7 +7,11 @@ CFLAGS=$LKPI_CFLAGS
 # prologue. drm_cache.c builds unmodified (the
 # layer's page, scatterlist and iosys-map models exist since R5c).
 CPPFLAGS="$LKPI_CPPFLAGS -DKBUILD_MODNAME=\"drm_helpers\""
-CPPFLAGS="$CPPFLAGS -DCONFIG_X86=1 -DCONFIG_X86_64=1"
+# drm_cache.c's clflush paths are x86's; sparcv9 (coherent DMA) and aarch64
+# take Linux's generic branch.
+case ${LKPI_ARCH:-x86_64} in
+x86_64) CPPFLAGS="$CPPFLAGS -DCONFIG_X86=1 -DCONFIG_X86_64=1" ;;
+esac
 CPPFLAGS="$CPPFLAGS -nostdinc -I$OUT/src/linux/include -I$REPO/usr/src/uts/common/io/linuxkpi/include"
 CPPFLAGS="$CPPFLAGS -I$REPO/usr/src/uts/common -I$HERE/test -I$OUT/sysinc"
 CPPFLAGS="$CPPFLAGS -include $REPO/usr/src/uts/common/io/linuxkpi/include/linux/kconfig.h"

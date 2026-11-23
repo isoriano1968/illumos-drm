@@ -41,6 +41,17 @@ lkpi_dmi_set(int field, const char *s)
 		lkpi_dmi_ident[field] = kstrdup(s, GFP_KERNEL);
 }
 
+#if defined(__sparc)
+
+/* SPARC has no SMBIOS (OpenBoot describes the machine): no field is set. */
+int
+lkpi_dmi_init(void)
+{
+	return (0);
+}
+
+#else	/* !__sparc */
+
 /* The common strings (vendor, name, version, serial, asset tag) of id. */
 static void
 lkpi_dmi_common(smbios_hdl_t *shp, id_t id, int vendor, int name,
@@ -100,6 +111,8 @@ lkpi_dmi_init(void)
 	}
 	return (0);
 }
+
+#endif	/* !__sparc */
 
 void
 lkpi_dmi_fini(void)

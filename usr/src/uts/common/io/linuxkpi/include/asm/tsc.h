@@ -11,7 +11,7 @@ extern unsigned int lkpi_tsc_khz(void);
 static inline unsigned long long
 rdtsc(void)
 {
-#if defined(__aarch64__)
+#if defined(__aarch64__) || defined(__sparc)
 	/* no TSC: nanoseconds, with tsc_khz to match */
 	return ((unsigned long long)gethrtime());
 #else

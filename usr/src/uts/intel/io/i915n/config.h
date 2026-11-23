@@ -21,11 +21,16 @@
 #define	CONFIG_DRM_I915_USERFAULT_AUTOSUSPEND	250
 #define	CONFIG_DRM_MIPI_DSI	1
 #define	CONFIG_DRM_PANEL	1
+#if !defined(__sparc)
 #define	CONFIG_IOSF_MBI	1
+#endif
 #define	CONFIG_MMU	1
 #define	CONFIG_PCI	1
 #define	CONFIG_SMP	1
+/* drm_kms also builds for sparcv9 (big-endian, no x86 platform code). */
+#if !defined(__sparc)
 #define	CONFIG_X86	1
 #define	CONFIG_X86_64	1
+#endif
 
 #endif

@@ -40,7 +40,11 @@ lkpi_ioremap(resource_size_t phys, unsigned long size, uchar_t order)
 {
 	ddi_device_acc_attr_t acc = {
 		.devacc_attr_version = DDI_DEVICE_ATTR_V0,
+		#if defined(_BIG_ENDIAN)
+		.devacc_attr_endian_flags = DDI_STRUCTURE_LE_ACC,
+#else
 		.devacc_attr_endian_flags = DDI_NEVERSWAP_ACC,
+#endif
 		.devacc_attr_dataorder = order
 	};
 	struct lkpi_iomap *im;

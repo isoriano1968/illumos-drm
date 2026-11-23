@@ -17,7 +17,7 @@
 static inline void
 clflush_cache_range(void *vaddr, unsigned int size)
 {
-#if defined(__aarch64__)
+#if defined(__aarch64__) || defined(__sparc)
 	unsigned long line = lkpi_dcache_line();
 #else
 	unsigned long line = L1_CACHE_BYTES;

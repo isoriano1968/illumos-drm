@@ -171,7 +171,7 @@ impl<D: Driver> Device<D> {
             dev.warn(format_args!("dumb buffers need GEM"));
             return Err(DdiError);
         }
-        // The offset arithmetic assumes the amd64 page.
+        // The offset arithmetic is in units of the target's MMU page.
         // SAFETY: ptob(9F) may be called from any context.
         if unsafe { sys::ptob(1) } as u64 != PAGE_SIZE {
             dev.warn(format_args!("unexpected page size"));

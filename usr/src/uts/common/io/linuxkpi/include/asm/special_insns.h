@@ -10,7 +10,32 @@
 
 #include <asm/cpufeature.h>
 
-#if defined(__aarch64__)
+#if defined(__sparc)
+/*
+ * sun4u: the caches are coherent with DMA (the IOMMU and the Schizo/PCIe
+ * bridges keep them so), so there is nothing to write back; order only.
+ */
+static inline void
+clflush(volatile void *p)
+{
+	__asm__ __volatile__("" : : "r" (p) : "memory");
+}
+
+#define	clflushopt(p)	clflush(p)
+
+static inline unsigned long
+lkpi_dcache_line(void)
+{
+	return (64);	/* UltraSPARC III/IIIi E-cache line */
+}
+
+static inline void
+wbinvd(void)
+{
+	__asm__ __volatile__("membar #Sync" ::: "memory");
+}
+
+#elif defined(__aarch64__)
 /*
  * The same operation on aarch64: clean and invalidate one line to the
  * point of coherency. There is no wbinvd.
@@ -57,6 +82,6 @@ wbinvd(void)
 	__asm__ __volatile__("wbinvd" ::: "memory");
 }
 
-#endif	/* __aarch64__ */
+#endif	/* __sparc, __aarch64__ */
 
 #endif
