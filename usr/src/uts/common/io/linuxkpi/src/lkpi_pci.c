@@ -1289,6 +1289,7 @@ lkpi_pci_new(dev_info_t *dip, bool foreign)
 	pdev->lkpi_bus.number = (unsigned char)bus;
 	pdev->lkpi_bus.domain_nr = 0;
 	pdev->bus = &pdev->lkpi_bus;
+	pdev->lkpi_bus.max_bus_speed = PCI_SPEED_UNKNOWN;
 	pdev->lkpi_foreign = foreign;
 	pdev->dma_mask = DMA_BIT_MASK(64);
 	for (i = 0; i <= PCI_NUM_RESOURCES; i++)

@@ -6,6 +6,7 @@
 # radeon_mn.c (CONFIG_MMU_NOTIFIER), drivers/gpu/drm/ttm/ttm_bo_vm.c and
 # ttm_backup.c (Linux VM and shmem; illumos replacements as for amdgpu).
 # excluded: radeon_trace_points.c (tracepoints: lkpi has none (no-op trace headers))
+# excluded: radeon_prime.c (radeon's own dma-buf export/import: PRIME is the DRM core's on illumos)
 drivers/gpu/drm/radeon/radeon_drv.c
 drivers/gpu/drm/radeon/radeon_device.c
 drivers/gpu/drm/radeon/radeon_asic.c
@@ -60,7 +61,6 @@ drivers/gpu/drm/radeon/radeon_semaphore.c
 drivers/gpu/drm/radeon/radeon_sa.c
 drivers/gpu/drm/radeon/atombios_i2c.c
 drivers/gpu/drm/radeon/si.c
-drivers/gpu/drm/radeon/radeon_prime.c
 drivers/gpu/drm/radeon/cik.c
 drivers/gpu/drm/radeon/r600_dpm.c
 drivers/gpu/drm/radeon/rs780_dpm.c

@@ -129,4 +129,7 @@ tasklet_disable(struct tasklet_struct *t)
 
 extern void tasklet_enable(struct tasklet_struct *t);
 
+/* An interrupt number that is no interrupt (Linux's value). */
+#define	IRQ_NOTCONNECTED	(1U << 31)
+
 #endif

@@ -45,6 +45,7 @@ struct sg_table *radeon_gem_prime_get_sg_table(struct drm_gem_object *obj);
 int radeon_gem_prime_pin(struct drm_gem_object *obj);
 void radeon_gem_prime_unpin(struct drm_gem_object *obj);
 
+#ifndef __illumos__	/* CPU faults: the DRM core's mappings on illumos */
 static vm_fault_t radeon_gem_fault(struct vm_fault *vmf)
 {
 	struct ttm_buffer_object *bo = vmf->vma->vm_private_data;
@@ -80,6 +81,7 @@ static const struct vm_operations_struct radeon_gem_vm_ops = {
 	.close = ttm_bo_vm_close,
 	.access = ttm_bo_vm_access
 };
+#endif	/* !__illumos__ */
 
 static void radeon_gem_object_free(struct drm_gem_object *gobj)
 {
@@ -264,6 +266,7 @@ static int radeon_gem_handle_lockup(struct radeon_device *rdev, int r)
 	return r;
 }
 
+#ifndef __illumos__
 static int radeon_gem_object_mmap(struct drm_gem_object *obj, struct vm_area_struct *vma)
 {
 	struct radeon_bo *bo = gem_to_radeon_bo(obj);
@@ -274,11 +277,13 @@ static int radeon_gem_object_mmap(struct drm_gem_object *obj, struct vm_area_str
 
 	return drm_gem_ttm_mmap(obj, vma);
 }
+#endif	/* !__illumos__ */
 
 const struct drm_gem_object_funcs radeon_gem_object_funcs = {
 	.free = radeon_gem_object_free,
 	.open = radeon_gem_object_open,
 	.close = radeon_gem_object_close,
+#ifndef __illumos__
 	.export = radeon_gem_prime_export,
 	.pin = radeon_gem_prime_pin,
 	.unpin = radeon_gem_prime_unpin,
@@ -287,6 +292,15 @@ const struct drm_gem_object_funcs radeon_gem_object_funcs = {
 	.vunmap = drm_gem_ttm_vunmap,
 	.mmap = radeon_gem_object_mmap,
 	.vm_ops = &radeon_gem_vm_ops,
+#else
+	/*
+	 * PRIME and user mappings are the DRM core's on illumos; the
+	 * mapping callbacks (illumos_umem, illumos_mapped, illumos_access,
+	 * after amdgpu's illumos/amdgpu_illumos_mmap.c) are still to come:
+	 * until then mapping an object fails.
+	 */
+	.illumos_movable = true,
+#endif
 };
 
 /*

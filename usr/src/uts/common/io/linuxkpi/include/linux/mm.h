@@ -192,6 +192,21 @@ extern void unpin_user_pages_dirty_lock(struct lx_page **pages,
 extern long get_user_pages_fast(unsigned long start, int nr_pages,
     unsigned int gup_flags, struct lx_page **pages);
 #define	unpin_user_page(p)	unpin_user_pages(&(p), 1)
+/*
+ * get_user_pages() without the caller's mmap lock (radeon's userptr pin
+ * calls it so) is get_user_pages_fast(); release_pages() drops the page
+ * references it took.
+ */
+#define	get_user_pages(start, n, flags, pages) \
+	get_user_pages_fast((unsigned long)(start), (int)(n), (flags), (pages))
+static inline void
+release_pages(struct lx_page **pages, int n)
+{
+	int i;
+
+	for (i = 0; i < n; i++)
+		put_page(pages[i]);
+}
 #define	vma_pages(vma)		(((vma)->vm_end - (vma)->vm_start) >> PAGE_SHIFT)
 #define	vm_flags_set(vma, f)	((vma)->vm_flags |= (f))
 #define	vm_flags_clear(vma, f)	((vma)->vm_flags &= ~(f))

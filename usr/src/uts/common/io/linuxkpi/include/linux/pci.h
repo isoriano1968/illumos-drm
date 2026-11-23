@@ -37,6 +37,8 @@
 #include <linux/interrupt.h>
 
 #define	PCI_NUM_RESOURCES	6
+/* The entries of pci_dev.resource: the BARs and the ROM. */
+#define	DEVICE_COUNT_RESOURCE	(PCI_NUM_RESOURCES + 1)
 #define	PCI_STD_NUM_BARS	6
 #define	PCI_ROM_RESOURCE	6
 #define	PCI_DEVFN(slot, func)	((((slot) & 0x1f) << 3) | ((func) & 0x07))
@@ -142,6 +144,7 @@ struct pci_bus {
 	struct pci_dev *self;
 	unsigned char number;
 	unsigned char primary;
+	unsigned char max_bus_speed;	/* enum pci_bus_speed; UNKNOWN for now */
 	int domain_nr;
 };
 
@@ -160,6 +163,7 @@ struct pci_dev {
 	u8 revision;
 	u8 hdr_type;
 	u8 pcie_cap;
+	u64 msi_addr_mask;	/* MSI address limit the driver sets */
 	u8 msi_cap;
 	u8 msix_cap;
 	int cfg_size;
@@ -394,5 +398,13 @@ extern struct pci_driver *lkpi_pci_driver_lookup(const char *name);
 #define	module_pci_driver(drv) \
 	int lkpi_module_init_pci(void) { return (pci_register_driver(&(drv))); } \
 	void lkpi_module_exit_pci(void) { pci_unregister_driver(&(drv)); }
+
+/* No Thunderbolt on the systems the layer serves. */
+static inline bool
+pci_is_thunderbolt_attached(struct pci_dev *pdev)
+{
+	(void) pdev;
+	return (false);
+}
 
 #endif

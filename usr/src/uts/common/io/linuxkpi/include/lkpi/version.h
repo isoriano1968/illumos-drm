@@ -12,7 +12,7 @@
 #ifndef _LKPI_VERSION_H
 #define	_LKPI_VERSION_H
 
-#define	LINUXKPI_ABI	3
+#define	LINUXKPI_ABI	4
 
 extern int linuxkpi_check(const char *driver, unsigned int abi);
 

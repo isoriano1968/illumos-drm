@@ -1589,7 +1589,12 @@ int radeon_suspend_kms(struct drm_device *dev, bool suspend,
 			continue;
 		}
 		/* don't unpin kernel fb objects */
+#ifndef __illumos__
 		if (!drm_fb_helper_gem_is_fb(dev->fb_helper, fb->obj[0])) {
+#else
+		/* No fbdev emulation (CONFIG_DRM_FBDEV_EMULATION off). */
+		{
+#endif
 			struct radeon_bo *robj = gem_to_radeon_bo(fb->obj[0]);
 
 			r = radeon_bo_reserve(robj, false);
