@@ -63,6 +63,9 @@ static void radeon_ttm_bo_destroy(struct ttm_buffer_object *tbo)
 	if (bo->tbo.base.import_attach)
 		drm_prime_gem_destroy(&bo->tbo.base, bo->tbo.sg);
 	drm_gem_object_release(&bo->tbo.base);
+#ifdef __illumos__
+	radeon_illumos_bo_fini(bo);
+#endif
 	kfree(bo);
 }
 

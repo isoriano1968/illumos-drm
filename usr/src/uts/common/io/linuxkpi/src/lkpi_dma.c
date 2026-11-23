@@ -207,10 +207,9 @@ lkpi_dma_reachable(const ddi_dma_attr_t *attr, caddr_t kva, size_t len)
 static int
 lkpi_dma_bind_wait(dev_info_t *dip, const ddi_dma_attr_t *attr, caddr_t kva,
     size_t len, uint_t flags, int (*wait)(caddr_t), ddi_dma_handle_t *hp,
-    uint_t *ccountp)
+    ddi_dma_cookie_t *cp, uint_t *ccountp)
 {
 	ddi_dma_handle_t h;
-	ddi_dma_cookie_t c;
 
 	if (!lkpi_dma_reachable(attr, kva, len)) {
 		WARN_ONCE(1, "DMA: memory at %p is outside the device's "
@@ -220,7 +219,13 @@ lkpi_dma_bind_wait(dev_info_t *dip, const ddi_dma_attr_t *attr, caddr_t kva,
 	}
 	if (ddi_dma_alloc_handle(dip, attr, wait, NULL, &h) != DDI_SUCCESS)
 		return (-ENOMEM);
-	if (ddi_dma_addr_bind_handle(h, NULL, kva, len, flags, wait, NULL, &c,
+	/*
+	 * The first cookie comes from the bind and the others from
+	 * ddi_dma_nextcookie(9F): sun4's px nexus leaves dmai_cookie unset on
+	 * its IOMMU (DVMA) path, so ddi_dma_cookie_iter/one(9F) read garbage
+	 * there.
+	 */
+	if (ddi_dma_addr_bind_handle(h, NULL, kva, len, flags, wait, NULL, cp,
 	    ccountp) != DDI_DMA_MAPPED) {
 		ddi_dma_free_handle(&h);
 		return (-ENOMEM);
@@ -232,10 +237,11 @@ lkpi_dma_bind_wait(dev_info_t *dip, const ddi_dma_attr_t *attr, caddr_t kva,
 /* Binds [kva, kva + len) without sleeping and without a copy buffer. */
 static int
 lkpi_dma_bind(dev_info_t *dip, const ddi_dma_attr_t *attr, caddr_t kva,
-    size_t len, uint_t flags, ddi_dma_handle_t *hp, uint_t *ccountp)
+    size_t len, uint_t flags, ddi_dma_handle_t *hp, ddi_dma_cookie_t *cp,
+    uint_t *ccountp)
 {
 	return (lkpi_dma_bind_wait(dip, attr, kva, len, flags,
-	    DDI_DMA_DONTWAIT, hp, ccountp));
+	    DDI_DMA_DONTWAIT, hp, cp, ccountp));
 }
 
 static void
@@ -296,7 +302,7 @@ lkpi_dma_map_sg(struct device *dev, struct scatterlist *sgl, int nents,
     enum dma_data_direction dir)
 {
 	struct scatterlist *sg, *s, *next, *first;
-	const ddi_dma_cookie_t *c;
+	ddi_dma_cookie_t c;
 	ddi_dma_attr_t *attr;
 	struct lkpi_dma_sg *ds;
 	ddi_dma_handle_t h;
@@ -356,21 +362,20 @@ lkpi_dma_map_sg(struct device *dev, struct scatterlist *sgl, int nents,
 			    lkpi_sg_kva(next) != kva + len)
 				break;
 		}
-		if (lkpi_dma_bind(dip, attr, kva, len, flags, &h, &cc) != 0)
+		if (lkpi_dma_bind(dip, attr, kva, len, flags, &h, &c, &cc) != 0)
 			goto fail;
 		ds->ds_handles[ds->ds_nhandles++] = h;
 
-		c = ddi_dma_cookie_iter(h, NULL);
-		caddr = c->dmac_laddress;
-		cleft = c->dmac_size;
+		caddr = c.dmac_laddress;
+		cleft = c.dmac_size;
 		for (k = 0, s = first; k < cnt; k++, s = sg_next(s)) {
-			while (cleft == 0 && c != NULL) {
-				if ((c = ddi_dma_cookie_iter(h, c)) != NULL) {
-					caddr = c->dmac_laddress;
-					cleft = c->dmac_size;
-				}
+			while (cleft == 0 && cc > 1) {
+				ddi_dma_nextcookie(h, &c);
+				cc--;
+				caddr = c.dmac_laddress;
+				cleft = c.dmac_size;
 			}
-			if (c == NULL || s->length > cleft) {
+			if (s->length > cleft) {
 				WARN_ONCE(1, "dma_map_sg: an entry of %u bytes "
 				    "spans two DMA cookies", s->length);
 				goto fail;
@@ -495,6 +500,7 @@ lkpi_dma_map_one(struct device *dev, caddr_t kva, size_t size,
 {
 	struct lkpi_dma_one *one;
 	ddi_dma_attr_t *attr;
+	ddi_dma_cookie_t c;
 	ddi_dma_handle_t h;
 	dev_info_t *dip;
 	uint_t cc;
@@ -502,7 +508,7 @@ lkpi_dma_map_one(struct device *dev, caddr_t kva, size_t size,
 	if (size == 0 || (dip = lkpi_dma_dev(dev, &attr)) == NULL)
 		return (DMA_MAPPING_ERROR);
 	if (lkpi_dma_bind(dip, attr, kva, size,
-	    lkpi_dma_dirflags(dir) | DDI_DMA_STREAMING, &h, &cc) != 0)
+	    lkpi_dma_dirflags(dir) | DDI_DMA_STREAMING, &h, &c, &cc) != 0)
 		return (DMA_MAPPING_ERROR);
 	if (cc != 1) {
 		/* Not physically contiguous: Linux's caller expects one address. */
@@ -513,7 +519,7 @@ lkpi_dma_map_one(struct device *dev, caddr_t kva, size_t size,
 		lkpi_dma_unbind(&h);
 		return (DMA_MAPPING_ERROR);
 	}
-	one->do_addr = ddi_dma_cookie_one(h)->dmac_laddress;
+	one->do_addr = c.dmac_laddress;
 	one->do_size = size;
 	one->do_handle = h;
 	one->do_va = va;
@@ -653,7 +659,7 @@ int
 lkpi_dma_map_pages(struct device *dev, struct page **pages,
     unsigned long count, dma_addr_t *addrs, struct lkpi_dma_pages **out)
 {
-	const ddi_dma_cookie_t *c;
+	ddi_dma_cookie_t c;
 	struct lkpi_dma_pages *dp;
 	ddi_dma_attr_t *attr;
 	dev_info_t *dip;
@@ -676,28 +682,28 @@ lkpi_dma_map_pages(struct device *dev, struct page **pages,
 	}
 	if ((err = lkpi_dma_bind_wait(dip, attr, dp->dp_va, dp->dp_size,
 	    DDI_DMA_RDWR | DDI_DMA_STREAMING, DDI_DMA_SLEEP, &dp->dp_handle,
-	    &cc)) != 0) {
+	    &c, &cc)) != 0) {
 		vunmap(dp->dp_va);
 		kmem_free(dp, sizeof (*dp));
 		return (err);
 	}
 
 	/* Each page lies in one cookie: pages are aligned, cookies too. */
-	c = ddi_dma_cookie_iter(dp->dp_handle, NULL);
-	caddr = c->dmac_laddress;
-	cleft = c->dmac_size;
+	caddr = c.dmac_laddress;
+	cleft = c.dmac_size;
 	for (i = 0; i < count; i++) {
-		while (cleft == 0 && c != NULL) {
-			if ((c = ddi_dma_cookie_iter(dp->dp_handle, c)) !=
-			    NULL) {
-				caddr = c->dmac_laddress;
-				cleft = c->dmac_size;
-			}
+		while (cleft == 0 && cc > 1) {
+			ddi_dma_nextcookie(dp->dp_handle, &c);
+			cc--;
+			caddr = c.dmac_laddress;
+			cleft = c.dmac_size;
 		}
-		if (c == NULL || cleft < PAGE_SIZE ||
+		if (cleft < PAGE_SIZE ||
 		    (caddr & (PAGE_SIZE - 1)) != 0) {
-			WARN_ONCE(1, "lkpi_dma_map_pages: page %lu does not "
-			    "lie in one DMA cookie", i);
+			WARN_ONCE(1, "lkpi_dma_map_pages: page %lu of %lu does "
+			    "not lie in one DMA cookie (cookie %llx left %llx)",
+			    i, count, (unsigned long long)caddr,
+			    (unsigned long long)cleft);
 			lkpi_dma_pages_free(dp);
 			return (-ENOMEM);
 		}

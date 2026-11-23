@@ -22,6 +22,13 @@ SYMBOL_SCOPE {
 		rw_tryenter		{ FLAGS = EXTERN };
 		rw_downgrade		{ FLAGS = EXTERN };
 		#
+		# User mappings of buffer objects (illumos/radeon_illumos_mmap.c),
+		# documented 9F (devmap_devmem_remap(9F), devmap_umem_remap(9F))
+		# that ddi.mapfile does not list.
+		#
+		devmap_devmem_remap	{ FLAGS = EXTERN };
+		devmap_umem_remap	{ FLAGS = EXTERN };
+		#
 		# <sys/atomic.h>: inline on x86, kernel functions on sparcv9
 		# (common/atomic), which ddi.mapfile does not list.
 		#

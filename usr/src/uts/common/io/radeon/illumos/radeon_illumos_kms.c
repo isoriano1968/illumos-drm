@@ -8,11 +8,7 @@
  * functions (radeon_display.c), from drm_gem_framebuffer_helper.c, which
  * is not carried; the same two as in illumos-drm's amdgpu_illumos_kms.c.
  *
- * ttm_bo_illumos_unmap_virtual(): the illumos replacement of TTM's CPU
- * mapping teardown (illumos-drm's ttm_bo.c patch). radeon's objects have
- * no user mappings on illumos yet (radeon_gem.c sets no mapping
- * callbacks), so there is nothing to tear down. When the mapping path
- * comes (after amdgpu_illumos_mmap.c), this unloads it.
+ * (ttm_bo_illumos_unmap_virtual() is in radeon_illumos_mmap.c.)
  */
 
 #include <linux/errno.h>
@@ -20,7 +16,6 @@
 #include <drm/drm_framebuffer.h>
 #include <drm/drm_gem.h>
 #include <drm/drm_gem_framebuffer_helper.h>
-#include <drm/ttm/ttm_bo.h>
 
 void
 drm_gem_fb_destroy(struct drm_framebuffer *fb)
@@ -42,10 +37,4 @@ drm_gem_fb_create_handle(struct drm_framebuffer *fb, struct drm_file *file,
 	if (fb->obj[0] == NULL)
 		return (-ENOENT);
 	return (drm_gem_handle_create(file, fb->obj[0], handle));
-}
-
-void
-ttm_bo_illumos_unmap_virtual(struct ttm_buffer_object *bo)
-{
-	(void) bo;	/* no user mappings yet */
 }

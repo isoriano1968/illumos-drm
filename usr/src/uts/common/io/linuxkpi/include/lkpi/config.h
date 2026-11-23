@@ -21,8 +21,15 @@
 #define	HZ		1000
 #define	USER_HZ		100
 
-/* illumos' MMU page size on amd64 and aarch64, and Linux's there. */
+/*
+ * illumos' MMU page size, and Linux's there: 4 KiB on amd64 and aarch64,
+ * 8 KiB on sparcv9 (sun4u, sun4v), where Linux's sparc64 has 8 KiB too.
+ */
+#if defined(__sparc)
+#define	PAGE_SHIFT	13
+#else
 #define	PAGE_SHIFT	12
+#endif
 #define	PAGE_SIZE	(1UL << PAGE_SHIFT)
 #define	PAGE_MASK	(~(PAGE_SIZE - 1))
 

@@ -295,10 +295,12 @@ const struct drm_gem_object_funcs radeon_gem_object_funcs = {
 #else
 	/*
 	 * PRIME and user mappings are the DRM core's on illumos; the
-	 * mapping callbacks (illumos_umem, illumos_mapped, illumos_access,
-	 * after amdgpu's illumos/amdgpu_illumos_mmap.c) are still to come:
-	 * until then mapping an object fails.
+	 * mapping callbacks are in illumos/radeon_illumos_mmap.c (after
+	 * amdgpu's illumos/amdgpu_illumos_mmap.c).
 	 */
+	.illumos_umem = radeon_illumos_gem_umem,
+	.illumos_mapped = radeon_illumos_gem_mapped,
+	.illumos_access = radeon_illumos_gem_access,
 	.illumos_movable = true,
 #endif
 };

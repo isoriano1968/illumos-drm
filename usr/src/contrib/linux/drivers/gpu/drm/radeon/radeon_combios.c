@@ -1440,6 +1440,21 @@ bool radeon_get_legacy_connector_info_from_table(struct drm_device *dev)
 
 	rdev->mode_info.connector_table = radeon_connector_table;
 	if (rdev->mode_info.connector_table == CT_NONE) {
+#if defined(__illumos__) && defined(__sparc)
+		/*
+		 * Sun XVR-300 (RV380, FCode ROM, no COMBIOS tables): two
+		 * DVI-I ports behind the DMS-59 cable, the first on the
+		 * VGA DDC line with the primary DAC and the internal TMDS,
+		 * the second on the DVI DDC line with the TV DAC and DVO;
+		 * the Mac G5 9600 layout.
+		 */
+		if (rdev->pdev->device == 0x5b64 &&
+		    rdev->pdev->subsystem_vendor == PCI_VENDOR_ID_ATI &&
+		    rdev->pdev->subsystem_device == 0x0b64) {
+			rdev->mode_info.connector_table = CT_MAC_G5_9600;
+			goto illumos_table_chosen;
+		}
+#endif
 #ifdef CONFIG_PPC_PMAC
 		if (of_machine_is_compatible("PowerBook3,3")) {
 			/* powerbook with VGA */
@@ -1514,6 +1529,9 @@ bool radeon_get_legacy_connector_info_from_table(struct drm_device *dev)
 #endif
 			rdev->mode_info.connector_table = CT_GENERIC;
 	}
+#if defined(__illumos__) && defined(__sparc)
+illumos_table_chosen:
+#endif
 
 	switch (rdev->mode_info.connector_table) {
 	case CT_GENERIC:

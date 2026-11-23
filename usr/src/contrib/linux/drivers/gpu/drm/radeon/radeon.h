@@ -480,7 +480,29 @@ struct radeon_bo_va {
 	struct radeon_bo		*bo;
 };
 
+#ifdef __illumos__
+struct lkpi_umem_window;
+struct radeon_bo;
+/* illumos/radeon_illumos_mmap.c */
+struct drm_illumos_mapping;
+struct drm_illumos_fault;
+extern ddi_umem_cookie_t radeon_illumos_gem_umem(struct drm_gem_object *gobj);
+extern int radeon_illumos_gem_mapped(struct drm_gem_object *gobj,
+    struct drm_illumos_mapping *map);
+extern int radeon_illumos_gem_access(struct drm_gem_object *gobj,
+    struct drm_illumos_mapping *map, struct drm_illumos_fault *fault);
+extern void radeon_illumos_bo_fini(struct radeon_bo *bo);
+#endif
+
 struct radeon_bo {
+#ifdef __illumos__
+	/* The user-mapping window over the object (illumos_umem). */
+	struct lkpi_umem_window		*illumos_window;
+	/* What every user mapping shows (illumos/radeon_illumos_mmap.c). */
+	bool				illumos_view_vram;
+	bool				illumos_remap_pending;
+	u64				illumos_bar_off;
+#endif
 	/* Protected by gem.mutex */
 	struct list_head		list;
 	/* Protected by tbo.reserved */
