@@ -1443,10 +1443,9 @@ bool radeon_get_legacy_connector_info_from_table(struct drm_device *dev)
 #if defined(__illumos__) && defined(__sparc)
 		/*
 		 * Sun XVR-300 (RV380, FCode ROM, no COMBIOS tables): two
-		 * DVI-I ports behind the DMS-59 cable, the first on the
-		 * VGA DDC line with the primary DAC and the internal TMDS,
-		 * the second on the DVI DDC line with the TV DAC and DVO;
-		 * the Mac G5 9600 layout.
+		 * DVI ports, built below (case CT_MAC_G5_9600, which also
+		 * gives the external TMDS its Mac defaults: a SiI164 at 0x70
+		 * on the MONID line).
 		 */
 		if (rdev->pdev->device == 0x5b64 &&
 		    rdev->pdev->subsystem_vendor == PCI_VENDOR_ID_ATI &&
@@ -2042,6 +2041,52 @@ illumos_table_chosen:
 					    &hpd);
 		break;
 	case CT_MAC_G5_9600:
+#if defined(__illumos__) && defined(__sparc)
+		if (rdev->pdev->device == 0x5b64 &&
+		    rdev->pdev->subsystem_vendor == PCI_VENDOR_ID_ATI &&
+		    rdev->pdev->subsystem_device == 0x0b64) {
+			/*
+			 * XVR-300, as the Xorg radeon driver drives it on
+			 * the U45 (its ConnectorTable option): port 0 on the
+			 * DVI DDC line with the TV DAC and the internal
+			 * TMDS; port 1 on the VGA DDC line with the primary
+			 * DAC and the external TMDS (DVO). No TV output.
+			 */
+			DRM_INFO("Connector Table: %d (Sun XVR-300)\n",
+				 rdev->mode_info.connector_table);
+			ddc_i2c = combios_setup_i2c_bus(rdev, DDC_DVI, 0, 0);
+			hpd.hpd = RADEON_HPD_1;
+			radeon_add_legacy_encoder(dev,
+			    radeon_get_encoder_enum(dev,
+			    ATOM_DEVICE_DFP1_SUPPORT, 0),
+			    ATOM_DEVICE_DFP1_SUPPORT);
+			radeon_add_legacy_encoder(dev,
+			    radeon_get_encoder_enum(dev,
+			    ATOM_DEVICE_CRT2_SUPPORT, 2),
+			    ATOM_DEVICE_CRT2_SUPPORT);
+			radeon_add_legacy_connector(dev, 0,
+			    ATOM_DEVICE_DFP1_SUPPORT |
+			    ATOM_DEVICE_CRT2_SUPPORT,
+			    DRM_MODE_CONNECTOR_DVII, &ddc_i2c,
+			    CONNECTOR_OBJECT_ID_SINGLE_LINK_DVI_I, &hpd);
+			ddc_i2c = combios_setup_i2c_bus(rdev, DDC_VGA, 0, 0);
+			hpd.hpd = RADEON_HPD_2;
+			radeon_add_legacy_encoder(dev,
+			    radeon_get_encoder_enum(dev,
+			    ATOM_DEVICE_DFP2_SUPPORT, 0),
+			    ATOM_DEVICE_DFP2_SUPPORT);
+			radeon_add_legacy_encoder(dev,
+			    radeon_get_encoder_enum(dev,
+			    ATOM_DEVICE_CRT1_SUPPORT, 1),
+			    ATOM_DEVICE_CRT1_SUPPORT);
+			radeon_add_legacy_connector(dev, 1,
+			    ATOM_DEVICE_DFP2_SUPPORT |
+			    ATOM_DEVICE_CRT1_SUPPORT,
+			    DRM_MODE_CONNECTOR_DVII, &ddc_i2c,
+			    CONNECTOR_OBJECT_ID_SINGLE_LINK_DVI_I, &hpd);
+			break;
+		}
+#endif
 		DRM_INFO("Connector Table: %d (mac g5 9600)\n",
 			 rdev->mode_info.connector_table);
 		/* DVI - tv dac, dvo */
