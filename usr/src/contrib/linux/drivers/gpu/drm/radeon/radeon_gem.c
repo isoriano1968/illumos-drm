@@ -875,6 +875,22 @@ int radeon_mode_dumb_create(struct drm_file *file_priv,
 				     false, &gobj);
 	if (r)
 		return -ENOMEM;
+#if defined(__illumos__) && defined(__BIG_ENDIAN)
+	/*
+	 * Big-endian hosts: scanout reads the framebuffer little-endian
+	 * (DRM_FORMAT_XRGB8888), while the CPU writes its pixels in host
+	 * order through the BAR. As radeon_fbdev.c does for its own
+	 * framebuffer, give dumb buffers a surface that swaps 32-bit (or
+	 * 16-bit) words in the aperture; the CPU mapping
+	 * (radeon_illumos_gem_access()) programs it.
+	 */
+	if (args->bpp == 32 || args->bpp == 16) {
+		(void) radeon_bo_set_tiling_flags(gem_to_radeon_bo(gobj),
+		    RADEON_TILING_SURFACE | (args->bpp == 32 ?
+		    RADEON_TILING_SWAP_32BIT : RADEON_TILING_SWAP_16BIT),
+		    args->pitch);
+	}
+#endif
 
 	r = drm_gem_handle_create(file_priv, gobj, &handle);
 	/* drop reference from allocate - handle holds it now */

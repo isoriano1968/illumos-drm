@@ -193,9 +193,12 @@ radeon_illumos_gem_access(struct drm_gem_object *gobj,
 	if (r != 0)
 		return (radeon_illumos_fault_errno(r));
 
+	/* As radeon_bo_fault_reserve_notify(): the BO's surface (swapping). */
+	radeon_bo_check_tiling(rbo, 0, 0);
 	r = radeon_illumos_place_for_cpu(rdev, rbo, &ctx);
 	if (r != 0)
 		goto out;
+	(void) radeon_bo_check_tiling(rbo, 1, 0);
 	lret = dma_resv_wait_timeout(bo->base.resv, DMA_RESV_USAGE_KERNEL,
 	    true, MAX_SCHEDULE_TIMEOUT);
 	if (lret < 0) {
