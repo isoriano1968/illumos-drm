@@ -1,0 +1,30 @@
+{
+    "arch": "sparc64",
+    "os": "illumos",
+    "llvm-target": "sparcv9-unknown-none-elf",
+    "target-endian": "big",
+    "target-pointer-width": 64,
+    "data-layout": "E-m:e-i64:64-i128:128-n32:64-S128",
+    "cpu": "v9",
+    "features": "+soft-float,+reserve-g2,+reserve-g3,+reserve-g4,+reserve-g6,+reserve-g7",
+    "code-model": "small",
+    "relocation-model": "static",
+    "frame-pointer": "always",
+    "eh-frame-header": false,
+    "panic-strategy": "abort",
+    "function-sections": false,
+    "max-atomic-width": 64,
+    "is-like-solaris": true,
+    "target-family": ["unix"],
+    "linker": "ld",
+    "linker-flavor": "gnu-cc",
+    "crt-objects-fallback": "false",
+    "has-rpath": false,
+    "staticlib-prefix": "",
+    "metadata": {
+        "description": "illumos sparcv9 kernel module (abs32 code, %g2-%g4 and %g6-%g7 reserved, no FP by checking the object)",
+        "std": false,
+        "host_tools": null,
+        "tier": null
+    }
+}
