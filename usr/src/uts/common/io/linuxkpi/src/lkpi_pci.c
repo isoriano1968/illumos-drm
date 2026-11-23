@@ -1153,6 +1153,40 @@ lkpi_pci_prop(dev_info_t *dip, const char *name)
 	    (char *)name, -1));
 }
 
+#if defined(__sparc)
+/*
+ * On SPARC a PCI node's identity ("vendor-id", "device-id", ...) and its
+ * "reg" are OpenBoot PROM properties: the kernel finds them, but a
+ * devinfo snapshot (libdevinfo) shows them only to root, through
+ * /dev/openprom. x86's PCI enumeration makes them ordinary properties.
+ * Publish them as the driver's properties (same values), so libdrm's
+ * drmGetDevice2() can describe the device to unprivileged clients such
+ * as Mesa's loader.
+ */
+static void
+lkpi_pci_publish_ids(dev_info_t *dip)
+{
+	static const char *const ids[] = { "vendor-id", "device-id",
+	    "subsystem-vendor-id", "subsystem-id", "revision-id",
+	    "class-code" };
+	int *regs;
+	uint_t n, i;
+	int v;
+
+	for (i = 0; i < sizeof (ids) / sizeof (ids[0]); i++) {
+		if ((v = lkpi_pci_prop(dip, ids[i])) >= 0)
+			(void) ddi_prop_update_int(DDI_DEV_T_NONE, dip,
+			    (char *)ids[i], v);
+	}
+	if (ddi_prop_lookup_int_array(DDI_DEV_T_ANY, dip, DDI_PROP_DONTPASS,
+	    "reg", &regs, &n) == DDI_PROP_SUCCESS) {
+		(void) ddi_prop_update_int_array(DDI_DEV_T_NONE, dip, "reg",
+		    regs, n);
+		ddi_prop_free(regs);
+	}
+}
+#endif
+
 /* The BAR index of a config register number, or -1. */
 static int
 lkpi_pci_reg_bar(uint_t reg)
@@ -1320,8 +1354,12 @@ lkpi_pci_new(dev_info_t *dip, bool foreign)
 	pdev->msi_cap = pci_find_capability(pdev, PCI_CAP_ID_MSI);
 	pdev->msix_cap = pci_find_capability(pdev, PCI_CAP_ID_MSIX);
 
-	if (!foreign)
+	if (!foreign) {
 		lkpi_pci_bars(pdev, dip);
+#if defined(__sparc)
+		lkpi_pci_publish_ids(dip);
+#endif
+	}
 	return (lp);
 }
 
