@@ -150,8 +150,24 @@ int radeon_bo_create(struct radeon_device *rdev,
 	bo = kzalloc(sizeof(struct radeon_bo), GFP_KERNEL);
 	if (bo == NULL)
 		return -ENOMEM;
+#ifdef __illumos__
+	/*
+	 * The DRM core registers the object here: it needs the callbacks
+	 * first, and it can refuse the object (the facade's
+	 * drm_gem_private_object_init() returns an error); as in
+	 * illumos-drm's amdgpu_bo_create(). A refused object is not the
+	 * core's: free it as it is.
+	 */
+	bo->tbo.base.funcs = &radeon_gem_object_funcs;
+	r = drm_gem_private_object_init(rdev_to_drm(rdev), &bo->tbo.base, size);
+	if (unlikely(r != 0)) {
+		kfree(bo);
+		return r;
+	}
+#else
 	drm_gem_private_object_init(rdev_to_drm(rdev), &bo->tbo.base, size);
 	bo->tbo.base.funcs = &radeon_gem_object_funcs;
+#endif
 	bo->rdev = rdev;
 	bo->surface_reg = -1;
 	INIT_LIST_HEAD(&bo->list);
