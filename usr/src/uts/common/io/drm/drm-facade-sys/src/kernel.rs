@@ -35,7 +35,9 @@ pub type ddi_info_cmd_t = c_uint;
 /// `va_list` of the amd64 ABI: `__va_list_tag[1]`, 24 bytes (two 32-bit
 /// offsets and two pointers). The facade only passes it by pointer
 /// (`struct va_format`); a pointer to it is the pointer to its first tag,
-/// which is what `vsnprintf(9F)` and `vcmn_err(9F)` take.
+/// which is what `vsnprintf(9F)` and `vcmn_err(9F)` take. On sparcv9 the
+/// pointed-to va_list is a pointer itself (8 bytes, no larger than this
+/// type), which drm_core reads before passing it on (ffi/print.rs).
 pub type va_list = [u64; 3];
 
 /// `kmutex_t`: `struct mutex { void *_opaque[1]; }`.

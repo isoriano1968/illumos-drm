@@ -13,28 +13,7 @@
 int __clzdi2(unsigned long long);
 int __ctzdi2(unsigned long long);
 unsigned int __bswapsi2(unsigned int);
-__int128 __multi3(__int128, __int128);
 
-/* 128-bit multiply (mul_u64_u64_shr() and friends): the low 128 bits. */
-__int128
-__multi3(__int128 a, __int128 b)
-{
-	unsigned long long al = (unsigned long long)a;
-	unsigned long long ah = (unsigned long long)(a >> 64);
-	unsigned long long bl = (unsigned long long)b;
-	unsigned long long bh = (unsigned long long)(b >> 64);
-	unsigned long long a0 = al & 0xffffffffULL, a1 = al >> 32;
-	unsigned long long b0 = bl & 0xffffffffULL, b1 = bl >> 32;
-	unsigned long long p00 = a0 * b0, p01 = a0 * b1;
-	unsigned long long p10 = a1 * b0, p11 = a1 * b1;
-	unsigned long long mid = (p00 >> 32) + (p01 & 0xffffffffULL) +
-	    (p10 & 0xffffffffULL);
-	unsigned long long lo = (p00 & 0xffffffffULL) | (mid << 32);
-	unsigned long long hi = p11 + (p01 >> 32) + (p10 >> 32) + (mid >> 32) +
-	    al * bh + ah * bl;
-
-	return ((__int128)(((unsigned __int128)hi << 64) | lo));
-}
 unsigned long long __bswapdi2(unsigned long long);
 
 /* For __builtin_bswap32/64 in carried code (no bswap instruction). */

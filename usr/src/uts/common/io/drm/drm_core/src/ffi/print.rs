@@ -6,8 +6,8 @@
 //! `drm_core::print`'s rules, `vsnprintf(9F)` and `dev_err`/`cmn_err`.
 //! The variadic entry points (`drm_printf`, `drm_dev_printk`, the macros)
 //! are static functions of the header that build a `struct va_format`, so
-//! nothing here is variadic; the `va_list` is passed on by pointer, as the
-//! amd64 ABI passes it.
+//! nothing here is variadic; the `va_list` is passed on by pointer (amd64:
+//! the array's address; sparcv9: the pointer it holds, see below).
 
 use core::ffi::{CStr, c_char};
 use core::ptr;
@@ -48,10 +48,18 @@ unsafe fn vprintk(dev: *mut f::dev_info_t, level: u8, category: i32, prefixes: [
     for p in prefixes {
         m.prefix(p);
     }
+    // amd64: va_list is an array (__va_list_tag[1]), so the C side's
+    // `va_list *` is the address of its first element, which vsnprintf(9F)
+    // takes. sparcv9: va_list is a pointer to the argument area, which
+    // vsnprintf(9F) takes by value, so the C side's `va_list *` is read.
+    #[cfg(target_arch = "sparc64")]
+    // SAFETY: `va` points at the caller's live va_list (`struct va_format`).
+    let ap: sys::va_list = unsafe { *(va as *const sys::va_list) };
+    #[cfg(not(target_arch = "sparc64"))]
+    let ap = va as sys::va_list;
     m.format(|dst, room| {
         // SAFETY: `room` bytes at `dst`; the driver's format and arguments.
-        // A va_list is passed as the address of its first element.
-        unsafe { sys::vsnprintf(dst as *mut c_char, room, fmt, va as sys::va_list) }
+        unsafe { sys::vsnprintf(dst as *mut c_char, room, fmt, ap) }
     });
     let r = print::route(level);
     let ce = if r.warn { sys::CE_WARN } else { sys::CE_NOTE };

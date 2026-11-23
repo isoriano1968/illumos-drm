@@ -1,0 +1,2 @@
+# libgcc helpers the sparcv9 kernel itself provides (unix), not carried.
+__multi3	# 128-bit multiply, unix (sparc)

@@ -27,9 +27,28 @@ static struct pci_driver *radeon_pci_driver;
 static int
 radeon_illumos_attach(dev_info_t *dip, ddi_attach_cmd_t cmd)
 {
+	int ret;
+
 	if (radeon_pci_driver == NULL)
 		return (DDI_FAILURE);
-	return (lkpi_pci_attach(dip, cmd, radeon_pci_driver));
+	ret = lkpi_pci_attach(dip, cmd, radeon_pci_driver);
+#if defined(__sparc)
+	/*
+	 * sun4u (Ultra 45, XVR-300): a failed attach of the display node is
+	 * followed by ddi_uninitchild(), whose pcie_disable_errors() reads
+	 * the card's config space and ends in a bus error (BERR panic,
+	 * 2026-11-23). Until that is understood, the node stays attached
+	 * without a working device when radeon's probe fails; radeon has
+	 * no PCI remove anyway, so it is never detached.
+	 */
+	if (cmd == DDI_ATTACH && ret != DDI_SUCCESS) {
+		cmn_err(CE_WARN, "radeon%d: probe failed; the node stays "
+		    "attached without a device (SPARC: no teardown)",
+		    ddi_get_instance(dip));
+		ret = DDI_SUCCESS;
+	}
+#endif
+	return (ret);
 }
 
 static int

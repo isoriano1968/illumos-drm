@@ -43,12 +43,19 @@ static struct modlinkage drm_helpers_modlinkage = {
 int
 _init(void)
 {
+#if defined(__x86_64__)
+	/*
+	 * x86: drm_cache's write-back is CLFLUSH. Other processors take
+	 * Linux's generic drm_cache.c path (sparcv9: DMA through the IOMMU
+	 * is coherent).
+	 */
 	if (!boot_cpu_has(X86_FEATURE_CLFLUSH) ||
 	    boot_cpu_data.x86_clflush_size == 0) {
 		cmn_err(CE_WARN, "drm_helpers: the processor lacks CLFLUSH "
 		    "(or reports no CLFLUSH line size); not loading");
 		return (ENOTSUP);
 	}
+#endif
 	return (mod_install(&drm_helpers_modlinkage));
 }
 
