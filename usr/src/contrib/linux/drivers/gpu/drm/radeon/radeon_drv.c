@@ -491,6 +491,7 @@ static int radeon_pmops_runtime_idle(struct device *dev)
 	return 1;
 }
 
+#ifndef __illumos__	/* the DRM core owns the device file on illumos */
 long radeon_drm_ioctl(struct file *filp,
 		      unsigned int cmd, unsigned long arg)
 {
@@ -523,6 +524,8 @@ static long radeon_kms_compat_ioctl(struct file *filp, unsigned int cmd, unsigne
 }
 #endif
 
+#endif	/* !__illumos__ */
+
 static const struct dev_pm_ops radeon_pm_ops = {
 	.suspend = radeon_pmops_suspend,
 	.resume = radeon_pmops_resume,
@@ -534,6 +537,8 @@ static const struct dev_pm_ops radeon_pm_ops = {
 	.runtime_resume = radeon_pmops_runtime_resume,
 	.runtime_idle = radeon_pmops_runtime_idle,
 };
+
+#ifndef __illumos__
 
 static const struct file_operations radeon_driver_kms_fops = {
 	.owner = THIS_MODULE,
@@ -548,6 +553,7 @@ static const struct file_operations radeon_driver_kms_fops = {
 #endif
 	.fop_flags = FOP_UNSIGNED_OFFSET,
 };
+#endif	/* !__illumos__ */
 
 static const struct drm_ioctl_desc radeon_ioctls_kms[] = {
 	DRM_IOCTL_DEF_DRV(RADEON_CP_INIT, drm_invalid_op, DRM_AUTH|DRM_MASTER|DRM_ROOT_ONLY),
@@ -593,21 +599,48 @@ static const struct drm_ioctl_desc radeon_ioctls_kms[] = {
 	DRM_IOCTL_DEF_DRV(RADEON_GEM_USERPTR, radeon_gem_userptr_ioctl, DRM_AUTH|DRM_RENDER_ALLOW),
 };
 
+#ifdef __illumos__
+/*
+ * misc/drm_kms: Linux's KMS code behind the DRM core (facade 2.0,
+ * drm_lkms.h), as for amdgpu. No console hooks: on SPARC the console
+ * stays OBP's.
+ */
+extern const struct drm_illumos_lkms_funcs drm_kms_illumos_funcs;
+#endif
+
 static const struct drm_driver kms_driver = {
+#ifdef __illumos__
+	DRM_FACADE_DRIVER_VERSION,
+	.illumos_lkms = &drm_kms_illumos_funcs,
+	/*
+	 * No DRM core object size limit: radeon limits its objects to their
+	 * domains, as on Linux (radeon_bo_create()).
+	 */
+	.illumos_max_object_size = U64_MAX,
+#endif
 	.driver_features =
 	    DRIVER_GEM | DRIVER_RENDER | DRIVER_MODESET,
 	.open = radeon_driver_open_kms,
 	.postclose = radeon_driver_postclose_kms,
+#ifndef __illumos__
+	/*
+	 * illumos: radeon has no PCI remove (as on Linux), so the device is
+	 * never unloaded; no Linux file operations, no fbdev emulation, and
+	 * PRIME is the DRM core's.
+	 */
 	.unload = radeon_driver_unload_kms,
+#endif
 	.ioctls = radeon_ioctls_kms,
 	.num_ioctls = ARRAY_SIZE(radeon_ioctls_kms),
 	.dumb_create = radeon_mode_dumb_create,
 	.dumb_map_offset = radeon_mode_dumb_mmap,
+#ifndef __illumos__
 	.fops = &radeon_driver_kms_fops,
 
 	.gem_prime_import_sg_table = radeon_gem_prime_import_sg_table,
 
 	RADEON_FBDEV_DRIVER_OPS,
+#endif
 
 	.name = DRIVER_NAME,
 	.desc = DRIVER_DESC,

@@ -1,5 +1,6 @@
 # radeon.ko's TUs of Linux v7.2 (drivers/gpu/drm/radeon/Makefile, radeon-y),
-# then the carried TTM TUs (as amdgpu carries them), paths relative to
+# then the carried TTM, drm_exec and drm_suballoc TUs (as amdgpu carries
+# them), paths relative to
 # usr/src/contrib/linux, then illumos/*.c (this directory).
 # Not built: radeon_fbdev.c (CONFIG_DRM_FBDEV_EMULATION), radeon_atpx_handler.c
 # (CONFIG_VGA_SWITCHEROO, GPL-2.0-only, not vendored), radeon_acpi.c (CONFIG_ACPI),
@@ -113,3 +114,5 @@ drivers/gpu/drm/ttm/ttm_resource.c
 drivers/gpu/drm/ttm/ttm_pool.c
 drivers/gpu/drm/ttm/ttm_device.c
 drivers/gpu/drm/ttm/ttm_sys_manager.c
+drivers/gpu/drm/drm_exec.c
+drivers/gpu/drm/drm_suballoc.c

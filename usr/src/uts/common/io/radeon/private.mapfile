@@ -1,11 +1,50 @@
 #
 # SPDX-License-Identifier: MIT
-# Kernel symbols radeon uses that the DDI mapfile lists not (filled in as
-# the link shows them, each with its reason).
+# Kernel symbols radeon uses that illumos' ddi.mapfile does not list.
 #
 $mapfile_version 2
 
 SYMBOL_SCOPE {
 	global:
+		# The module operations of a driver (modldrv).
 		mod_driverops		{ FLAGS = EXTERN };
+		#
+		# The kernel's C memory function the carried Linux code calls
+		# directly (common/util/memstr.c); the DDI lists bcmp, memcpy,
+		# memset but not memcmp.
+		#
+		memcmp			{ FLAGS = EXTERN };
+		#
+		# rwlock(9F) operations behind linuxkpi's inline rwsem
+		# (down_read_trylock(), downgrade_write()): in genunix, not in
+		# ddi.mapfile.
+		#
+		rw_tryenter		{ FLAGS = EXTERN };
+		rw_downgrade		{ FLAGS = EXTERN };
+		#
+		# <sys/atomic.h>: inline on x86, kernel functions on sparcv9
+		# (common/atomic), which ddi.mapfile does not list.
+		#
+		atomic_add_32		{ FLAGS = EXTERN };
+		atomic_add_64		{ FLAGS = EXTERN };
+		atomic_add_32_nv		{ FLAGS = EXTERN };
+		atomic_add_64_nv		{ FLAGS = EXTERN };
+		atomic_cas_32		{ FLAGS = EXTERN };
+		atomic_cas_64		{ FLAGS = EXTERN };
+		atomic_cas_ptr		{ FLAGS = EXTERN };
+		atomic_inc_32		{ FLAGS = EXTERN };
+		atomic_inc_64		{ FLAGS = EXTERN };
+		atomic_inc_32_nv		{ FLAGS = EXTERN };
+		atomic_inc_64_nv		{ FLAGS = EXTERN };
+		atomic_dec_32		{ FLAGS = EXTERN };
+		atomic_dec_64		{ FLAGS = EXTERN };
+		atomic_dec_32_nv		{ FLAGS = EXTERN };
+		atomic_dec_64_nv		{ FLAGS = EXTERN };
+		atomic_swap_32		{ FLAGS = EXTERN };
+		atomic_swap_64		{ FLAGS = EXTERN };
+		atomic_swap_ptr		{ FLAGS = EXTERN };
+		atomic_or_32		{ FLAGS = EXTERN };
+		atomic_and_32		{ FLAGS = EXTERN };
+		atomic_or_64		{ FLAGS = EXTERN };
+		atomic_and_64		{ FLAGS = EXTERN };
 };
